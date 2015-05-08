@@ -451,7 +451,7 @@ void *Handle_Light_Control(void* arg)
     return;
 }
 
-
+//ir card switch
 int HK_Infrared_Decode(void)
 {
     int ret = 0;

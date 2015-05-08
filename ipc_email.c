@@ -20,7 +20,7 @@ typedef struct emailInfo
 }HKEMAIL_T;
 */
 
-char* GetTimeCharRand(char* buf)
+static char* GetTimeCharRand(char* buf)
 {
     time_t timep;
     struct tm *p;
@@ -31,7 +31,7 @@ char* GetTimeCharRand(char* buf)
     return buf;
 }
 
-void sccInitPicCount(int iCount )
+static void sccInitPicCount(int iCount )
 {
     hk_email.mcount = iCount;
 }
@@ -82,10 +82,14 @@ extern void InitEmailInfo(int isOpen,char *mailserver, char *sendEmail, char *re
         hk_email.isOpen = 0;
     }
 }
+
+
+
+
 /**************************************/
 
 //////////////////////////////////////////////////////////
-size_t encrypt_b64(char* dest,char* src,size_t size)
+static size_t encrypt_b64(char* dest,char* src,size_t size)
 {
 	int i, tmp = 0, b64_tmp = 0;
 	
@@ -253,7 +257,7 @@ static int connect_nonblock(const char *ip,int port,int sec)
 ////////////////////////////////////////////////////////////
 // if success , return the number of bytes read
 // if error, return -1;
-ssize_t readline2(int fd, void *vptr, size_t maxlen) 
+static ssize_t readline2(int fd, void *vptr, size_t maxlen) 
 {
 	ssize_t	n, rc;
 	char	c, *ptr;
@@ -284,7 +288,7 @@ again:
 
 
 //////////////////////////////////////////////////////////
-int encrypt_b64_file_to_buf(char* en64_buf, char *emailBuffer, int size )
+static int encrypt_b64_file_to_buf(char* en64_buf, char *emailBuffer, int size )
 {
 	//int r_size = 100*1024;
 	//int r_size = 500*1024;
@@ -365,7 +369,7 @@ static int write_image_buf(int socketfd)
 	return 1;
 }
 
-int send_mail_to_user(char *smtp_server,char *passwd, char *send_from,const
+extern int send_mail_to_user(char *smtp_server,char *passwd, char *send_from,const
 		char *send_to, char *smtp_user, char *body, int iType)
 {
 	if(NULL == smtp_server || NULL == passwd || NULL == send_from || NULL ==
