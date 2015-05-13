@@ -4751,6 +4751,86 @@ extern int g_RotateSpeed;   //rotate speed
 extern int g_UD_StepCount; //calculate the whole length from top to bottom.
 extern int g_LR_StepCount; //calculate the whole lenght from left to right.
 extern unsigned long g_tmPTZStart;
+#if ENABLE_P2P
+void OnCmdPtz(int ev )
+{
+
+	if (1)
+	{
+		switch (ev) //ptz rotate step by step.
+		{
+			case 1: //left
+				g_PtzRotateEnable = 1;
+				g_PtzRotateType = 0;
+				g_PtzPresetPos = 0;
+				g_PtzStepType = 2; //right.
+				break;
+			case 2: //right.
+				g_PtzRotateEnable = 1;
+				g_PtzRotateType = 0;
+				g_PtzPresetPos = 0;
+				g_PtzStepType = 1; //left.
+				break;
+			case 3: //up.
+				g_PtzRotateEnable = 1;
+				g_PtzRotateType = 0;
+				g_PtzPresetPos = 0;
+				g_PtzStepType = 4; //down.
+				break;
+			case 4: //down.
+				g_PtzRotateEnable = 1;
+				g_PtzRotateType = 0;
+				g_PtzPresetPos = 0;
+				g_PtzStepType = 3; //up.
+				break;
+			default:
+				g_PtzRotateEnable = 0;
+				g_PtzStepType = 0;	
+				g_PtzRotateType = 0;
+				g_PtzPresetPos = 0;
+				break;
+		}
+	}
+	else
+	{    
+		switch (ev) //step by step.
+		{ 
+			case 1:		
+				g_PtzRotateEnable = 1;
+				g_PtzRotateType = 0;
+				g_PtzPresetPos = 0;
+				g_PtzStepType = 1; //left.
+				break;
+			case 2:
+				g_PtzRotateEnable = 1;
+				g_PtzRotateType = 0;
+				g_PtzPresetPos = 0;
+				g_PtzStepType = 2; //right.
+				break;
+			case 3:
+				g_PtzRotateEnable = 1;
+				g_PtzRotateType = 0;
+				g_PtzPresetPos = 0;
+				g_PtzStepType = 3; //up.
+				break;
+			case 4:
+				g_PtzRotateEnable = 1;
+				g_PtzRotateType = 0;
+				g_PtzPresetPos = 0;
+				g_PtzStepType = 4; //down.
+				break;
+			default:
+				g_PtzRotateEnable = 0;
+				g_PtzStepType = 0;	
+				g_PtzRotateType = 0;
+				g_PtzPresetPos = 0;
+				break;
+		}
+	}
+	return;
+}
+
+#endif
 
 void OnMonPtz( const char *ev )
 {
@@ -5735,7 +5815,9 @@ static int VDoEvent( const char* devname, int obj, const char* ev )
 			OnMonSetDevTranslate( ev ); //translate.
 			break;
 		case HK_MON_CONTROLPT: //PTZ step by step.
+			#if ENABLE_P2P
 			OnMonPtz( ev);
+			#endif
 			break;
 		case HK_MON_AUTOLPTSPEED:
 			OnAutoLptspeed( ev ); //auto curise.

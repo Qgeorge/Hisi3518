@@ -1,6 +1,9 @@
 #include "P2Pserver.h"
 
 #define  MAX_SIZE  (512*1024)
+
+extern void OnCmdPtz(int ev);
+
 static CHAR g_cSubFilebuf[MAX_SIZE]; 
 static INT32  g_nSubCurfilebufsize = 0;
 static CHAR g_SubFrameBuf[MAX_FRAME_SIZE]; 
@@ -19,8 +22,6 @@ typedef struct nalu_s
 	char  *nalubuf;
 	int   nalusize;
 }nalu_t;
-
-
 
 static int h264_get_nalu(nalu_t *nalu,char *srcbuf,int srcsize)
 {
@@ -284,6 +285,7 @@ static INT32 NetPtzControl(void * pThis,CHAR* _u8Buf,INT32 _iBufLength)
 {
 	PtzControlReq *pReq = (PtzControlReq *)_u8Buf;
 	dbgmsg("##########  rcv %s  message \n", __FUNCTION__);
+	OnCmdPtz(pReq->mPtzData.iAction);
 	return 0;
 }
 
