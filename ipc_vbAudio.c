@@ -26,6 +26,10 @@
 #include "ipc_hk.h"
 #include "g711codec.h"
 
+#if ENABLE_P2P
+#include "P2Pserver.h"
+#endif
+
 #if ENABLE_ONVIF
 #include "IPCAM_Export.h"
 #endif
@@ -779,6 +783,10 @@ static void AudioThread(void)
 					printf("%s: HI_MPI_AENC_GetStream(%d) failed with %#x!\n", __FUNCTION__, s_AencChn, s32ret);
 					break;
 				}
+#if ENABLE_P2P
+				P2PNetServerChannelDataSndToLink( 0, 0, stStream.pStream, stStream.u32Len, 1, DATA_AUDIO);
+				P2PNetServerChannelDataSndToLink( 0, 1, stStream.pStream, stStream.u32Len, 1, DATA_AUDIO);
+#endif
 
 #if ENABLE_ONVIF
 				//pAudioBuf->dwFameSize = stStream.u32Len;
