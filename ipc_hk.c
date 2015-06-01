@@ -33,6 +33,11 @@
 extern INT32 p2p_server_f(); 
 #endif
 
+#if ENABLE_QQ
+
+extern bool initDevice();
+#endif
+
 #if ENABLE_ONVIF
 #include "IPCAM_Export.h"
 #endif
@@ -4050,10 +4055,10 @@ int main(int argc, char* argv[])
 	GetSdAlarmParam(); //get sd card configuration info.
 
 	/**video callbacks for client operations**/
-	video_RSLoadObjects( &SysRegisterDev );
+	//video_RSLoadObjects( &SysRegisterDev );
 
 	/**audio callbacks for client operations**/
-	audio_RSLoadObjects( &SysRegisterDev );
+	//audio_RSLoadObjects( &SysRegisterDev );
 
 	hk_load_sd(); //mount sd card.
 
@@ -4078,15 +4083,20 @@ int main(int argc, char* argv[])
 	HK_Infrared_Decode();
 #endif
 
+#if ENABLE_QQ
+	printf("####################################################\n");
+	initDevice();
+#endif
+
 #if ENABLE_P2P
-        create_my_detached_thread(p2p_server_f);
+        //create_my_detached_thread(p2p_server_f);
 #endif
 
 	be_present( 1 );
 	sccUpdateServerAdd();
 
 #if ENABLE_P2P
-	IPC_Video_Audio_Thread_Init();
+	//IPC_Video_Audio_Thread_Init();
 #endif
 
 #if ENABLE_ONVIF

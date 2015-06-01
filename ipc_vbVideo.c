@@ -2989,9 +2989,19 @@ static int sccOpen(const char* name, const char* args, int* threq)
 
 //extern LPIPCAM_VIDEOBUFFER g_mH264VideoBuf;
 //extern LPIPCAM_VIDEOBUFFER g_sH264VideoBuf;
-static int g_Video_Thread=0;
+int g_Video_Thread=0;
 static int sccRead_H264( );
+#if ENABLE_QQ
+static int s_gopIndex = 0;
+static int s_nFrameIndex = -1;
+static int s_dwTotalFrameIndex = 0;
 
+unsigned long _GetTickCount() {        
+        struct timeval current = {0};  
+        gettimeofday(&current, NULL);  
+        return (current.tv_sec*1000 + current.tv_usec/1000);                           
+}
+#endif
 #if 0
 int sccGetVideoThread()
 {
@@ -3134,6 +3144,10 @@ int sccGetVideoThread()
 					{
 						case H264E_NALU_PSLICE:
 							iFrame = 1; //HK_BOAT_PFREAM; //P frame
+#if ENABLE_QQ
+							s_nFrameIndex++;
+#endif
+
 #if ENABLE_ONVIF
 							pH264VideoBuf->dwFrameType = VIDEO_P_FRAME;
 #endif
@@ -3144,7 +3158,11 @@ int sccGetVideoThread()
 							continue;
 							break;
 						default:
-							iFrame = 0; //HK_BOAT_IFREAM; //I frame                        
+							iFrame = 0; //HK_BOAT_IFREAM; //I frame
+#if ENABLE_QQ
+							s_gopIndex++;
+#endif
+
 #if ENABLE_ONVIF
 							pH264VideoBuf->dwFrameType = VIDEO_I_FRAME;
 #endif
@@ -3160,6 +3178,11 @@ int sccGetVideoThread()
 
 #if ENABLE_P2P
                                 P2PNetServerChannelDataSndToLink(0,0,videobuf,iLen,iFrame,0);
+#endif
+
+#if ENABLE_QQ
+                                P2PNetServerChannelDataSndToLink(0,0,videobuf,iLen,iFrame,0);
+				tx_set_video_data(videobuf, iLen, iFrame, _GetTickCount(), s_gopIndex, s_nFrameIndex, s_dwTotalFrameIndex++, 40);
 #endif
 
 
