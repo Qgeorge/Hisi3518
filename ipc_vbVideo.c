@@ -3002,6 +3002,7 @@ unsigned long _GetTickCount() {
         return (current.tv_sec*1000 + current.tv_usec/1000);                           
 }
 #endif
+
 #if 0
 int sccGetVideoThread()
 {
@@ -3044,27 +3045,6 @@ int sccGetVideoThread()
 	struct timeval TimeoutVal;
 	VENC_PACK_S *pstPack = NULL;	
 
-#if ENABLE_ONVIF
-	LPIPCAM_VIDEOBUFFER pH264VideoBuf = NULL;
-
-	IPCAM_PTHREAD_DETACH;
-	IPCAM_setTskName("MainVideoThread");
-
-	param.sched_priority = ((sched_get_priority_min(SCHED_FIFO) + sched_get_priority_max(SCHED_FIFO)) / 3) * 2;
-	if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &param) != 0)
-	{
-		IPCAM_DEBUG("can not set thread prio\r\n");
-	}
-
-	pH264VideoBuf = (LPIPCAM_VIDEOBUFFER)malloc(sizeof(IPCAM_VIDEOBUFFER));
-	if (NULL == pH264VideoBuf)
-	{
-		HK_DEBUG_PRT("malloc failed, %d, %s\n", errno, strerror(errno));
-		pH264VideoBuf = NULL;	
-		return NULL;
-	}
-#endif
-
 	pstPack = (VENC_PACK_S *)malloc(sizeof(VENC_PACK_S) * 128);
 	if (NULL == pstPack)
 	{
@@ -3086,7 +3066,6 @@ int sccGetVideoThread()
 		{
 			SAMPLE_PRT("select failed!\n");
 			usleep(1000);
-			//break;
 			continue;
 		}
 		else if (s32Ret > 0)
@@ -3117,25 +3096,11 @@ int sccGetVideoThread()
 
 				for (j = 0; j < stStream.u32PackCount; j++)
 				{
-#if 1
-					if (iLen + stStream.pstPack[j].u32Len[0] >= (200*1024))
-					{
-						HK_DEBUG_PRT("......large data... iLen:%d, iLen+u32Len[0]:%d...\n", iLen, iLen+stStream.pstPack[j].u32Len[0]);
-						//stStream.pstPack[j].u32Len[0] = (200*1024) - iLen - (3*1024); //lost 3K.
-					}
-#endif
 					memcpy( videobuf + iLen, stStream.pstPack[j].pu8Addr[0], stStream.pstPack[j].u32Len[0] );
 					iLen += stStream.pstPack[j].u32Len[0];	       
 
 					if (stStream.pstPack[j].u32Len[1] > 0)
 					{
-#if 1
-						if ( (iLen + stStream.pstPack[j].u32Len[1]) >= (200*1024) )
-						{
-							HK_DEBUG_PRT("......large data... iLen:%d, iLen+u32Len[1]:%d...\n", iLen, iLen+stStream.pstPack[j].u32Len[1]);
-							//stStream.pstPack[j].u32Len[1] = (200*1024) - iLen - 1024; //lost 1K.
-						}
-#endif
 						memcpy( videobuf+iLen, stStream.pstPack[j].pu8Addr[1], stStream.pstPack[j].u32Len[1] );
 						iLen += stStream.pstPack[j].u32Len[1];
 					}
@@ -3146,10 +3111,6 @@ int sccGetVideoThread()
 							iFrame = 1; //HK_BOAT_PFREAM; //P frame
 #if ENABLE_QQ
 							s_nFrameIndex++;
-#endif
-
-#if ENABLE_ONVIF
-							pH264VideoBuf->dwFrameType = VIDEO_P_FRAME;
 #endif
 							break;
 						case H264E_NALU_BUTT:
@@ -3163,13 +3124,9 @@ int sccGetVideoThread()
 							s_gopIndex++;
 #endif
 
-#if ENABLE_ONVIF
-							pH264VideoBuf->dwFrameType = VIDEO_I_FRAME;
-#endif
 							break;
 					}
 				} //end for()
-
 
 				/*****OSD: TIME*****/
 				RgnHandle = 3 + s_vencChn;
@@ -3185,21 +3142,6 @@ int sccGetVideoThread()
 				tx_set_video_data(videobuf, iLen, iFrame, _GetTickCount(), s_gopIndex, s_nFrameIndex, s_dwTotalFrameIndex++, 40);
 #endif
 
-
-
-#if ENABLE_ONVIF
-				memcpy( pH264VideoBuf->VideoBuffer, videobuf, iLen );
-				pH264VideoBuf->bzEncType	  = ENC_AVC;
-				pH264VideoBuf->dwBufferType   = VIDEO_LOCAL_RECORD;
-				pH264VideoBuf->dwFrameNumber  = stStream.u32Seq; 
-				pH264VideoBuf->dwWidth		  = g_stVencChnAttrMain.stVeAttr.stAttrH264e.u32PicWidth;
-				pH264VideoBuf->dwHeight 	  = g_stVencChnAttrMain.stVeAttr.stAttrH264e.u32PicHeight;
-				pH264VideoBuf->dwSec		  = stStream.pstPack[0].u64PTS/1000;
-				pH264VideoBuf->dwUsec		  = (stStream.pstPack[0].u64PTS%1000)*1000;
-				pH264VideoBuf->dwFameSize	  = iLen;	
-				IPCAM_PutStreamData(VIDEO_LOCAL_RECORD, 0, VOIDEO_MEDIATYPE_VIDEO, pH264VideoBuf);
-#endif
-
 				s32Ret = HI_MPI_VENC_ReleaseStream(s_vencChn, &stStream);
 				if (HI_SUCCESS != s32Ret)
 				{
@@ -3209,46 +3151,11 @@ int sccGetVideoThread()
 					continue;
 					//break;
 				}
-
-				/** push pool stream **/
-				//if (1 == g_isH264Open)
-				if (2 == g_isH264Open)
-				{
-					sccPushStream( 1234, PSTREAMONE, videobuf, iLen, iFrame, g_iCifOrD1, H264 );
-
-					if (1 == video_properties_.vv[HKV_Cbr]) //hkipc.conf => 0:CBR, 1:VBR.
-					{
-						int nRate = GetMainVideoRate( iLen );
-						if ( (nRate > 300) && (g_VbrMaxQq == VBR_MAXQP_33) )
-						{
-							Set_VBR_Image_QP( g_s32venchn, VBR_MAXQP_38 );
-							g_VbrMaxQq = VBR_MAXQP_38;
-							//printf( "fxb ------------- high change Vide, nRate: %d, g_VbrMaxQq: %d \n", nRate, g_VbrMaxQq );
-						}
-						else if ( (nRate < 50) && (nRate > 0) && (g_VbrMaxQq == VBR_MAXQP_38) )
-						{
-							Set_VBR_Image_QP( g_s32venchn, VBR_MAXQP_33 );
-							g_VbrMaxQq = VBR_MAXQP_33;
-							//printf( "fxb ---------------  low, nRate: %d, g_VbrMaxQq:%d \n", nRate, g_VbrMaxQq );
-						}
-					}
-				}
-
-				if (hkSdParam.sdrecqc == 1)
-				{
-					sccPushTfData( PSTREAMTWO, videobuf, iLen, iFrame, g_iCifOrD1, H264 );
-				}
 			}
 		}// end while.
 	}
-	g_Video_Thread = 0;
 	HK_DEBUG_PRT("......video thread quit......\n");
 	if(pstPack)  free(pstPack);
-#if ENABLE_ONVIF
-	if(pH264VideoBuf)	free(pH264VideoBuf);
-	IPCAM_PTHREAD_EXIT;	
-#endif
-
 	return 1;
 }
 #endif

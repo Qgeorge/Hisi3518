@@ -3971,7 +3971,7 @@ int main(int argc, char* argv[])
 	int IRCutBoardType = 0;
 	int threq = 0;
 
-	hk_load_pppoe();
+	//hk_load_pppoe();
 	CheckDevCfg();
 	init_conf(); //create system configurate file.
 	hk_set_system_time(); //update device time.
@@ -4045,11 +4045,11 @@ int main(int argc, char* argv[])
 	atoi(getEnv("LogBackground","1")) ? LOG_Background() : LOG_Foreground();
 	LOG_SetLevel(atoi(getEnv("LogLevel", "0")));
 
-	tq_ = tq_create();
-	SysInit(&cb_init);
-	SysRegistASLan_0(LOCAL_ASC, 0, &cb_lan);
-	first_run_check(tq_, &counter);
-	sleep(1);
+	//tq_ = tq_create();
+	//SysInit(&cb_init);
+	//SysRegistASLan_0(LOCAL_ASC, 0, &cb_lan);
+	//first_run_check(tq_, &counter);
+	//sleep(1);
 
 	GetAlarmEmailInfo(); //get email configuration info
 	GetSdAlarmParam(); //get sd card configuration info.
@@ -4220,10 +4220,10 @@ int main(int argc, char* argv[])
 	gSysTime = time(0);
 	gbStartTime = 1;
 	LanNetworking(0);
-	SysRegistASLan_0(LOCAL_ASC, &cb_lan, 0);
-	SysLogout();
-	SysExit();
-	tq_destroy(tq_);
+	//SysRegistASLan_0(LOCAL_ASC, &cb_lan, 0);
+	//SysLogout();
+	//SysExit();
+	//tq_destroy(tq_);
 
 	if (quit_ != Excode_Stop)
 		exiting_progress();
