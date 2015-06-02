@@ -749,7 +749,7 @@ static void AudioThread(void)
 	char g711a_buf[320*5]={0};
 
 #if ENABLE_QQ
-	tx_audio_encode_param audio_encode_param;
+	//tx_audio_encode_param audio_encode_param;
 #endif
 
 #if ENABLE_ONVIF
@@ -762,12 +762,12 @@ static void AudioThread(void)
 #endif
 
 #if ENABLE_QQ
-	audio_encode_param.head_length = 12
-	audio_encode_param.audio_format = 1;
-	audio_encode_param.encode_param = 7;
-	audio_encode_param.frame_per_pkg = 8;
-	audio_encode_param.sampling_info = GET_SIMPLING_INFO(1, 8, 16);
-	audio_encode_param.reserved = 0;
+	//audio_encode_param.head_length = 12
+	//audio_encode_param.audio_format = 1;
+	//audio_encode_param.encode_param = 7;
+	//audio_encode_param.frame_per_pkg = 8;
+	//audio_encode_param.sampling_info = GET_SIMPLING_INFO(1, 8, 16);
+	//audio_encode_param.reserved = 0;
 #endif
 
 	FD_ZERO(&read_fds);    
@@ -809,7 +809,7 @@ static void AudioThread(void)
 #endif
 
 #if ENABLE_QQ
-				tx_set_audio_data(tx_audio_encode_param *param, stStream.pStream, stStream.u32Len);
+				//tx_set_audio_data(tx_audio_encode_param *param, stStream.pStream, stStream.u32Len);
 #endif
 
 #if ENABLE_ONVIF
