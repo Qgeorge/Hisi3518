@@ -2993,8 +2993,6 @@ int g_Video_Thread=0;
 static int sccRead_H264( );
 #if ENABLE_QQ
 static int s_gopIndex = 0;
-static int s_nFrameIndex = -1;
-static int s_dwTotalFrameIndex = 0;
 
 unsigned long _GetTickCount() {        
         struct timeval current = {0};  
@@ -3024,19 +3022,18 @@ int sccGetVideoThread()
 	sccOpen("video.vbVideo.MPEG4", NULL, &threq);
 
 	char videobuf[200*1024] = {0};
-	//char videobuf[300*1024] = {0};
 	HI_S32 s32Ret = 0;
-	int iLen = 0;  //stream data size.
+	int iLen = 0; 		   //stream data size.
 	static int s_vencChn = 0;  //Venc Channel.
 	static int s_vencFd = 0;   //Venc Stream File Descriptor..
 	static int s_maxFd = 0;    //mac fd for select.
 	int iFrame = 0;
 	fd_set read_fds;
-	VENC_STREAM_S stStream; //captured stream data struct.	
+	VENC_STREAM_S stStream;    //captured stream data struct.	
 	VENC_CHN_STAT_S stStat;
 
 	s_vencFd = g_VencFd_Main;
-	s_maxFd = s_vencFd + 1; //for select.
+	s_maxFd = s_vencFd + 1;    //for select.
 	s_vencChn = g_Venc_Chn_M_Cur; //current video encode channel.	
 	int j = 0;
 	RGN_HANDLE RgnHandle = 0;
@@ -3052,12 +3049,13 @@ int sccGetVideoThread()
 		pstPack = NULL;
 		return NULL;
 	}
-
-	sleep(1);
 	while( g_Video_Thread )
 	{
 		FD_ZERO( &read_fds );
 		FD_SET( s_vencFd, &read_fds );
+
+		static int s_nFrameIndex = -1;
+		static int s_dwTotalFrameIndex = 0;
 
 		TimeoutVal.tv_sec  = 2;
 		TimeoutVal.tv_usec = 0;
@@ -3073,13 +3071,11 @@ int sccGetVideoThread()
 			if (FD_ISSET( s_vencFd, &read_fds ))
 			{
 				iLen = 0;
-				//memset(videobuf, 0, sizeof(videobuf)); //note: high CPU
 				s32Ret = HI_MPI_VENC_Query( s_vencChn, &stStat );
 				if (HI_SUCCESS != s32Ret)
 				{
 					SAMPLE_PRT("HI_MPI_VENC_Query chn[%d] failed with %#x!\n", s_vencChn, s32Ret);
 					usleep(1000);
-					//break;
 					continue;
 				}
 
@@ -3123,7 +3119,6 @@ int sccGetVideoThread()
 #if ENABLE_QQ
 							s_gopIndex++;
 #endif
-
 							break;
 					}
 				} //end for()
@@ -3134,12 +3129,12 @@ int sccGetVideoThread()
 				/*****OSD END*****/
 
 #if ENABLE_P2P
-                                P2PNetServerChannelDataSndToLink(0,0,videobuf,iLen,iFrame,0);
+                                //P2PNetServerChannelDataSndToLink(0,0,videobuf,iLen,iFrame,0);
 #endif
 
 #if ENABLE_QQ
-                                P2PNetServerChannelDataSndToLink(0,0,videobuf,iLen,iFrame,0);
 				tx_set_video_data(videobuf, iLen, iFrame, _GetTickCount(), s_gopIndex, s_nFrameIndex, s_dwTotalFrameIndex++, 40);
+				//tx_set_video_data(videobuf, iLen, iFrame, _GetTickCount(), 0, 0, 0, 40);
 #endif
 
 				s32Ret = HI_MPI_VENC_ReleaseStream(s_vencChn, &stStream);
@@ -3149,13 +3144,15 @@ int sccGetVideoThread()
 					stStream.pstPack = NULL;
 					usleep(1000);
 					continue;
-					//break;
 				}
 			}
-		}// end while.
-	}
+		}
+	}//end while
 	HK_DEBUG_PRT("......video thread quit......\n");
-	if(pstPack)  free(pstPack);
+	if(pstPack)
+	{
+		free(pstPack);
+	}
 	return 1;
 }
 #endif
