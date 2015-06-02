@@ -719,6 +719,13 @@ int IPCAM_AudioDecode(char *pAudioBuf,unsigned int len)
 //	return bytes;
 //}
 
+#if ENABLE_QQ 
+int GET_SIMPLING_INFO(int channel_num, int sample , int width)
+{
+        int d = ((channel_num << 24) | (sample << 16) | (width << 8) | 0x00);
+        return d;
+}
+#endif
 static int g_Audio_Thread=0;
 static void AudioThread(void)
 {
@@ -741,6 +748,10 @@ static void AudioThread(void)
 	int G711U_Len = 0, G711A_Len = 0;
 	char g711a_buf[320*5]={0};
 
+#if ENABLE_QQ
+	tx_audio_encode_param audio_encode_param;
+#endif
+
 #if ENABLE_ONVIF
 	LPIPCAM_AUDIOBUFFER pAudioBuf = NULL;
 	pAudioBuf = (LPIPCAM_AUDIOBUFFER)malloc(sizeof(IPCAM_AUDIOBUFFER));
@@ -748,6 +759,15 @@ static void AudioThread(void)
 
 	IPCAM_PTHREAD_DETACH;
 	IPCAM_setTskName("AudioThread");
+#endif
+
+#if ENABLE_QQ
+	audio_encode_param.head_length = 12
+	audio_encode_param.audio_format = 1;
+	audio_encode_param.encode_param = 7;
+	audio_encode_param.frame_per_pkg = 8;
+	audio_encode_param.sampling_info = GET_SIMPLING_INFO(1, 8, 16);
+	audio_encode_param.reserved = 0;
 #endif
 
 	FD_ZERO(&read_fds);    
@@ -786,6 +806,10 @@ static void AudioThread(void)
 #if ENABLE_P2P
 				P2PNetServerChannelDataSndToLink( 0, 0, stStream.pStream, stStream.u32Len, 1, DATA_AUDIO);
 				P2PNetServerChannelDataSndToLink( 0, 1, stStream.pStream, stStream.u32Len, 1, DATA_AUDIO);
+#endif
+
+#if ENABLE_QQ
+				tx_set_audio_data(tx_audio_encode_param *param, stStream.pStream, stStream.u32Len);
 #endif
 
 #if ENABLE_ONVIF
