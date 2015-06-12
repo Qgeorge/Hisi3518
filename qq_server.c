@@ -203,7 +203,8 @@ void log_func(int level, const char* module, int line, const char* message)
 }
 void OnCmdPtzQQ(int rotate_direction, int rotate_degree)
 {
-	OnCmdPtz(rotate_degree);
+	printf("$$$$$$$$$$%d$$$$$$$$$$$$$$$$$\n",rotate_direction);
+	OnCmdPtz(rotate_direction);
 }
 /**
  * SDK初始化

@@ -4687,36 +4687,46 @@ void OnCmdPtz(int ev )
 		switch (ev) //ptz rotate step by step.
 		{
 			case 1: //left
+				printf("*****************1\n");
 				g_PtzRotateEnable = 1;
 				g_PtzRotateType = 0;
 				g_PtzPresetPos = 0;
 				g_PtzStepType = 2; //right.
 				break;
 			case 2: //right.
+				printf("*****************2\n");
 				g_PtzRotateEnable = 1;
 				g_PtzRotateType = 0;
 				g_PtzPresetPos = 0;
 				g_PtzStepType = 1; //left.
 				break;
 			case 3: //up.
+				printf("*****************3\n");
 				g_PtzRotateEnable = 1;
 				g_PtzRotateType = 0;
 				g_PtzPresetPos = 0;
 				g_PtzStepType = 4; //down.
 				break;
 			case 4: //down.
+				printf("*****************4\n");
 				g_PtzRotateEnable = 1;
 				g_PtzRotateType = 0;
 				g_PtzPresetPos = 0;
 				g_PtzStepType = 3; //up.
 				break;
 			default:
+				printf("*****************0\n");
 				g_PtzRotateEnable = 0;
 				g_PtzStepType = 0;	
 				g_PtzRotateType = 0;
 				g_PtzPresetPos = 0;
 				break;
 		}
+		sleep(1);
+		g_PtzRotateEnable = 0;
+		g_PtzStepType = 0;
+		g_PtzRotateType = 0;
+		g_PtzPresetPos = 0;
 	}
 	else
 	{    
@@ -4726,13 +4736,13 @@ void OnCmdPtz(int ev )
 				g_PtzRotateEnable = 1;
 				g_PtzRotateType = 0;
 				g_PtzPresetPos = 0;
-				g_PtzStepType = 1; //left.
+				g_PtzStepType = 2; //left.
 				break;
 			case 2:
 				g_PtzRotateEnable = 1;
 				g_PtzRotateType = 0;
 				g_PtzPresetPos = 0;
-				g_PtzStepType = 2; //right.
+				g_PtzStepType = 1; //right.
 				break;
 			case 3:
 				g_PtzRotateEnable = 1;
