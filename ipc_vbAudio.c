@@ -743,7 +743,9 @@ void AudioThread(void)
 	fd_set read_fds;
 	struct timeval TimeoutVal;
 	int G711U_Len = 0, G711A_Len = 0;
-//	char g711a_buf[320*5]={0};
+#if 0
+	char g711a_buf[320*5]={0};
+#endif
 	char amr_buf[32*2];
 	int ret;
 
