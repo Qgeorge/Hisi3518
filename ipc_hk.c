@@ -34,7 +34,6 @@ extern INT32 p2p_server_f();
 #endif
 
 #if ENABLE_QQ
-
 extern bool initDevice();
 #endif
 
@@ -4062,14 +4061,14 @@ int main(int argc, char* argv[])
 
 	hk_load_sd(); //mount sd card.
 
-	mpeg_.tq = tq_;
-	LanNetworking(1);
-	monc_start(NULL, HK_PASSWD_FAIL); 
-	if (g_isWanEnable != 1)
-	{
+	//mpeg_.tq = tq_;
+	//LanNetworking(1);
+	//monc_start(NULL, HK_PASSWD_FAIL); 
+	//if (g_isWanEnable != 1)
+	//{
 		//printf("...zzz...%s...g_isWanEnable:%d...\n", __func__, g_isWanEnable);
-		start_nonblock_login();
-	}
+	//	start_nonblock_login();
+	//}
 
 #if (HK_PLATFORM_HI3518E)
 	/*****neck Cruise*****/
@@ -4082,6 +4081,7 @@ int main(int argc, char* argv[])
 #if (DEV_INFRARED)
 	HK_Infrared_Decode();
 #endif
+
 
 #if ENABLE_QQ
 	printf("####################################################\n");

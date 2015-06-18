@@ -17,6 +17,7 @@ INCPATH     = -I . -I $(PRO_DIR)/IPCAM_LIB/system/include 		  \
 			  -I ../../include 								  \
 			  -I ../p2p_server/include 				  \
 			  -I ../qq_server/include 				  \
+			  -I ../amr-lib/include/opencore-amrnb/ 		\
 			  -I $(PRO_DIR)/Hi3518_SDK_V1.0.8.1/mpp/extdrv/tw2865 \
 			  -I $(PRO_DIR)/IPCAM_LIB/openssl_3518/lib_openssl/include \
 			  -I $(PRO_DIR)/Hi3518_SDK_V1.0.8.1/drv/hisi-irda	  \
@@ -24,6 +25,7 @@ INCPATH     = -I . -I $(PRO_DIR)/IPCAM_LIB/system/include 		  \
 
 LIBPATH     = -L ../lib_so -lsystem -lchinalink -lnetfactory -lutils \
 			  -L ../p2p_server/lib/arm-hisiv100nptl-linux-gcc -lp2p -lpthread -lm \
+			  -L ../amr-lib/lib -lopencore-amrnb \
 			  -L ../qq_server/lib/ -ltxdevicesdk -lpthread -ldl -lssl -lcrypto -lstdc++ \
 			  -L ../../lib -lpthread -lm -lmpi -lVoiceEngine -laec -lresampler -lanr -lisp -lsns_ov9712 \
 			  -L $(PRO_DIR)/IPCAM_LIB/openssl_3518/lib_openssl/lib -lssl -lcrypto \

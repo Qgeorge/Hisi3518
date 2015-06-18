@@ -30,11 +30,15 @@
  */
 /********************************************************************/
 extern int g_Video_Thread;
+extern int g_Audio_Thread;
 extern int sccGetVideoThread();
+extern void AudioThread(void);
+
 extern void OnCmdPtz(int ev );
 
 
 static pthread_t thread_enc_id = 0;
+static pthread_t athread_enc_id = 0;
 
 
 void * myscc()
@@ -106,6 +110,15 @@ bool test_restart_gop() {
  */
 bool test_start_mic() {
 	printf("###### test_start_mic ###################################### \n");
+	g_Audio_Thread = 1;
+	int ret = pthread_create(&athread_enc_id, NULL, (void *)AudioThread, NULL);
+	//int ret = pthread_create(&thread_enc_id, NULL, (void *)myscc, NULL);
+	
+	if (ret || !athread_enc_id) {
+		g_Audio_Thread = 0;
+		return false;
+	}
+
 	return true;
 }
 
@@ -116,6 +129,11 @@ bool test_start_mic() {
  */
 bool test_stop_mic() {
 	printf("###### test_stop_mic ######################################\n");
+	g_Audio_Thread = 0;
+	if(athread_enc_id !=0) {
+		pthread_join(athread_enc_id,NULL);
+		athread_enc_id = 0;
+	}
 	return true;
 }
 

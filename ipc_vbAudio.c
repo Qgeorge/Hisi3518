@@ -30,10 +30,14 @@
 #include "P2Pserver.h"
 #endif
 
+#if ENABLE_QQ
+#include "TXAudioVideo.h"
+#endif
+
 #if ENABLE_ONVIF
 #include "IPCAM_Export.h"
 #endif
-
+extern int PCM2AMR(char *pStream, int len, char *outbuf);
 //extern LPIPCAM_AUDIOBUFFER g_AudioBuf;
 //zqjun.
 /************************ AUDIO params **************************/
@@ -719,15 +723,8 @@ int IPCAM_AudioDecode(char *pAudioBuf,unsigned int len)
 //	return bytes;
 //}
 
-#if ENABLE_QQ 
-int GET_SIMPLING_INFO(int channel_num, int sample , int width)
-{
-        int d = ((channel_num << 24) | (sample << 16) | (width << 8) | 0x00);
-        return d;
-}
-#endif
-static int g_Audio_Thread=0;
-static void AudioThread(void)
+int g_Audio_Thread=0;
+void AudioThread(void)
 {
 	printf("scc Create AudioThread.......\n");
 	int threq = 0;
@@ -747,9 +744,11 @@ static void AudioThread(void)
 	struct timeval TimeoutVal;
 	int G711U_Len = 0, G711A_Len = 0;
 	char g711a_buf[320*5]={0};
+	char amr_buf[320];
+	int ret;
 
 #if ENABLE_QQ
-	//tx_audio_encode_param audio_encode_param;
+	tx_audio_encode_param audio_encode_param;
 #endif
 
 #if ENABLE_ONVIF
@@ -762,12 +761,12 @@ static void AudioThread(void)
 #endif
 
 #if ENABLE_QQ
-	//audio_encode_param.head_length = 12
-	//audio_encode_param.audio_format = 1;
-	//audio_encode_param.encode_param = 7;
-	//audio_encode_param.frame_per_pkg = 8;
-	//audio_encode_param.sampling_info = GET_SIMPLING_INFO(1, 8, 16);
-	//audio_encode_param.reserved = 0;
+	audio_encode_param.head_length = 12;
+	audio_encode_param.audio_format = 1;
+	audio_encode_param.encode_param = 7;
+	audio_encode_param.frame_per_pkg = 2;
+	audio_encode_param.sampling_info = GET_SIMPLING_INFO(1, 8, 16);
+	audio_encode_param.reserved = 0;
 #endif
 
 	FD_ZERO(&read_fds);    
@@ -809,7 +808,8 @@ static void AudioThread(void)
 #endif
 
 #if ENABLE_QQ
-				//tx_set_audio_data(tx_audio_encode_param *param, stStream.pStream, stStream.u32Len);
+				ret = PCM2AMR(stStream.pStream, stStream.u32Len, amr_buf);
+				tx_set_audio_data(&audio_encode_param, amr_buf, ret);
 #endif
 
 #if ENABLE_ONVIF
