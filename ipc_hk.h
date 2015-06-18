@@ -38,7 +38,7 @@
 #define DEV_INFRARED    0 //xhd infrared remoter.
 
 //#define ENABLE_ONVIF    1 //0:disable onvif; 1:enable onvif.
-#define ENABLE_P2P	1
+#define ENABLE_P2P	0
 #define ENABLE_QQ	1
 
 #define JPEG_SNAP       0

@@ -1,7 +1,7 @@
 #include "P2Pserver.h"
 
 #define  MAX_SIZE  (512*1024)
-
+#define ENABLE_P2P
 extern void OnCmdPtz(int ev);
 
 static CHAR g_cSubFilebuf[MAX_SIZE]; 

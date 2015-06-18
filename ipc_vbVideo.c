@@ -4678,7 +4678,7 @@ extern int g_RotateSpeed;   //rotate speed
 extern int g_UD_StepCount; //calculate the whole length from top to bottom.
 extern int g_LR_StepCount; //calculate the whole lenght from left to right.
 extern unsigned long g_tmPTZStart;
-#if ENABLE_P2P
+#if ENABLE_QQ
 void OnCmdPtz(int ev )
 {
 

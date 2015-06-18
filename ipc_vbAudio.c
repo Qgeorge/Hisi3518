@@ -743,8 +743,8 @@ void AudioThread(void)
 	fd_set read_fds;
 	struct timeval TimeoutVal;
 	int G711U_Len = 0, G711A_Len = 0;
-	char g711a_buf[320*5]={0};
-	char amr_buf[320];
+//	char g711a_buf[320*5]={0};
+	char amr_buf[32*2];
 	int ret;
 
 #if ENABLE_QQ
@@ -808,6 +808,7 @@ void AudioThread(void)
 #endif
 
 #if ENABLE_QQ
+				printf("the lenth is %d\n", stStream.u32Len);
 				ret = PCM2AMR(stStream.pStream, stStream.u32Len, amr_buf);
 				tx_set_audio_data(&audio_encode_param, amr_buf, ret);
 #endif
@@ -830,7 +831,7 @@ void AudioThread(void)
 				pAudioBuf->dwUsec		= (stStream.u64TimeStamp%1000)*1000;//TimeoutVal.tv_usec;	
 				IPCAM_PutStreamData(VIDEO_LOCAL_RECORD, 0, VOIDEO_MEDIATYPE_AUDIO, pAudioBuf);
 #endif
-
+#if 0
 				/**transfered to g711a for PC client**/
 				G711A_Len = PCM2G711a(stStream.pStream, g711a_buf, stStream.u32Len, 0);
 				buf_len = G711A_Len;
@@ -839,6 +840,7 @@ void AudioThread(void)
 				{
 					memcpy(buf+bytes, g711a_buf, buf_len ); 
 				}
+#endif
 
 				HI_MPI_AENC_ReleaseStream(s_AencChn, &stStream);
 

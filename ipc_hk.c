@@ -4088,15 +4088,17 @@ int main(int argc, char* argv[])
 	initDevice();
 #endif
 
+/*add by biaobiao*/
 #if ENABLE_P2P
-        //create_my_detached_thread(p2p_server_f);
+        create_my_detached_thread(p2p_server_f);
 #endif
 
 	be_present( 1 );
 	sccUpdateServerAdd();
 
+/*add by biaobiao*/
 #if ENABLE_P2P
-	//IPC_Video_Audio_Thread_Init();
+	IPC_Video_Audio_Thread_Init();
 #endif
 
 #if ENABLE_ONVIF
