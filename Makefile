@@ -46,7 +46,7 @@ MODULES = 	$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/MOD_NetSvRtsp.a \
 			$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/LIB_WebServer.a	
 
 LINKFLAGS   = -Wall -g
-COMPFLAGS   = -c -O2 -fPIC -lpthread -D_GNU_SOURCE -D_HKIPC -DRTSARM
+COMPFLAGS   = -c -O2 -fPIC -lpthread -D_GNU_SOURCE -D_HKIPC -DRTSARM 
 CXX         = arm-hisiv100nptl-linux-gcc
 
 

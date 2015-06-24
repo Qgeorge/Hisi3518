@@ -123,7 +123,7 @@ typedef struct tagSAMPLE_AENC_S
 SAMPLE_AENC_S *pstSampleAenc = NULL;
 static SAMPLE_AENC_S s_stSampleAenc[8];
 static SAMPLE_AENC_S gs_stSampleAenc[AENC_MAX_CHN_NUM];
-SAMPLE_AENC_S *pstAenc = &gs_stSampleAenc;
+SAMPLE_AENC_S *pstAenc = &gs_stSampleAenc[0];
 
 /************************* end **********************************/
 
@@ -815,6 +815,7 @@ void AudioThread(void)
 				tx_set_audio_data(&audio_encode_param, amr_buf, ret);
 #endif
 
+				HI_MPI_AENC_ReleaseStream(s_AencChn, &stStream);
 #if ENABLE_ONVIF
 				//pAudioBuf->dwFameSize = stStream.u32Len;
 				//pAudioBuf->dwFrameNumber= stStream.u32Seq;
@@ -842,7 +843,6 @@ void AudioThread(void)
 				{
 					memcpy(buf+bytes, g711a_buf, buf_len ); 
 				}
-#endif
 
 				HI_MPI_AENC_ReleaseStream(s_AencChn, &stStream);
 
@@ -857,9 +857,10 @@ void AudioThread(void)
 				left -= buf_len;
 				if (left < 0)
 					break;
+#endif
 			}    
 		}
-
+#if 0
 		if ((nopen != 0) && (bytes > 0))
 		{
 			sccPushStream( 1234, PSTREAUDIO, buf, bytes, 0, 0, 10 );
@@ -869,6 +870,7 @@ void AudioThread(void)
 		{			
 			sccPushTfData( PSTREAMTWO, buf, bytes, 1, 0, 0 );
 		}
+#endif
 		usleep(1000*100);
 	}
 

@@ -788,7 +788,7 @@ static void OnGetWebWifiInfo(int nCmd, int iSubCmd, Dict *d)
     {
         char aryPSW[64]={0};
         strcpy( aryPSW,mywifiCfg.password );
-        char* cEncPswd =  EncodeStr( aryPSW );
+        char* cEncPswd =  (char *)EncodeStr( aryPSW );
         SetParamStr( DictPacket, HK_WIFI_PASSWORD, cEncPswd );
     }
     SetParamStr( DictPacket, HK_WIFI_ENCRYTYPE, mywifiCfg.enctype );
@@ -1463,7 +1463,7 @@ static void OnWebSetWifiInfo(int nCmd, int iSubCmd, Dict *hf )
         }
         char aryPSW[64]={0};
         strcpy( aryPSW,cPasswd );
-        char* cDecPswd = DecodeStr( aryPSW );
+        char* cDecPswd = (char *)DecodeStr( aryPSW );
         conf_set_space(HOME_DIR"/wifisid.conf", HK_WIFI_PASSWORD, cDecPswd );
         StartWifiAP( hf, NULL );
         wrap_sys_restart();

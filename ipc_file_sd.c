@@ -170,7 +170,7 @@ static int Read(int obj, char *buf, unsigned int bufsiz, long *flags)
 }
 
 static VideoDataRecord *hostVideoDataPTF = NULL;
-static int sccPushVideoData_TF(int pStreamType,char *pData,unsigned int nSize,short IFrame,int iResType,int iStreamType,VideoDataRecord  *mVideoDataBuffer);
+static int sccPushVideoData_TF(int pStreamType,const char *pData,unsigned int nSize,short IFrame,int iResType,int iStreamType,VideoDataRecord  *mVideoDataBuffer);
 
 static void sccResetVideDataTF(int pStreamType, VideoDataRecord  *mVideoDataBuffer);
 
@@ -247,7 +247,7 @@ static int Open(const char* name, const char* args, int* threq)
 			m_fileHead.nFileHeadVer = FILE_HEAD_VER;
 			memcpy(m_fileHead.cFileMark, FILE_HEADER_MASK, 3);
 
-			isdOpen = sd_open( args );//time
+			isdOpen = sd_open( (char *)args );//time
 			if ( isdOpen == -1 )
 				return 0;
 			ret = max_count+1;
@@ -1351,7 +1351,7 @@ int sccPushTfData(int pStreamType, char *pData, unsigned int nSize, short iFrame
 }
 
 
-static int sccPushVideoData_TF(int pStreamType,char *pData,unsigned int nSize,short IFrame,int iResType,int iStreamType,VideoDataRecord  *mVideoDataBuffer)
+static int sccPushVideoData_TF(int pStreamType,const char *pData,unsigned int nSize,short IFrame,int iResType,int iStreamType,VideoDataRecord  *mVideoDataBuffer)
 {
 	//printf("...nSize: %d...\n", nSize);
 

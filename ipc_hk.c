@@ -34,7 +34,7 @@ extern INT32 p2p_server_f();
 #endif
 
 #if ENABLE_QQ
-extern bool initDevice();
+#include "qq_server.h"
 #endif
 
 #if ENABLE_ONVIF
@@ -223,6 +223,7 @@ static const char* getEnv(const char* x, const char* defs) { return ((x = getenv
 static const char* getPx(HKFrameHead* hf, const char* x, const char* defs) { return ((x = GetParamStr(hf,x)) ? x : defs); }
 
 
+void TrimRight(char *psz);
 
 HKIPAddres eth0Addr,wifiAddr;
 WIFICfg   mywifiCfg;
@@ -1010,7 +1011,7 @@ static void create_my_detached_thread(int (*func)())
         pthread_attr_t a;
         pthread_attr_init(&a);
         pthread_attr_setdetachstate(&a, PTHREAD_CREATE_DETACHED);
-        pthread_create(&tid, &a, func, NULL);
+        pthread_create(&tid, &a, (void *)func, NULL);
         pthread_attr_destroy(&a);
 }
 static void create_detached_thread(void *(*func)(void*), void* arg)
@@ -1826,7 +1827,7 @@ return 1;
    }
    }
  */
-
+#if 0
 static void* thd_restart_monitor(void* a)
 {
 	int seconds = 0, xcnt = *(int*)a;
@@ -1870,7 +1871,7 @@ static void* thd_restart_monitor(void* a)
 	wrap_sys_restart( );
 	return 0;
 }
-
+#endif
 
 static void server_time_sync(int x, void* a, int ac, char* av[])
 {
@@ -3540,7 +3541,7 @@ static void CheckIOAlarm()
 	if (0 == val_read) //IO is Alarming.
 	{
 		AlarmVideoRecord( true ); //sd alarm record.
-		CheckAlarm(0,2,0,NULL); //2:IO Alarm.
+		//CheckAlarm(0,2,0,NULL); //2:IO Alarm.
 
 		val_set = 1;
 		Hi_SetGpio_SetDir( g_AlarmOut_grp, g_AlarmOut_bit, GPIO_WRITE );
