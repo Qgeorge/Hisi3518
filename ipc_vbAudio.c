@@ -810,7 +810,7 @@ void AudioThread(void)
 #endif
 
 #if ENABLE_QQ
-				printf("the lenth is %d\n", stStream.u32Len);
+				//printf("the lenth is %d\n", stStream.u32Len);
 				ret = PCM2AMR(stStream.pStream, stStream.u32Len, amr_buf);
 				tx_set_audio_data(&audio_encode_param, amr_buf, ret);
 #endif
