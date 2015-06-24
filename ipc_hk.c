@@ -3675,7 +3675,7 @@ void hk_set_system_time()
 	gResetTime = time(0);
 }
 
-static void CheckDevCfg()
+static void CheckNetDevCfg()
 {
 	//printf("...zzzzzzzzzzzzzzzzzzzzzzz reboot 333333 zzzzzzzzzzzzzzzzzzzzzz...\n");
 	char aryDHCP[64]={0};
@@ -3971,7 +3971,7 @@ int main(int argc, char* argv[])
 	int threq = 0;
 
 	//hk_load_pppoe();
-	CheckDevCfg();
+	CheckNetDevCfg();
 	init_conf(); //create system configurate file.
 	hk_set_system_time(); //update device time.
 

@@ -1442,7 +1442,7 @@ static void raise_alarm(const char *res, int vfmt)
 	int len = sprintf(cont, HK_KEY_FROM"=%s;", getenv("USER"));
 	unsigned int nLevel = 1 << 8; //(vfmt==MPEG4 ? 2 : 3) << 8;
 	sprintf(prop, HK_KEY_EVENT"="HK_EVENT_ALARM";"HK_KEY_SUBRESOURCE"=%s;FD=%d;Flag=%u;", res, vfmt, nLevel);
-	ev_irq_( &video_inst_, prop, cont, len );
+	//ev_irq_( &video_inst_, prop, cont, len );
 
 	//hk_IOAlarm();
 }
