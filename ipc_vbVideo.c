@@ -13,28 +13,33 @@
 #include <unistd.h>
 #include <signal.h>
 
-#include "ipc_hk.h"
-#include "ipc_email.h"
-
 #include "rs.h"
 #include "sys.h"
 #include "utils/HKMonCmdDefine.h"
 #include "utils/HKCmdPacket.h"
 
-#include "sample_comm.h"
-
 #include "osd_region.h"
+#include "ipc_hk.h"
+#include "ipc_email.h"
+#include "ipc_file_sd.h"
+#include "ptz.h"
+#include "HISI_VDA.h"
+#include "sample_comm.h"
+#include "TXAudioVideo.h"
+#include "ipc_vbAudio.h"
+#include "scc_video.h"
+#include "utils_biaobiao.h"
 
 #if ENABLE_ONVIF
 #include "IPCAM_Export.h"
 #endif
 
-
+#if 0
 #define VIDEVID   0
 #define VICHNID   0
 #define VOCHNID   0
 #define VENCCHNID 0
-
+#endif
 
 #define TVP2643_DEV   "/dev/misc/ov2643"
 #define TVP99141_DEV  "/dev/misc/nt99141"
@@ -48,12 +53,7 @@
 #define H263            4
 #define H264            4
 #define H264_TF         6
-
-//VENC_ATTR_H264_FIXQP_S stAttr[5];
-//VENC_ATTR_H264_FIXQP_S stH264Attr;
-//VENC_ATTR_H264_FIXQP_S stCifH264Attr;
-//VENC_ATTR_H264_FIXQP_S st1CifH264Attr;
-//VENC_ATTR_H264_FIXQP_S stSunCifH264Attr;
+#define NULL 0
 
 VENC_CHN_ATTR_S g_stVencChnAttrMain;
 VENC_CHN_ATTR_S g_stVencChnAttrSlave;
@@ -102,7 +102,7 @@ int g_iCifOrD1=0;  //main stream resolution index.
 //static short g_sunCifOrD1=0;
 int g_sunCifOrD1=0; //sub stream resolution index.
 
-HI_S32 SODTIME(HI_VOID);
+//HI_S32 SODTIME(HI_VOID);
 int g_iMonitorStatus=0; 
 
 
@@ -171,11 +171,6 @@ HI_S32 g_maxFd = 0;
 HI_S32 s32ChnTotal = 1;
 
 bool g_bAlarmThread = false;
-static int VDoEvent( const char* devname, int obj, const char* ev );
-
-//static void iMonitorStatus( );
-//static void InitAlarmParam( int iRest );
-static void GetInitAlarmParam(HKFrameHead *pFrameHead);
 
 static unsigned short garyGurps[6]={6,4,4,4,3,3};
 static unsigned short garyPicLevel[6]={5,4,3,2,1,0};
@@ -188,6 +183,12 @@ unsigned int g_VbrMaxQq = VBR_MAXQP_33;
 unsigned int g_VbrMaxQq_Sub = VBR_MAXQP_33;
 static  unsigned int g_MainRataTime = 0;
 static  unsigned int g_MainVideoSize = 0;
+
+bool g_bMDXY = false;
+
+int COMM_Get_VencStream_FD(int s32venchn);
+void AlarmVideoRecord(bool bAlarm);
+
 static  unsigned short GetMainVideoRate( unsigned int nSize )
 {   
 	unsigned short nRate = 0;
@@ -1347,7 +1348,7 @@ int ISP_Params_Init()
 	return TRUE;
 }
 
-
+#if 0
 int HISI_InitConfig()
 {
 	HISI_SetSharpNess(40);	
@@ -1387,7 +1388,6 @@ int HISI_SetM_VencFd(int fd)
 	g_VencFd_Main = fd;
 	return g_VencFd_Main;
 }
-#endif
 ///////////////////////////////////////////////////
 
 static unsigned short Rate2Gurps( unsigned short nRate )
@@ -1404,24 +1404,11 @@ static unsigned short Rate2PicLevel( unsigned short nRate )
 	return garyPicLevel[nInde]; 
 }
 
+#endif
+#endif
 struct HKVProperty video_properties_;
 
-/* This function is Added by lingyb, for Alarm test  */
-static void SetIRQEventCallback(RSObjectIRQEvent cb) 
-{
-	ev_irq_ = cb;
-}
 
-static const char* Retrieve()
-{
-	return "video.vbVideo.MPEG4,video.vbVideo.M_JPEG,video.vbVideo.TF,video.vbVideo.NULL";
-}
-
-static const char* GetObjectInfo()
-{
-	return "Type=video.vbVideo;Outpin=MPEG4,M_JPEG,H263;";
-	return HI_SUCCESS;
-}
 
 
 #define ALARMTIME 6000*3
@@ -1674,29 +1661,6 @@ HI_S32 Video_JPEG_SnapShort(VENC_CHN SnapChn)
 	return HI_SUCCESS;
 }
 
-
-/*
-   static void hk_GetAlarmEmailInfo()
-   {
-   char sedEmail[128]={0};
-   conf_get( HOME_DIR"/emalarm.conf", HK_KEY_ALERT_EMAIL,sedEmail, 128);
-   char recEmail[128]={0};
-   conf_get( HOME_DIR"/emalarm.conf", HK_KEY_REEMAIL,recEmail, 128);
-   char smtpServer[128]={0};
-   conf_get( HOME_DIR"/emalarm.conf", HK_KEY_SMTPSERVER,smtpServer, 128);
-   char smtpUser[128]={0};
-   conf_get( HOME_DIR"/emalarm.conf", HK_KEY_SMTPUSER,smtpUser, 128);
-   char smtpPswd[128]={0};
-   conf_get( HOME_DIR"/emalarm.conf", HK_KEY_PASSWORD,smtpPswd, 128);
-   int iPort = conf_get_int(HOME_DIR"/emalarm.conf", HK_KEY_PORT);
-   int isOpen = conf_get_int(HOME_DIR"/emalarm.conf", HK_KEY_ISALERT_SENSE);
-   int iCount = conf_get_int(HOME_DIR"/emalarm.conf",HK_KEY_COUNT);
-
-   InitEmailInfo(isOpen, smtpServer, sedEmail, recEmail, smtpUser, smtpPswd, iPort, iCount);
-   }
- */
-
-
 /*******************************************************
  * func: thread for getting pictures.
  ******************************************************/
@@ -1808,18 +1772,6 @@ HI_S32 getPicture(HI_VOID)
 }
 
 
-int hk_SdInfoEmail(int iType)
-{
-	int ret = 0;
-	char emailMSG[512]={0};
-	sprintf(emailMSG, "%s ID:%s", SDMSG, getenv("USER"));
-
-	ret = send_mail_to_user(hk_email.mailserver, hk_email.passwd, hk_email.mailfrom, hk_email.mailto, emailMSG, 0);
-	if(ret == 0)
-	{
-		HK_DEBUG("-----SD---Send Success!--------\n"); 
-	}
-}
 
 static int CreatePICThread(void)
 {
@@ -1836,6 +1788,9 @@ static int CreatePICThread(void)
 	return 0;
 }
 
+/*******************************************************
+ * func: .
+ ******************************************************/
 static int sccLocalAlarm(int iChannel, int nAlarmType, int nReserved, char *cFtpData)
 {
 	char cBuf[2048]={0};
@@ -2256,33 +2211,6 @@ int SubStreamConfigurate(void)
 	return 0;
 }
 
-
-static int hk_set_video_hdr_5150(long int* flags, unsigned short* hdr, int enc, int fmt, int iChennl)
-{
-	*hdr = 0;
-	HK_MHDR_SET_VERSION(*hdr, HK_MHDR_VERSION); 
-	HK_MHDR_SET_MEDIA_TYPE(*hdr, 1);
-	HK_MHDR_SET_ENCODE_TYPE(*hdr, enc);
-	//HK_MHDR_SET_RESOLUTION(*hdr, VinFormat_from_ipc_2hk[fmt]);
-	HK_MHDR_SET_RESOLUTION(*hdr,fmt );
-
-	HK_MHDR_SET_FLIPEX(*hdr, video_properties_.vv[HKV_Flip]); 
-
-	//if (enc==H264)
-	//{
-	int nLevel = iChennl;
-	*flags |= (nLevel<<8);
-	//}
-	//else
-	//{
-	//   int nLevel = 3;
-	//  *flags |= (nLevel<<8);
-	//}
-	return 1;
-}
-
-
-//
 static int hk_set_video_hdr(long int* flags, unsigned short* hdr, int enc, int fmt,int iChennl)
 {
 	*hdr = 0;
@@ -2346,144 +2274,6 @@ void AlarmVideoRecord(bool bAlarm)
 	}
 }
 
-/*
-   void My_Motion_Detect_Proc(int nChanNum, MD_DATA_S * pMdData)
-   {
-   int i, j, nMdCnt = 0;
-   HI_U16* pValue = NULL;
-   unsigned char *pMask = &g_MdMask[nChanNum][0];
-   TAlarmSet_ * pAlmSet =&g_tAlarmSet[nChanNum];// &g_SysCfgFile.ChanSet[nChanNum].AlmSet;
-
-//if(!g_bDetectVidMotion[nChanNum])
-//   return;
-
-for(i=0; i<pMdData->u16MBHeight; i++)
-{
-pValue = (HI_U16 *)((HI_U32)pMdData->stMBSAD.pu32Addr + i*pMdData->stMBSAD.u32Stride);
-for(j=0; j<pMdData->u16MBWidth; j++)
-{
-if(*pMask && *pValue > (pAlmSet->Sensitivity+5))
-nMdCnt++;
-
-pValue++;
-pMask++;
-}
-}
-if(nMdCnt > (pAlmSet->Threshold+2))
-{
-//raise_alarm("video.vbVideo.MPEG4", MPEG4);
-AlarmVideoRecord(true );
-return; 
-}
-//AlarmVideoRecord(false );
-}
- */
-
-static time_t old_time_ = 0;
-static char old_buf_[30] ={0};
-
-bool g_bMDXY = false;
-/*
-   MD_DATA_S stMdData;
-   HI_S32 MdGetData(HI_VOID) 
-   { 
-   HI_S32 s32Ret; 
-   HI_S32 s32MdFd; 
-   MD_DATA_S stMdData;
-   fd_set read_fds; 
-   int ivech = 0;
-
-   TimeoutVal.tv_sec  = 2;
-   TimeoutVal.tv_usec = 0;
-
-   s32MdFd = HI_MPI_MD_GetFd( 0 );
-   HI_S32 s32MdFd2 = HI_MPI_MD_GetFd( 2 );
-   HI_S32 s21MdFdTmp = 0;
-
-   while( g_bAlarmThread && !quit_)
-   {
-   if(g_iCifOrD1 <= 4)
-   {
-   s21MdFdTmp = s32MdFd2;
-   ivech = 2;
-   }
-   else
-   {
-   s21MdFdTmp = s32MdFd;
-   ivech = 0;
-   }
-//s21MdFdTmp = (ivech==0)?s32MdFd:s32MdFd2;
-
-FD_ZERO(&read_fds); 
-FD_SET(s21MdFdTmp,&read_fds); 
-s32Ret = select( s21MdFdTmp+1, &read_fds, NULL, NULL, &TimeoutVal ); 
-if (s32Ret > 0) 
-{ 
-memset(&stMdData, 0, sizeof(MD_DATA_S)); 
-if (FD_ISSET(s21MdFdTmp, &read_fds)) 
-{ 
-s32Ret = HI_MPI_MD_GetData(ivech, &stMdData, HI_IO_NOBLOCK); 
-if(s32Ret != HI_SUCCESS) 
-{ 
-printf("HI_MPI_MD_GetData err 0x%x\n",s32Ret); 
-continue;
-} 
-}
-
-if( g_iMonitorStatus > 0)
-{
-int nChanNum = 0;
-if(g_bMDStartOK[nChanNum])
-{
-if(stMdData.stMBMode.bMBSADMode)
-My_Motion_Detect_Proc(nChanNum, &stMdData);
-}
-nChanNum = 1;
-if(g_bMDStartOK[nChanNum])
-{
-if(stMdData.stMBMode.bMBSADMode)
-My_Motion_Detect_Proc(nChanNum, &stMdData);
-}
-nChanNum = 2;
-if(g_bMDStartOK[nChanNum])
-{
-if(stMdData.stMBMode.bMBSADMode)
-My_Motion_Detect_Proc(nChanNum, &stMdData);
-}
-
-if( !g_bMDXY )
-{
-if(stMdData.stMBMode.bMBSADMode) 
-{
-	HI_U16* pTmp = NULL; 
-	pTmp = (HI_U16*)(HI_U32)stMdData.stMBSAD.pu32Addr;
-	int iAlarmNum = *pTmp;
-	if (iAlarmNum>g_iMonitorStatus )
-	{
-		//raise_alarm("video.vbVideo.MPEG4", MPEG4);
-		AlarmVideoRecord(true );
-	} 
-	else
-	{
-		//AlarmVideoRecord(false );
-	}
-}
-}
-}
-
-s32Ret = HI_MPI_MD_ReleaseData(ivech, &stMdData); 
-if(s32Ret != HI_SUCCESS) 
-{ 
-	//printf("Md Release Data Err 0x%x\n",s32Ret); 
-	//return HI_FAILURE; 
-} 
-} 
-usleep(40*1000);
-}
-return HI_SUCCESS; 
-} 
-
-*/
 
 static void Close(int obj)
 {
@@ -2568,262 +2358,6 @@ int COMM_Get_VencStream_FD(int s32venchn)
 
 int s_fd7725 = -1;
 int open_7725();
-#if 0
-static void DoSetPlaram( int iEnc )
-{
-
-	stH264Attr.u32TargetFramerate = video_properties_.vv[HKV_BitRate];
-
-	if(video_properties_.vv[HKV_Cbr]==0)
-		stH264Attr.bCBR = HI_TRUE;
-	else
-		stH264Attr.bCBR = HI_FALSE;
-	if( iEnc == ENUM_720P )
-	{
-		stH264Attr.bCBR = HI_FALSE;
-		if( video_properties_.vv[HKV_BitRate] >= 15 )
-			stH264Attr.u32TargetFramerate = 15;
-	}
-
-	int iEnv = video_properties_.vv[HKV_VinFormat];
-	if(( g_HK_SensorType==HK_OV2643 ||g_HK_SensorType == HK_99141) && iEnv>1024 ) iEnv = 1024;
-	switch( iEnv )
-	{
-		case 1: //176X144
-			stH264Attr.u32Bitrate = 16;      
-			break;
-		case 2: //352x288
-			stH264Attr.u32Bitrate = 156;
-			break;
-		case 3: //320X240
-			stH264Attr.u32Bitrate =216; 
-			break;
-		case 5: //640X480;
-			stH264Attr.u32Bitrate = 316;
-			break;
-		case 6: //704X480;
-			stH264Attr.u32Bitrate = 616;
-			break;
-		case 7: //704X576
-			stH264Attr.u32Bitrate = 1048;
-			break;
-		default:
-			stH264Attr.u32Bitrate = iEnv;
-			break;
-	}
-	int u32Gop = Rate2Gurps( stH264Attr.u32Bitrate );
-	stH264Attr.u32Gop = u32Gop*video_properties_.vv[HKV_BitRate];
-	int u32PicLevel = Rate2PicLevel( stH264Attr.u32Bitrate);
-	stH264Attr.u32PicLevel = u32PicLevel;
-
-	memset(&stAttr[0], 0 ,sizeof(VENC_CHN_ATTR_S));
-	stAttr[0].enType = PT_H264;
-	stAttr[0].pValue = (HI_VOID *)&stH264Attr;
-	int iDoReso = HI_MPI_VENC_SetChnAttr( VeChn, &stAttr[0] );
-	if( iDoReso != 0 )
-	{
-		return;
-	}
-}
-#endif
-
-#if 0
-static void hk_SetPhonePlaram(int ibit, int iEnc, int iRate)
-{
-	if(ibit <=0 || iRate <=0 )
-		return;
-	g_bPhCifOrD1 = true;
-	if( g_sunCifOrD1>=4 && iEnc==3 )
-	{
-		//SampleUNEnableEncode(VeSunChn, VeSunChn, VIDEVID, VICHNID);
-		usleep(1000);
-		int s32Ret =0;// SampleEnableEncode(3, 3, VIDEVID, VICHNID);
-		if( s32Ret != HI_SUCCESS )
-		{
-			printf("phone..set .Fail.\n");
-		}
-
-		s32JPEGFd = HI_MPI_VENC_GetFd(3);
-		VeSunChn = 3;
-		conf_set_int(HOME_DIR"/subipc.conf", "enc", 3);
-		if(g_HK_SensorType==HK_OV2643 || g_HK_SensorType== HK_99141)
-			g_sunCifOrD1 =ENUM_QQ720P;//1
-		else
-			g_sunCifOrD1 =ENUM_QVGA;//3
-	}
-	else if( g_sunCifOrD1<=3 )
-	{
-		//SampleUNEnableEncode(VeSunChn, VeSunChn, VIDEVID, VICHNID);
-		usleep(1000);
-		int s32Ret = 0;//SampleEnableEncode(1, 1, VIDEVID, VICHNID);
-		if( s32Ret != HI_SUCCESS )
-		{
-			printf("phone..set .Fail.\n");
-		}
-		s32JPEGFd = HI_MPI_VENC_GetFd(1);
-		VeSunChn = 1;
-
-		conf_set_int(HOME_DIR"/subipc.conf", "enc", 5);
-		if(g_HK_SensorType==HK_OV2643 || g_HK_SensorType== HK_99141)
-			g_sunCifOrD1=ENUM_Q720P ;//4
-		else
-			g_sunCifOrD1 =ENUM_VGA;//5
-	}
-
-	if( g_sunCifOrD1<4)//cif
-	{
-		stSunCifH264Attr.u32Bitrate = ibit;
-		stSunCifH264Attr.u32TargetFramerate = iRate;
-		memset(&stAttr[3], 0 ,sizeof(VENC_CHN_ATTR_S));
-		stAttr[3].enType = PT_H264;
-		stAttr[3].pValue = (HI_VOID *)&stSunCifH264Attr;
-		int iDoReso = HI_MPI_VENC_SetChnAttr( 3, &stAttr[3] );
-		if( iDoReso != 0 )
-		{
-			printf("...Set phone Fail.1111.\n");
-		}
-		//printf("...Set phone cif success..\n");
-	}
-	else 
-	{
-		st1CifH264Attr.u32Bitrate = ibit;
-		st1CifH264Attr.u32TargetFramerate = iRate;
-		memset(&stAttr[1], 0 ,sizeof(VENC_CHN_ATTR_S));
-		stAttr[1].enType = PT_H264;
-		stAttr[1].pValue = (HI_VOID *)&st1CifH264Attr;
-		int iDoReso = HI_MPI_VENC_SetChnAttr( 1, &stAttr[1] );
-		if( iDoReso != 0 )
-		{
-			printf("...Set phone Fail.2222.\n");
-		}
-		//printf("...Set phone success..\n");
-	}
-	g_bPhCifOrD1 = false;
-}
-
-static void DoSetPhoneCifPlaram()
-{
-	int ibit = 0;
-	int iStream = conf_get_int(HOME_DIR"/subipc.conf", "stream");
-	int iRate = conf_get_int(HOME_DIR"/subipc.conf", "rate");
-	//g_smooth = conf_get_int(HOME_DIR"/subipc.conf", "smooth");
-	g_smooth = 1;
-
-	switch (iStream)
-	{
-		case 1:
-			ibit = 64;
-			g_smooth = 0;
-			break;
-		case 2:
-			ibit = 64;
-			break;
-		case 3:
-			ibit = 100;
-			break;
-		case 4:
-			ibit = 150;
-			break;
-		case 5:
-			ibit = 200;
-			break;
-		default:
-			if (iStream < 64)
-				ibit = 64;
-			break;
-	}
-
-	printf("[%s, %d] g_sunCifOrD1: %d\n", __func__, __LINE__, g_sunCifOrD1);
-	if (g_sunCifOrD1 < 4)//cif
-	{
-		stSunCifH264Attr.u32Bitrate = ibit;
-		stSunCifH264Attr.u32TargetFramerate = iRate;
-
-		memset(&stAttr[3], 0 , sizeof(VENC_CHN_ATTR_S));
-		stAttr[3].enType = PT_H264;
-		stAttr[3].pValue = (HI_VOID *)&stSunCifH264Attr;
-		int iDoReso = HI_MPI_VENC_SetChnAttr( 3, &stAttr[3] );
-		if (iDoReso != 0)
-		{
-			printf("...Set phone Fail.333.\n");
-			return;
-		}
-		//printf("...Set phone D1 success..\n");
-	}
-	else 
-	{
-		st1CifH264Attr.u32Bitrate = ibit;
-		st1CifH264Attr.u32TargetFramerate = iRate;
-
-		memset(&stAttr[1], 0 ,sizeof(VENC_CHN_ATTR_S));
-		stAttr[1].enType = PT_H264;
-		stAttr[1].pValue = (HI_VOID *)&st1CifH264Attr;
-		int iDoReso = HI_MPI_VENC_SetChnAttr( 1, &stAttr[1] );
-		if( iDoReso != 0 )
-		{
-			printf("...Set phone Fail.4444 ibit=%d,iRate=%d.\n", ibit, iRate);
-			return;
-		}
-		//printf("...Set phone success..\n");
-	}
-}
-#endif
-
-#if 0
-static void DoSetCifPlaram( int iEnc )
-{
-	stCifH264Attr.u32TargetFramerate = video_properties_.vv[HKV_BitRate];
-
-	if(video_properties_.vv[HKV_Cbr]==0)
-		stCifH264Attr.bCBR = HI_TRUE;
-	else
-		stCifH264Attr.bCBR = HI_FALSE;
-	if( g_HK_SensorType==HK_OV2643 ||g_HK_SensorType == HK_99141) stCifH264Attr.bCBR = HI_FALSE;
-
-	int iEnv = video_properties_.vv[HKV_VinFormat]; 
-	if(( g_HK_SensorType==HK_OV2643 ||g_HK_SensorType == HK_99141) && iEnv>1024 ) iEnv = 1024;
-	switch( iEnv )
-	{
-		case 1: //176X144
-			stCifH264Attr.u32Bitrate = 16;      
-			break;
-		case 2: //352x288
-			stCifH264Attr.u32Bitrate = 156;
-			break;
-		case 3: //320X240
-			stCifH264Attr.u32Bitrate =216; 
-			break;
-		case 5: //640X480;
-			stCifH264Attr.u32Bitrate = 316;
-			break;
-		case 6: //704X480;
-			stCifH264Attr.u32Bitrate = 616;
-			break;
-		case 7: //704X576
-			stCifH264Attr.u32Bitrate = 1048;
-			break;
-		default:
-			stCifH264Attr.u32Bitrate = iEnv;
-			break;
-	}
-	int u32Gop = Rate2Gurps( stCifH264Attr.u32Bitrate );
-	stCifH264Attr.u32Gop = u32Gop*video_properties_.vv[HKV_BitRate];
-	int u32PicLevel = Rate2PicLevel( stCifH264Attr.u32Bitrate);
-	stCifH264Attr.u32PicLevel = u32PicLevel;
-
-	memset(&stAttr[2], 0 ,sizeof(VENC_CHN_ATTR_S));
-	stAttr[2].enType = PT_H264;
-	stAttr[2].pValue = (HI_VOID *)&stCifH264Attr;
-	int iDoReso = HI_MPI_VENC_SetChnAttr( VeChn, &stAttr[2] );
-	if( iDoReso != 0 )
-	{
-		printf("...Set Cif Fail..\n");
-		return;
-	}
-}
-#endif
-
-
 /**************************************************************
  * configurate sub stream params for phone client settings.
  **************************************************************/
@@ -2832,59 +2366,6 @@ static void hk_SetPhonePlaram(int ibit, int iEnc, int iRate)
 	HK_DEBUG_PRT("...ibit:%d, iEnc:%d, iRate:%d...\n", ibit, iEnc, iRate);
 	if ( (ibit <= 0) || (iRate <= 0) )
 		return;
-
-	//g_bPhCifOrD1 = true;
-
-#if 0
-	if ( (g_sunCifOrD1 >= 4) && (3 == iEnc) ) //cur: 5 => VGA(640*480)
-	{
-		Video_DisableVencChn(g_Venc_Chn_S_Cur); //disable current venc channel.
-		usleep(1000);
-		int s32Ret = Video_EnableVencChn( 3 ); //new venc channel: 3 ==> QVGA.
-		if( s32Ret != HI_SUCCESS )
-		{
-			HK_DEBUG_PRT("phone...change resolution failed !\n");
-		}
-
-		VeSunChn = 3;
-		g_Venc_Chn_S_Cur = 3; //new venc channel 3: QVGA.
-		g_VencFd_Sub = COMM_Get_VencStream_FD( g_Venc_Chn_S_Cur );
-		if ( HI_FAILURE == g_VencFd_Sub )
-		{
-			printf("Get Venc Stream FD failed: %s, %d\n", __func__, __LINE__); 
-			return;
-		}
-		conf_set_int(HOME_DIR"/subipc.conf", "enc", 3);
-		if ( (g_HK_SensorType == HK_OV2643) || (g_HK_SensorType == HK_99141) )
-			g_sunCifOrD1 = ENUM_QQ720P; //1
-		else
-			g_sunCifOrD1 = ENUM_QVGA; //3
-	}
-	else
-	{
-		Video_DisableVencChn(g_Venc_Chn_S_Cur); //disable current venc channel.
-		usleep(1000);
-		int s32Ret = Video_EnableVencChn( 2 ); //new venc channel: 2 ==> VGA.
-		if (s32Ret != HI_SUCCESS)
-		{
-			HK_DEBUG_PRT("phone...change resolution failed !\n");
-		}
-
-		VeSunChn = 2;
-		g_Venc_Chn_S_Cur = 2; //new venc channel 2: VGA.
-		g_VencFd_Sub = COMM_Get_VencStream_FD( g_Venc_Chn_S_Cur );
-		if ( HI_FAILURE == g_VencFd_Sub )
-		{
-			printf("Get Venc Stream FD failed: %s, %d\n", __func__, __LINE__); 
-			return;
-		}
-		conf_set_int(HOME_DIR"/subipc.conf", "enc", 5);
-		if ( (g_HK_SensorType == HK_OV2643) || (g_HK_SensorType == HK_99141) )
-			g_sunCifOrD1 = ENUM_Q720P; //4
-		else
-			g_sunCifOrD1 = ENUM_VGA; //5
-	}
-#endif
 
 	if ( HISI_SetBitRate(g_Venc_Chn_S_Cur, ibit) )
 	{
@@ -2990,32 +2471,17 @@ static int sccOpen(const char* name, const char* args, int* threq)
 //extern LPIPCAM_VIDEOBUFFER g_mH264VideoBuf;
 //extern LPIPCAM_VIDEOBUFFER g_sH264VideoBuf;
 int g_Video_Thread=0;
-static int sccRead_H264( );
+
 #if ENABLE_QQ
 static int s_gopIndex = 0;
-
-unsigned long _GetTickCount() {        
+unsigned long _GetTickCount()
+{        
         struct timeval current = {0};  
         gettimeofday(&current, NULL);  
         return (current.tv_sec*1000 + current.tv_usec/1000);                           
 }
 #endif
 
-#if 0
-int sccGetVideoThread()
-{
-	int threq=0;
-	sccOpen("video.vbVideo.MPEG4", NULL, &threq);
-
-	IPCAM_setTskName("MainVideoThread");
-	sleep(1);
-	while(g_Video_Thread )
-	{
-		sccRead_H264( );
-	}
-	return 1;
-}
-#else
 int sccGetVideoThread()
 {
 	int threq = 0;
@@ -3155,7 +2621,6 @@ int sccGetVideoThread()
 	}
 	return 1;
 }
-#endif
 
 int CreateVideoThread(void)
 {
@@ -3177,9 +2642,10 @@ int CreateVideoThread(void)
 }
 
 static int g_SubVideo_Thread=0;
-static int sccRead_SubH264( );
 
 #if 0
+static int sccRead_SubH264( );
+
 int sccGetSubVideoThread()
 {
 	int threq=0;
@@ -3430,6 +2896,146 @@ int sccStartVideoThread()
 	CreateAudioThread();
 }
 
+static void GetInitAlarmParam(HKFrameHead *pFrameHead)
+{
+	int i = 0;
+	if (g_iCifOrD1 >= 5)
+	{
+		int iCount = conf_get_int(HOME_DIR"/RngMD.conf", "D1Count");
+		printf("[%s, %d]...g_iCifOrD1:%d, D1Count:%d...\n", __func__, __LINE__, g_iCifOrD1, iCount);
+
+		SetParamUN( pFrameHead, HK_KEY_INDEX, iCount ); 
+		for (i = 0; i < iCount; i++)
+		{
+			char cXYbuf[54] = {0};
+			char cWHbuf[54] = {0};
+			snprintf( cXYbuf, sizeof(cXYbuf), "D1XY%d", i );
+			snprintf( cWHbuf, sizeof(cWHbuf), "D1WH%d", i );
+
+			int iXY = conf_get_int(HOME_DIR"/RngMD.conf", cXYbuf);
+			int iWh = conf_get_int(HOME_DIR"/RngMD.conf", cWHbuf);
+
+			char cKey[HK_KEY_VALUES] = {0};
+			char cYey[HK_KEY_VALUES] = {0};
+			snprintf( cKey, sizeof(cKey), "%s%d", HK_KEY_POINTX, i );
+			snprintf( cYey, sizeof(cYey), "%s%d", HK_KEY_POINTY, i );
+
+			SetParamUN( pFrameHead, cKey, iXY ); 
+			SetParamUN( pFrameHead, cYey, iWh ); 
+			printf("...iXY:%d, iWh:%d...\n", iXY, iWh);
+		}
+	}
+	else
+	{
+		int iCount = conf_get_int(HOME_DIR"/RngMD.conf", "CifCount");
+		printf("[%s, %d]...g_iCifOrD1:%d, CifCount:%d...\n", __func__, __LINE__, g_iCifOrD1, iCount);
+
+		SetParamUN( pFrameHead, HK_KEY_INDEX, iCount ); 
+		for (i = 0; i < iCount; i++)
+		{
+			char cXYbuf[54] = {0};
+			char cWHbuf[54] = {0};
+			snprintf( cXYbuf, sizeof(cXYbuf), "CifXY%d", i );
+			snprintf( cWHbuf, sizeof(cWHbuf), "CifWH%d", i );
+
+			int iXY = conf_get_int(HOME_DIR"/RngMD.conf", cXYbuf);
+			int iWh = conf_get_int(HOME_DIR"/RngMD.conf", cWHbuf);
+
+			char cKey[HK_KEY_VALUES] = {0};
+			char cYey[HK_KEY_VALUES] = {0};
+			snprintf( cKey, sizeof(cKey), "%s%d", HK_KEY_POINTX, i );
+			snprintf( cYey, sizeof(cYey), "%s%d", HK_KEY_POINTY, i );
+
+			SetParamUN( pFrameHead, cKey, iXY ); 
+			SetParamUN( pFrameHead, cYey, iWh ); 
+			printf("...iXY:%d, iWh:%d...\n", iXY, iWh);
+		}
+	}
+}
+
+void sccGetVideoInfo(char buf2[1024*8],int nCmd, int nSubCmd, unsigned int ulParam)
+{
+	char buf[1014*8]={0};
+	HKFrameHead *pFrameHead= CreateFrameB();
+	GetInitAlarmParam( pFrameHead);
+	char bufMD[512]={0};
+	int iLen = GetFramePacketBuf( pFrameHead, bufMD, sizeof(bufMD) );
+	bufMD[iLen] = '\0';
+	DestroyFrame(pFrameHead);
+
+#define HK_STR_INBAND_DESC HK_KEY_FROM"=%s;" \
+	HK_KEY_ALERT_INFO"=%s;"\
+	HK_KEY_IRATE"=%hhd;"\
+	HK_KEY_COMPRESS"=%hhd;" \
+	HK_KEY_SENSITIVITY"=%hhd;" \
+	HK_KEY_RESOLU"=%d;"
+#define HK_STR_INBAND_DIGIT HK_KEY_RATE"=%hhd;" \
+	HK_KEY_HUE"=%hhd;" \
+	HK_KEY_SHARPNESS"=%hhd;" \
+	HK_KEY_BITRATE"=%hhd;"\
+	HK_KEY_BRIGHTNESS"=%hhd;" \
+	HK_KEY_SATURATION"=%hhd;" \
+	HK_KEY_CONTRAST"=%hhd;"\
+	HK_KEY_FREQUENCY"=%hhd;" \
+	HK_KEY_CBRORVBR"=%d;"\
+	HK_KEY_VER"=%d;"\
+	HK_KEY_PT"=%d;"\
+	HK_KEY_IOIN"=%d;"\
+	HK_KEY_MAINCMD"=%d;"\
+	HK_KEY_SUBCMD"=%d;"\
+	HK_KEY_UIPARAM"=%d;"\
+	HK_KEY_EXPOSURE"=0;"\
+	HK_KEY_QUALITE"=3;"\
+	HK_KEY_FLAG"=2;"
+	//unsigned int nLevel = (2<<8);
+	//char prop[128];
+	//char buf[sizeof(HK_STR_INBAND_DESC) + sizeof(HK_STR_INBAND_DIGIT) + 256];
+	int len = 0; 
+	char FrequencyLevel =60; 
+
+	if(video_properties_.vv[HKV_FrequencyLevel]==0)
+		FrequencyLevel = 50;
+	else if(video_properties_.vv[HKV_FrequencyLevel]==1)
+		FrequencyLevel = 60;
+	else
+		FrequencyLevel = 70;
+
+	int iHue =0;// video_properties_.vv[HKV_HueLevel];///4;
+	int iBrig = video_properties_.vv[HKV_BrightnessLevel];///4;
+	int iSatur = video_properties_.vv[HKV_CamSaturationLevel];///4;
+	int iContr = video_properties_.vv[HKV_CamContrastLevel];///4;
+
+	len = snprintf(buf, sizeof(buf), HK_STR_INBAND_DESC HK_STR_INBAND_DIGIT,
+			getenv("USER"),
+			bufMD,
+			video_properties_.vv[HKV_VEncIntraFrameRate],
+			video_properties_.vv[HKV_VEncCodec],
+			video_properties_.vv[HKV_MotionSensitivity],
+			video_properties_.vv[HKV_VinFormat],
+			video_properties_.vv[HKV_BitRate],
+			iHue,
+			video_properties_.vv[HKV_SharpnessLevel],
+			g_iCifOrD1,
+			iBrig,
+			iSatur,
+			iContr,
+			FrequencyLevel,
+			video_properties_.vv[HKV_Cbr],
+			g_DevVer,
+			video_properties_.vv[HKV_Yuntai],
+			g_irOpen,
+			nCmd,
+			nSubCmd,
+			ulParam);   
+
+	strcpy(buf2, buf);
+}
+
+
+
+/********************************************************************************
+func:	open read and so on ¿¿¿
+********************************************************************************/
 static int Open(const char* name, const char* args, int* threq)
 {
 	HK_DEBUG_PRT("scc......Open: %s..........\n", name);
@@ -3484,164 +3090,6 @@ static int Open(const char* name, const char* args, int* threq)
 	}
 	return 0;
 }
-#if 0
-static int sccRead_H264( )
-{
-	char videobuf[videobuflen] = {0};
-	int i = 0;
-	HI_S32 s32Ret;
-	int iLen = 0;  //stream data size.
-	static int s_vencChn = 0;  //Venc Channel.
-	static int s_vencFd = 0;   //Venc Stream File Descriptor..
-	static int s_maxFd = 0;    //mac fd for select.
-	int iFrame=0;
-	fd_set read_fds;
-	VENC_STREAM_S stStream; //captured stream data struct.
-
-	s_vencFd = g_VencFd_Main;
-	s_maxFd = s_vencFd + 1; //for select.
-	s_vencChn = g_Venc_Chn_M_Cur; //current video encode channel.
-
-	//if ( g_ReadFlag_H264 )
-	{
-		FD_ZERO( &read_fds );
-		for (i = 0; i < s32ChnTotal; i++)
-		{
-			FD_SET( s_vencFd, &read_fds );
-		}
-
-		TimeoutVal.tv_sec  = 2;
-		TimeoutVal.tv_usec = 0;
-		s32Ret = select( s_maxFd, &read_fds, NULL, NULL, &TimeoutVal );
-		if (s32Ret < 0)
-		{
-			SAMPLE_PRT("select failed!\n");
-			return -1;
-		}
-		else if (s32Ret == 0)
-		{
-			SAMPLE_PRT("get venc stream time out, exit thread\n");
-			usleep(2000);
-			return 0;
-		}
-		else
-		{
-			if (FD_ISSET( s_vencFd, &read_fds ))
-			{
-				/*******************************************************
-				  step 2.1 : query how many packs in one-frame stream.
-				 *******************************************************/
-				memset(&stStream, 0, sizeof(stStream));
-				s32Ret = HI_MPI_VENC_Query( s_vencChn, &stStat );
-				if (HI_SUCCESS != s32Ret)
-				{
-					SAMPLE_PRT("HI_MPI_VENC_Query chn[%d] failed with %#x!\n", s_vencChn, s32Ret);
-					return -1;
-				}
-
-				/*******************************************************
-				  step 2.2 : malloc corresponding number of pack nodes.
-				 *******************************************************/
-				stStream.pstPack = (VENC_PACK_S*)malloc(sizeof(VENC_PACK_S) * stStat.u32CurPacks);
-				if (NULL == stStream.pstPack)
-				{
-					SAMPLE_PRT("malloc stream pack failed!\n");
-					return -1;
-				}
-
-				/*******************************************************
-				  step 2.3 : call mpi to get one-frame stream
-				 *******************************************************/
-				stStream.u32PackCount = stStat.u32CurPacks;
-				s32Ret = HI_MPI_VENC_GetStream( s_vencChn, &stStream, HI_TRUE );
-				if (HI_SUCCESS != s32Ret)
-				{
-					free(stStream.pstPack);
-					stStream.pstPack = NULL;
-					SAMPLE_PRT("HI_MPI_VENC_GetStream failed with %#x!\n", s32Ret);
-					return -1;
-				}
-				//HK_DEBUG_PRT("......scc......u32PackCount = %d......\n", stStream.u32PackCount);
-				int j;
-
-				for( j = 0; j < stStream.u32PackCount; j++)
-				{
-					memcpy( videobuf + iLen, stStream.pstPack[j].pu8Addr[0], stStream.pstPack[j].u32Len[0] );
-
-					int enType = stStream.pstPack[j].DataType.enH264EType; 
-					if (enType == H264E_NALU_PSLICE)
-					{
-						iFrame =0;// HK_BOAT_PFREAM; //P frame
-						// g_mH264VideoBuf->dwFrameType = VIDEO_P_FRAME;
-					}
-					else if (enType == H264E_NALU_BUTT )
-					{
-						HI_MPI_VENC_ReleaseStream( s_vencChn, &stStream );
-						if (NULL != stStream.pstPack)
-						{
-							free(stStream.pstPack);
-							stStream.pstPack = NULL;
-						}
-						return 0;
-					}
-					else
-					{
-						iFrame =1;// HK_BOAT_IFREAM; //I frame                        
-						// g_mH264VideoBuf->dwFrameType = VIDEO_I_FRAME;
-					}
-
-					iLen += stStream.pstPack[j].u32Len[0];
-					if( stStream.pstPack[j].u32Len[1] > 0 )
-					{
-						memcpy( videobuf+iLen, stStream.pstPack[j].pu8Addr[1], stStream.pstPack[j].u32Len[1] );
-						iLen += stStream.pstPack[j].u32Len[1];
-					}
-				} //end for()
-			}
-		}// end rea
-	}
-
-
-	/**Main stream OSD (wangshaoshu)**/
-	RGN_HANDLE RgnHandle = 0;
-	RgnHandle = 3 + s_vencChn;
-	OSD_Overlay_RGN_Display_Time(RgnHandle,s_vencChn); 
-	/** Main stream OSD end **/
-#if 0
-	memcpy(g_mH264VideoBuf->VideoBuffer, videobuf, iLen );
-	g_mH264VideoBuf->bzEncType	  = ENC_AVC;
-	g_mH264VideoBuf->dwBufferType   = VIDEO_LOCAL_RECORD;
-	g_mH264VideoBuf->dwFrameNumber  = stStream.u32Seq; 
-	g_mH264VideoBuf->dwWidth		  = g_stVencChnAttrMain.stVeAttr.stAttrH264e.u32PicWidth;
-	g_mH264VideoBuf->dwHeight 	  =  g_stVencChnAttrMain.stVeAttr.stAttrH264e.u32PicHeight;
-	g_mH264VideoBuf->dwSec		  = stStream.pstPack[0].u64PTS/1000;
-	g_mH264VideoBuf->dwUsec		  = (stStream.pstPack[0].u64PTS%1000)*1000;
-	g_mH264VideoBuf->dwFameSize	  = iLen;	
-	IPCAM_PutStreamData(VIDEO_LOCAL_RECORD, 0, VOIDEO_MEDIATYPE_VIDEO, g_mH264VideoBuf);
-#endif
-	if( g_isH264Open  == 1 && iLen > 0 )
-	{
-		//printf("scc Push Video len=%d...\n", iLen);
-		sccPushStream(1234,PSTREAMONE, videobuf, iLen, iFrame,g_iCifOrD1, H264 );
-	}
-	if(hkSdParam.sdrecqc == 1)
-	{
-		sccPushTfData(PSTREAMTWO,videobuf, iLen,iFrame, g_iCifOrD1,H264 );
-	}
-
-	s32Ret = HI_MPI_VENC_ReleaseStream( s_vencChn, &stStream );
-	if (s32Ret) 
-	{
-		free(stStream.pstPack);
-		stStream.pstPack = NULL;
-		return 0;
-	}
-	free(stStream.pstPack);
-	stStream.pstPack = NULL;
-	//usleep(1000*10);
-	return 0;
-}
-#endif 
 
 static unsigned int nTimeTick_H264 = 0;
 static int read_H264_2(char* buf, unsigned int bufsiz, long* flags)
@@ -3733,7 +3181,7 @@ static int read_H264_2(char* buf, unsigned int bufsiz, long* flags)
 	}
 	return 0;
 }
-
+#if 0
 static int sccRead_SubH264( )
 {
 	char videobuf[videobuflen] = {0};
@@ -3894,7 +3342,7 @@ static int sccRead_SubH264( )
 	//usleep(1000*10);
 	return 0;
 }
-
+#endif
 
 static unsigned int nTimeTick_MJPEG = 0;
 static int read_MJPEG_2( char *buf, unsigned int bufsiz, long *flags )
@@ -4019,47 +3467,6 @@ static int Read(int obj, char* buf, unsigned int bufsiz, long* flags)
 }
 
 
-/*
-   static char* conf_get(const char* cf, const char* nm, char val[], size_t len)
-   {
-   if (cf && nm) 
-   {   
-   FILE* f = fopen(cf, "r");
-   if (f) 
-   {   
-   char l[512];
-   while (fgets(l, sizeof(l), f)) 
-   {   
-   char *p = skip_spaces(l);
-   if (strncmp(p, nm, strlen(nm)) == 0)
-   {   
-   p += strlen(nm);
-   if (*p++ == '=')
-   {   
-   trim_right((p));
-   strncpy(val, p, len);
-   val[len-1] = '\0';
-   fclose(f);
-   return val;
-   }   
-   }   
-   }   
-   fclose(f);
-   }   
-   }   
-   return NULL;
-   }
-
-   static int conf_get_int(const char* cf, const char* nm)
-   {
-   char v[64];
-   if (conf_get(cf, nm, v, sizeof(v)))
-   return atoi(v);
-   return 0;
-   }
- */
-
-
 /**********************************************
  * func: update configuration parameters 
  *********************************************/
@@ -4136,61 +3543,6 @@ void OnMonsetDevResolutionOv2643( const char *ev )
 		return;
 	}
 
-#if 0
-	g_bCifOrD1 = true;
-	if (iEnv >= 9) //HD720P.
-	{
-		Video_DisableVencChn( g_Venc_Chn_M_Cur );
-		usleep(1000);
-		s32Ret = Video_EnableVencChn(0);
-		if (s32Ret != HI_SUCCESS)
-		{
-			printf("[%s, %d]...OnMonsetDevResolutionOv2643 failed......\n", __func__, __LINE__);
-			system("reboot");
-			return;
-		}
-
-		g_Venc_Chn_M_Cur = 0; //new VENC channel 0: HD720P.
-		g_VencFd_Main = COMM_Get_VencStream_FD( g_Venc_Chn_M_Cur );
-		if ( HI_FAILURE == g_VencFd_Main )
-		{
-			printf("Get Venc Stream FD failed: %s, %d\n", __func__, __LINE__); 
-			return;
-		}
-
-		g_iCifOrD1 = iEnv;
-		write_config( "CifOrD1", g_iCifOrD1 ); //modify the configure file.
-
-		//DoSetPlaram(g_iCifOrD1);
-		//InitAlarmParam( g_iCifOrD1 );//MD
-	}
-	else if (5 == iEnv) //640*480.
-	{
-		Video_DisableVencChn( g_Venc_Chn_M_Cur );
-		usleep(1000);
-		s32Ret = Video_EnableVencChn(1); //VENC channel 1: 640*480.
-		if( s32Ret != HI_SUCCESS )
-		{
-			printf("[%s, %d]...OnMonsetDevResolutionOv2643 failed......\n", __func__, __LINE__);
-			system("reboot");
-			return;
-		}
-
-		g_Venc_Chn_M_Cur = 1; //new VENC channel 1: VGA.
-		g_VencFd_Main = COMM_Get_VencStream_FD( g_Venc_Chn_M_Cur );
-		if ( HI_FAILURE == g_VencFd_Main )
-		{
-			printf("Get Venc Stream FD failed: %s, %d\n", __func__, __LINE__); 
-			return;
-		}
-		g_iCifOrD1 = iEnv;
-		write_config( "CifOrD1", g_iCifOrD1 );
-
-		//DoSetCifPlaram( g_iCifOrD1);
-		//InitAlarmParam( g_iCifOrD1 );//MD
-	}
-	g_bCifOrD1 = false;
-#endif
 	HK_DEBUG_PRT("---> g_Venc_Chn_M_Cur:%d, g_VencFd_Main:%d, g_iCifOrD1:%d \n<---", g_Venc_Chn_M_Cur, g_VencFd_Main, g_iCifOrD1);
 	return;
 }
@@ -4328,91 +3680,9 @@ void OnMonSenSitivity( const char *ev )
 	DestroyFrame( pFrameHead );
 }
 
-void sccGetVideoInfo(char buf2[1024*8],int nCmd, int nSubCmd, unsigned int ulParam)
-{
-	char buf[1014*8]={0};
-	HKFrameHead *pFrameHead= CreateFrameB();
-	GetInitAlarmParam( pFrameHead);
-	char bufMD[512]={0};
-	int iLen = GetFramePacketBuf( pFrameHead, bufMD, sizeof(bufMD) );
-	bufMD[iLen] = '\0';
-	DestroyFrame(pFrameHead);
-
-#define HK_STR_INBAND_DESC HK_KEY_FROM"=%s;" \
-	HK_KEY_ALERT_INFO"=%s;"\
-	HK_KEY_IRATE"=%hhd;"\
-	HK_KEY_COMPRESS"=%hhd;" \
-	HK_KEY_SENSITIVITY"=%hhd;" \
-	HK_KEY_RESOLU"=%d;"
-#define HK_STR_INBAND_DIGIT HK_KEY_RATE"=%hhd;" \
-	HK_KEY_HUE"=%hhd;" \
-	HK_KEY_SHARPNESS"=%hhd;" \
-	HK_KEY_BITRATE"=%hhd;"\
-	HK_KEY_BRIGHTNESS"=%hhd;" \
-	HK_KEY_SATURATION"=%hhd;" \
-	HK_KEY_CONTRAST"=%hhd;"\
-	HK_KEY_FREQUENCY"=%hhd;" \
-	HK_KEY_CBRORVBR"=%d;"\
-	HK_KEY_VER"=%d;"\
-	HK_KEY_PT"=%d;"\
-	HK_KEY_IOIN"=%d;"\
-	HK_KEY_MAINCMD"=%d;"\
-	HK_KEY_SUBCMD"=%d;"\
-	HK_KEY_UIPARAM"=%d;"\
-	HK_KEY_EXPOSURE"=0;"\
-	HK_KEY_QUALITE"=3;"\
-	HK_KEY_FLAG"=2;"
-	//unsigned int nLevel = (2<<8);
-	//char prop[128];
-	//char buf[sizeof(HK_STR_INBAND_DESC) + sizeof(HK_STR_INBAND_DIGIT) + 256];
-	int len = 0; 
-	char FrequencyLevel =60; 
-
-	if(video_properties_.vv[HKV_FrequencyLevel]==0)
-		FrequencyLevel = 50;
-	else if(video_properties_.vv[HKV_FrequencyLevel]==1)
-		FrequencyLevel = 60;
-	else
-		FrequencyLevel = 70;
-
-	int iHue =0;// video_properties_.vv[HKV_HueLevel];///4;
-	int iBrig = video_properties_.vv[HKV_BrightnessLevel];///4;
-	int iSatur = video_properties_.vv[HKV_CamSaturationLevel];///4;
-	int iContr = video_properties_.vv[HKV_CamContrastLevel];///4;
-
-	len = snprintf(buf, sizeof(buf), HK_STR_INBAND_DESC HK_STR_INBAND_DIGIT,
-			getenv("USER"),
-			bufMD,
-			video_properties_.vv[HKV_VEncIntraFrameRate],
-			video_properties_.vv[HKV_VEncCodec],
-			video_properties_.vv[HKV_MotionSensitivity],
-			video_properties_.vv[HKV_VinFormat],
-			video_properties_.vv[HKV_BitRate],
-			iHue,
-			video_properties_.vv[HKV_SharpnessLevel],
-			g_iCifOrD1,
-			iBrig,
-			iSatur,
-			iContr,
-			FrequencyLevel,
-			video_properties_.vv[HKV_Cbr],
-			g_DevVer,
-			video_properties_.vv[HKV_Yuntai],
-			g_irOpen,
-			nCmd,
-			nSubCmd,
-			ulParam
-				);   
-
-	//snprintf(prop, sizeof(prop),HK_KEY_EVENT"="HK_EVENT_INBAND_DATA_DESC";FD=%d;"HK_KEY_SUBRESOURCE"=video.vbVideo%s;Flag=%u;",   direct,direct==MPEG4?".MPEG4":(direct==M_JPEG?".M_JPEG":""),nLevel);
-	//ev_irq_(&video_inst_, prop, buf, len);
-
-	strcpy(buf2, buf);
-	//printf("Raise:EvtInband: %s,,,,",  buf);
-}
 
 
-static void send_inband_desc(int direct)
+static void onMonSend_inband_desc(int direct)
 {
 	HKFrameHead *pFrameHead = CreateFrameB();
 	GetInitAlarmParam( pFrameHead );
@@ -4427,6 +3697,7 @@ static void send_inband_desc(int direct)
 	HK_KEY_COMPRESS"=%hhd;" \
 	HK_KEY_SENSITIVITY"=%hhd;" \
 	HK_KEY_RESOLU"=%d;"
+#if 0
 #define HK_STR_INBAND_DIGIT HK_KEY_RATE"=%hhd;" \
 	HK_KEY_HUE"=%hhd;" \
 	HK_KEY_SHARPNESS"=%hhd;" \
@@ -4442,6 +3713,7 @@ static void send_inband_desc(int direct)
 	HK_KEY_EXPOSURE"=0;"\
 	HK_KEY_QUALITE"=3;"\
 	HK_KEY_FLAG"=2;"
+#endif
 
 	unsigned int nLevel = (2<<8);
 	char prop[128];
@@ -4533,25 +3805,6 @@ static void OnMonSetReversal( const char *ev )
 	}
 }
 
-static int SendVideoIrq(int flag,int uipcam,int i)
-{
-	char prop[128];
-	char buf[64];
-	int len = snprintf(buf, sizeof(buf)
-			, HK_KEY_FROM"=%s;"HK_KEY_FLAG"=%d;"HK_KEY_UIPARAM"=%d;"HK_KEY_FOCUS"=%d;", getenv("USER"), flag,uipcam,i);
-
-	snprintf(prop, sizeof(prop)
-			, HK_KEY_EVENT"="HK_EVENT_FOCUS";FD=%d;"HK_KEY_SUBRESOURCE"=video.vbVideo.%s;"
-			, MPEG4, "MPEG4");
-	ev_irq_(&video_inst_, prop, buf, len);
-
-	snprintf(prop, sizeof(prop)
-			, HK_KEY_EVENT"="HK_EVENT_FOCUS";FD=%d;"HK_KEY_SUBRESOURCE"=video.vbVideo.%s;"
-			, M_JPEG, "M_JPEG");
-	ev_irq_(&video_inst_, prop, buf, len);
-
-	return 1;
-}
 
 static void OnMonSetFocus( const char *ev )
 {
@@ -4560,6 +3813,25 @@ static void OnMonSetFocus( const char *ev )
 	int flag = 0;
 	static unsigned int tm=0;
 	unsigned int tm1;
+
+	int SendVideoIrq(int flag,int uipcam,int i)
+	{
+		char prop[128];
+		char buf[64];
+		int len = snprintf(buf, sizeof(buf),HK_KEY_FROM"=%s;"HK_KEY_FLAG"=%d;"HK_KEY_UIPARAM"=%d;"HK_KEY_FOCUS"=%d;", getenv("USER"), flag,uipcam,i);
+
+		snprintf(prop, sizeof(prop)
+				, HK_KEY_EVENT"="HK_EVENT_FOCUS";FD=%d;"HK_KEY_SUBRESOURCE"=video.vbVideo.%s;"
+				, MPEG4, "MPEG4");
+		ev_irq_(&video_inst_, prop, buf, len);
+
+		snprintf(prop, sizeof(prop)
+				, HK_KEY_EVENT"="HK_EVENT_FOCUS";FD=%d;"HK_KEY_SUBRESOURCE"=video.vbVideo.%s;"
+				, M_JPEG, "M_JPEG");
+		ev_irq_(&video_inst_, prop, buf, len);
+
+		return 1;
+	}
 
 	tm1 = Getms() - tm;
 	if (tm1 < 1000)
@@ -4584,7 +3856,7 @@ static void OnMonSetFocus( const char *ev )
 
 #define CLIENT_CONF_ "/mnt/sif/hkclient.conf"
 
-static int conf_get_vb_int(const char* cf, const char* nm)
+static int iOnconf_get_vb_int(const char* cf, const char* nm)
 {
 	char v[64];
 	if (conf_get(cf, nm, v, sizeof(v)))
@@ -4624,7 +3896,7 @@ static void OnDevNetProxy( HKFrameHead *pFrameHead )
 	char *cAddr = GetParamStr(pFrameHead, HK_KEY_ADDR);
 	if ( iID<=0 || iSerID<=0  || cAddr==NULL )
 		return;
-	int iSrvID = conf_get_vb_int( CLIENT_CONF_, "SrvID");
+	int iSrvID = iOnconf_get_vb_int( CLIENT_CONF_, "SrvID");
 	char *pSrvIP = NULL;
 	if ( iSrvID == 0 )
 	{
@@ -4678,7 +3950,7 @@ extern int g_RotateSpeed;   //rotate speed
 extern int g_UD_StepCount; //calculate the whole length from top to bottom.
 extern int g_LR_StepCount; //calculate the whole lenght from left to right.
 extern unsigned long g_tmPTZStart;
-#if ENABLE_QQ
+#if (ENABLE_QQ || ENABLE_P2P)
 void OnCmdPtz(int ev )
 {
 
@@ -4902,7 +4174,6 @@ void OnAutoLptspeed(const char* ev )
 //lptspeed
 static void OnMonLptspeed( const char *ev )
 {
-	int nPtzSpeed = 0;
 	HKFrameHead* pFrameHead = CreateFrameA((char*)ev, strlen(ev) );
 	int iPt = GetParamUN( pFrameHead, HK_KEY_PT );
 	DestroyFrame( pFrameHead );
@@ -4914,7 +4185,7 @@ static void OnMonLptspeed( const char *ev )
 		g_PtzStepType = 0;	
 		g_PtzPresetPos = 0;
 		Set_PTZ_RotateSpeed(iPt);	
-		g_RotateSpeed = Get_PTZ_RotateSpeed(&nPtzSpeed);
+		g_RotateSpeed = Get_PTZ_RotateSpeed();
 	}
 	printf("[%s, %d]...iPt:%d, g_PtzRotateEnable:%d, g_RotateSpeed:%d...\n", __func__, __LINE__, iPt, g_PtzRotateEnable, g_RotateSpeed);
 	return;
@@ -5019,7 +4290,7 @@ static void OnMonSetVbrOrCbr( HKFrameHead *pFrameHead )
 /******************************************************
  * restort camera params to default settings.
  ******************************************************/
-void ResetToDefaultSettings(void)
+void OnResetToDefaultSettings(void)
 {
 	HK_DEBUG_PRT("...reset camera video params to default settings...\n");
 
@@ -5177,62 +4448,6 @@ static void OnMonSetIoIn(HKFrameHead *pFrameHead)
 	//sccSetSysInfo( g_pDvrInst, 105, iValue );
 }
 
-static void GetInitAlarmParam(HKFrameHead *pFrameHead)
-{
-	int i = 0;
-	if (g_iCifOrD1 >= 5)
-	{
-		int iCount = conf_get_int(HOME_DIR"/RngMD.conf", "D1Count");
-		printf("[%s, %d]...g_iCifOrD1:%d, D1Count:%d...\n", __func__, __LINE__, g_iCifOrD1, iCount);
-
-		SetParamUN( pFrameHead, HK_KEY_INDEX, iCount ); 
-		for (i = 0; i < iCount; i++)
-		{
-			char cXYbuf[54] = {0};
-			char cWHbuf[54] = {0};
-			snprintf( cXYbuf, sizeof(cXYbuf), "D1XY%d", i );
-			snprintf( cWHbuf, sizeof(cWHbuf), "D1WH%d", i );
-
-			int iXY = conf_get_int(HOME_DIR"/RngMD.conf", cXYbuf);
-			int iWh = conf_get_int(HOME_DIR"/RngMD.conf", cWHbuf);
-
-			char cKey[HK_KEY_VALUES] = {0};
-			char cYey[HK_KEY_VALUES] = {0};
-			snprintf( cKey, sizeof(cKey), "%s%d", HK_KEY_POINTX, i );
-			snprintf( cYey, sizeof(cYey), "%s%d", HK_KEY_POINTY, i );
-
-			SetParamUN( pFrameHead, cKey, iXY ); 
-			SetParamUN( pFrameHead, cYey, iWh ); 
-			printf("...iXY:%d, iWh:%d...\n", iXY, iWh);
-		}
-	}
-	else
-	{
-		int iCount = conf_get_int(HOME_DIR"/RngMD.conf", "CifCount");
-		printf("[%s, %d]...g_iCifOrD1:%d, CifCount:%d...\n", __func__, __LINE__, g_iCifOrD1, iCount);
-
-		SetParamUN( pFrameHead, HK_KEY_INDEX, iCount ); 
-		for (i = 0; i < iCount; i++)
-		{
-			char cXYbuf[54] = {0};
-			char cWHbuf[54] = {0};
-			snprintf( cXYbuf, sizeof(cXYbuf), "CifXY%d", i );
-			snprintf( cWHbuf, sizeof(cWHbuf), "CifWH%d", i );
-
-			int iXY = conf_get_int(HOME_DIR"/RngMD.conf", cXYbuf);
-			int iWh = conf_get_int(HOME_DIR"/RngMD.conf", cWHbuf);
-
-			char cKey[HK_KEY_VALUES] = {0};
-			char cYey[HK_KEY_VALUES] = {0};
-			snprintf( cKey, sizeof(cKey), "%s%d", HK_KEY_POINTX, i );
-			snprintf( cYey, sizeof(cYey), "%s%d", HK_KEY_POINTY, i );
-
-			SetParamUN( pFrameHead, cKey, iXY ); 
-			SetParamUN( pFrameHead, cYey, iWh ); 
-			printf("...iXY:%d, iWh:%d...\n", iXY, iWh);
-		}
-	}
-}
 
 static void InitAlarmParam(int iRest)
 {
@@ -5496,7 +4711,7 @@ static void OnMonSetDevTranslate( const char * ev )
 			OnMonSetVbrOrCbr( pFrameHead );
 			break;
 		case HK_MON_SET_RESET_PARAM: //reset param
-			ResetToDefaultSettings(); 
+			OnResetToDefaultSettings(); 
 			break;
 		case HK_MON_SET_IO_IN://IO IN 0:NO 1:NC
 			OnMonSetIoIn( pFrameHead );
@@ -5511,6 +4726,7 @@ static void OnMonSetDevTranslate( const char * ev )
 }
 
 //static int s_fd7725 = -1;
+#if 0
 int open_7725()
 {
 	if( s_fd7725 < 0 )
@@ -5541,7 +4757,7 @@ void close_7725()
 		close(s_fd7725);
 	}
 }
-
+#endif
 /*
    static void OnDevIoAram( const char  *ev )
    {
@@ -5686,7 +4902,7 @@ static void OnMonContrast(const char* ev)
 		write_config("CamContrastLevel", iContrast);
 	}
 }
-
+#if 0
 int32_t tvp7725_SetImageColor(int32_t nViChn, int32_t nType, int32_t nValue)
 {
 	int32_t fd;
@@ -5705,7 +4921,7 @@ int32_t tvp7725_SetImageColor(int32_t nViChn, int32_t nType, int32_t nValue)
 
 	return ret;
 }
-
+#endif
 
 static int VDoEvent( const char* devname, int obj, const char* ev ) 
 {
@@ -5728,7 +4944,7 @@ static int VDoEvent( const char* devname, int obj, const char* ev )
 			OnMonChangeResolution( ev ); //bit rate.
 			break;
 		case HK_RS_NEW_VISITOR://24.
-			send_inband_desc(MPEG4);
+			onMonSend_inband_desc(MPEG4);
 			break;
 		case HK_MON_SENSITIVITY:
 			OnMonSenSitivity( ev ); //motion detect sensitivity.
@@ -5797,6 +5013,23 @@ static int VDoEvent( const char* devname, int obj, const char* ev )
 static int WriteNull(int obj, const char* data, unsigned int len, long flags)
 {
 	return len;
+}
+
+/* This function is Added by lingyb, for Alarm test  */
+static void SetIRQEventCallback(RSObjectIRQEvent cb) 
+{
+	ev_irq_ = cb;
+}
+
+static const char* Retrieve()
+{
+	return "video.vbVideo.MPEG4,video.vbVideo.M_JPEG,video.vbVideo.TF,video.vbVideo.NULL";
+}
+
+static const char* GetObjectInfo()
+{
+	return "Type=video.vbVideo;Outpin=MPEG4,M_JPEG,H263;";
+	return HI_SUCCESS;
 }
 
 void video_RSLoadObjects(RegisterFunctType reg) 

@@ -1,12 +1,17 @@
 #include <ctype.h>
 #include <dirent.h>
 
-#include "ipc_hk.h"
 #include "utils/HKMonCmdDefine.h"
 #include "utils/HKCmdPacket.h"
 #include "sys.h"
 #include "ov7725.h"
 #include "ipc_email.h"
+#include "ipc_hk.h"
+#include "ipc_vbVideo.h"
+#include "ipc_file_sd.h"
+#include "m433.h"
+#include "utils_biaobiao.h"
+//#include "attach.h"
 
 #if ENABLE_ONVIF
     #include "IPCAM_Export.h"

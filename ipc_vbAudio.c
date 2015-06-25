@@ -21,6 +21,8 @@
 #include "mpi_ao.h"
 #include "mpi_aenc.h"
 #include "mpi_adec.h"
+#include "sample_comm.h"
+#include "scc_video.h"
 
 #include "gpiodriver.h"
 #include "ipc_hk.h"
@@ -746,11 +748,12 @@ void AudioThread(void)
 #if 0
 	char g711a_buf[320*5]={0};
 #endif
-	char amr_buf[32*2];
+	char amr_buf[32*8];
 	int ret;
 
 #if ENABLE_QQ
 	tx_audio_encode_param audio_encode_param;
+	int cout_audio = 0;
 #endif
 
 #if ENABLE_ONVIF
@@ -766,7 +769,7 @@ void AudioThread(void)
 	audio_encode_param.head_length = 12;
 	audio_encode_param.audio_format = 1;
 	audio_encode_param.encode_param = 7;
-	audio_encode_param.frame_per_pkg = 2;
+	audio_encode_param.frame_per_pkg = 8;
 	audio_encode_param.sampling_info = GET_SIMPLING_INFO(1, 8, 16);
 	audio_encode_param.reserved = 0;
 #endif
@@ -811,8 +814,13 @@ void AudioThread(void)
 
 #if ENABLE_QQ
 				//printf("the lenth is %d\n", stStream.u32Len);
+				cout_audio++;
 				ret = PCM2AMR(stStream.pStream, stStream.u32Len, amr_buf);
-				tx_set_audio_data(&audio_encode_param, amr_buf, ret);
+				if(cout_audio >= 4)
+				{
+					cout_audio = 0;
+					tx_set_audio_data(&audio_encode_param, amr_buf, ret*4);
+				}
 #endif
 
 				HI_MPI_AENC_ReleaseStream(s_AencChn, &stStream);

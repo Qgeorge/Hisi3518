@@ -5,15 +5,6 @@
 #ifndef	__G711CODEC_H__
 #define	__G711CODEC_H__
 
-/*
-* u-law, A-law and linear PCM conversions.
-*/
-#define	SIGN_BIT	(0x80)		/* Sign bit for a A-law byte. */
-#define	QUANT_MASK	(0xf)		/* Quantization field mask. */
-#define	NSEGS		(8)			/* Number of A-law segments. */
-#define	SEG_SHIFT	(4)			/* Left shift for segment number. */
-#define	SEG_MASK	(0x70)		/* Segment field mask. */
-#define	BIAS		(0x84)		/* Bias for linear code. */
 
 int PCM2G711a( char *InAudioData, char *OutAudioData, int DataLen, int reserve );
 int PCM2G711u( char *InAudioData, char *OutAudioData, int DataLen, int reserve );

@@ -1,9 +1,10 @@
-
 #include "ipc_email.h"
 #include "ipc_ssl.h"
+#include <ctype.h>
 extern Command_Entry* FindCommandEntry(int command);
 extern char *base64_encode(const char * bytes_to_encode,  int in_len);
-int OpenSSLConnect()
+
+static int OpenSSLConnect()
 {
 	printf("func:%s..line:%d\n", __func__, __LINE__);
 	if(m_ctx == NULL)
@@ -88,7 +89,7 @@ int OpenSSLConnect()
 	return 0;
 }
 
-void FormatHeader(char* header)
+static void FormatHeader(char* header)
 {
 	char month[][4] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
 	size_t i;
@@ -158,7 +159,7 @@ void FormatHeader(char* header)
 	strcat(SendBuf, "\r\n");
 }
 
-int ReceiveData_SSL(SSL* ssl, Command_Entry* pEntry)
+static int ReceiveData_SSL(SSL* ssl, Command_Entry* pEntry)
 {
 	int res = 0;
 	int offset = 0;
@@ -274,7 +275,7 @@ int ReceiveData_SSL(SSL* ssl, Command_Entry* pEntry)
 	return 0;
 }
 
-int ReceiveData(Command_Entry* pEntry)
+static int ReceiveData(Command_Entry* pEntry)
 {
 	int ret = 0;
 	if(m_ssl != NULL)
@@ -342,7 +343,7 @@ int ReceiveData(Command_Entry* pEntry)
 	//printf("===== %s Success! ======\n", __func__);
 }
 
-int ReceiveResponse(Command_Entry* pEntry)
+static int ReceiveResponse(Command_Entry* pEntry)
 {
 	//std::string line;
 	char line[2048] = {0};
@@ -411,7 +412,7 @@ int ReceiveResponse(Command_Entry* pEntry)
 	return 0;
 }
 
-void CleanupOpenSSL()
+static void CleanupOpenSSL()
 {   
 	if(m_ssl != NULL)
 	{
@@ -430,7 +431,7 @@ void CleanupOpenSSL()
 	}
 }
 
-void DisconnectRemoteServer()
+static void DisconnectRemoteServer()
 {
 	if(m_bConnected) 
 		SayQuit();
@@ -445,7 +446,7 @@ void DisconnectRemoteServer()
 }
 
 
-int StartTls()
+static int StartTls()
 {
 	int ret = 0;
 	Command_Entry* pEntry = FindCommandEntry(command_STARTTLS);
@@ -465,7 +466,7 @@ int StartTls()
 	return 0;
 }
 
-int SayHello()
+static int SayHello()
 {
 	Command_Entry* pEntry = FindCommandEntry(command_EHLO);
 	sprintf(SendBuf, "EHLO %s\r\n", hk_email.mailserver);
@@ -495,7 +496,7 @@ int SayQuit()
 	return 0;
 }
 
-int InitOpenSSL()
+static int InitOpenSSL()
 {
 	SSL_library_init();
 	SSL_load_error_strings();
@@ -508,7 +509,7 @@ int InitOpenSSL()
 	return 0;
 }
 
-int ConnectRemoteServer(const char* szServer, const unsigned short mPort, 
+static int ConnectRemoteServer(const char* szServer, const unsigned short mPort, 
 		int securityType, const char* login, const char* password)
 {
 	unsigned short nPort = 0;
@@ -712,7 +713,7 @@ int ConnectRemoteServer(const char* szServer, const unsigned short mPort,
 	return 0;
 }
 
-void InitAllVariable()
+static void InitAllVariable()
 {
 	gmail_socket = 0;
 	m_bConnected = 0;

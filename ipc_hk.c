@@ -1,9 +1,11 @@
+
 #include <assert.h>
 #include <signal.h>
 #include <sys/time.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
 #include <sys/prctl.h>
+#include <ctype.h>
 
 
 #include "utils/HKMonCmdDefine.h"
@@ -21,10 +23,21 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
+
 #include "sample_comm.h"
 #include "m433.h"
 #include "osd_region.h"
 #include "ptz.h"
+#include "ipc_file_sd.h"
+#include "osd_region.h"
+#include "ipc_vbVideo.h"
+#include "ipc_vbAudio.h"
+#include "ipc_monc.h"
+#include "gpiodriver.h"
+#include "ipc_email.h"
+#include "ipc_sd_upgrade.h"
+#include "ipc_sd_license.h"
+#include "Wdt_hi3518.h"
 
 /*add by biaobiao*/
 #if ENABLE_P2P
@@ -224,7 +237,12 @@ static const char* getPx(HKFrameHead* hf, const char* x, const char* defs) { ret
 
 
 void TrimRight(char *psz);
+static int hk_WirelessCard_Reset(void);
 
+
+
+void conf_set_space(char *file, char *buf, const char *num);
+void conf_get_space(char *file, char *sid, char *ssid, int num);
 HKIPAddres eth0Addr,wifiAddr;
 WIFICfg   mywifiCfg;
 
@@ -233,7 +251,6 @@ WIFICfg   mywifiCfg;
  *  enable wifi search, parse wifi node, 
  *  and save the scan result into wifi list file.
  */
-//static int ScanWifiInfo( REMOTE_WIFI_FIND *wifi )
 int ScanWifiInfo( REMOTE_WIFI_FIND *pWifi )
 {
 	HK_DEBUG_PRT("...Searching remote wifi node ......\n");
@@ -439,12 +456,6 @@ int ScanWifiInfo( REMOTE_WIFI_FIND *pWifi )
 	return 0;
 }
 
-void WifiSearch(REMOTE_WIFI_FIND *pwifiFind)
-{		
-	//static REMOTE_WIFI_FIND wifiFind;
-	ScanWifiInfo(pwifiFind);
-}
-
 /*************************************************************
  * func: sort wifi info according to wifi signal level.
  *       return 0 on success.
@@ -507,7 +518,7 @@ int Sort_WifiInfo(REMOTE_WIFI_FIND *pWifiInfo)
 	return 0;
 }
 
-
+//remove the ' ' space.
 void TrimRight(char *psz)
 {
 	int i;
@@ -786,7 +797,6 @@ void be_present2(int iLen, char *cWifiInfo, char *cSend, unsigned int ulParam )
 		cBuf = NULL;
 	}
 }
-
 
 
 static char wifiInfo[1024] = {0};
@@ -1618,6 +1628,7 @@ static void setpidfile(const char* pidfile, pid_t pid)
 
 static int gReLogIn = 0;
 static int g_APNonLogin = 0;
+#if 0
 static void* thd_nonblock_login(void* a)
 {
 	int x;
@@ -1704,7 +1715,7 @@ static void start_nonblock_login()
 		create_detached_thread(thd_nonblock_login, 0);
 	}
 }
-
+#endif
 static void childproc(pid_t ppid, char* cmdline)
 {
 	int x;
@@ -3277,7 +3288,7 @@ static void initGPIO()
 /*******************************************************
  * func: reset wireless modules while system restart.
  *******************************************************/
-int hk_WirelessCard_Reset(void)
+static int hk_WirelessCard_Reset(void)
 { 
 	unsigned int groupnum = 0;
 	unsigned int bitnum   = 0;
@@ -3516,7 +3527,6 @@ static int hk_IrcutCtrl(int nboardtype)
 	return nRet;
 }
 
-
 //vbVideo
 void hk_IOAlarm()
 {
@@ -3600,7 +3610,7 @@ int HK_Check_KeyReset(void)
 	return 0;
 }
 
-
+#if 0
 #define ETHTOOL_GLINK 0x0000000a
 #define SIOCETHTOOL 0x8946
 static int GetNetStat( )
@@ -3658,7 +3668,7 @@ static int tatus()
 	close(sock);
 	return -1;
 }
-
+#endif
 void hk_set_system_time()
 {
 	int tz = conf_get_int(HOME_DIR"/time.conf", "zone");
@@ -3992,7 +4002,7 @@ int main(int argc, char* argv[])
 		//return 1;
 	}
 	Daemonize();
-	install_sighandler(sig_handler);
+	init_sighandler();
 
 	char cSensorType[32]={0};
 	conf_get( HOME_DIR"/sensor.conf", "sensortype", cSensorType, 32 );
@@ -4132,11 +4142,12 @@ int main(int argc, char* argv[])
 	unsigned int valSetRun = 0;
 	for ( ; !quit_; counter++)
 	{
+		//¿¿¿¿
 		if (1 != HI3518_WDTFeed())
 		{
 			printf("Feed Dog Failed!\n");
 		}
-
+		//???¿¿...
 		ISP_Ctrl_Sharpness();
 
 		if (b_hkSaveSd)
@@ -4147,7 +4158,6 @@ int main(int argc, char* argv[])
 			GetSdAlarmParam();
 			b_hkSaveSd = false;
 		}
-
 		if ((1 == hkSdParam.autoRec) && (b_OpenSd) && (1 == g_sdIsOnline))
 		{
 			g_OpenSd++;

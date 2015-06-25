@@ -1,34 +1,91 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include "gpiodriver.h"
+#include "utils_biaobiao.h"
 
-#include "ptz.h"
-#include "ipc_hk.h"
+#ifndef TRUE
+#define TRUE	1
+#endif
+
+#ifndef FALSE
+#define FALSE	0
+#endif
+
+#define PTZ_PRINT_ENABLE    1
+#if PTZ_PRINT_ENABLE
+    #define PTZ_DEBUG_PRT(fmt...) \
+        do {                      \
+            printf("[%s - %d]: ", __FUNCTION__, __LINE__);\
+            printf(fmt);          \
+        }while(0)
+#else
+    #define PTZ_DEBUG_PRT(fmt...) \
+        do { ; } while(0) //do nothing.
+#endif
+
+//thread.
+#define	HK_CREATE_THREADEX(Func, Args,Ret) \
+	do{ 			\
+		pthread_t		__pth__;	\
+		if (0 == pthread_create(&__pth__, NULL, (void *)Func, (void *)Args))	\
+			Ret = TRUE; \
+		else		    \
+			Ret = FALSE; \
+      	}while(0)
+
+
+#define PTZ_CONF  "/mnt/sif/ptz.conf"
+#define PRESETNUM 9 	//8 preset level: 1~8.
+
+#define CLOCKWISE 1
+#define COUNTER_CLOCKWISE 2
+
+#define PTZ_RANGE_LR 2020 //L & R max length.
+#define PTZ_RANGE_UD 620 //U & D max length.
+
 
 int g_RotateSpeed = 1;  //rotate speed
-int g_RotateDir_LR = 0; //dir: left / right
-int g_RotateDir_UD = 0; //dir: up / down
-int g_LR_AutoRotateCount = 0; //count the times of hit left & right limit switch.
-int g_UD_AutoRotateCount = 0; //count the times of hit up & down limit switch.
+
+int s_RotateDir_LR = 0; //dir: left / right
+int s_RotateDir_UD = 0; //dir: up / down
+int s_LR_AutoRotateCount = 0; //count the times of hit left & right limit switch.
+int s_UD_AutoRotateCount = 0; //count the times of hit up & down limit switch.
+
 int g_UD_StepCount = 0; //calculate the current position.
 int g_LR_StepCount = 0; //calculate the current position.
-int g_UDStepLength = 0; //the step number from up to down.
-int g_LRStepLength = 0; //the step number from left to right.
 
-int g_LR_LimitFlag = 0; //0: with limit switch; 1: without limit switch.
-int g_UD_LimitFlag = 0; //0: with limit switch; 1: without limit switch.
+int s_UDStepLength = 0; //the step number from up to down.
+int s_LRStepLength = 0; //the step number from left to right.
 
-int g_RotateRunning = 0;    //quit auto rotate.
+int s_LR_LimitFlag = 0; //0: with limit switch; 1: without limit switch.
+int s_UD_LimitFlag = 0; //0: with limit switch; 1: without limit switch.
+
+int s_RotateRunning = 0;    //quit auto rotate.
+
 int g_PtzRotateEnable = 0;  //ptz rotate flag, 1:enable rotate, 0:ptz stop.
 int g_PtzRotateType = 0;    //type ==> 1:leftright; 2:updown; 3:all direction auto rotate.
 int g_PtzStepType = 0;      //ptz step, 1:left, 2:right, 3:up, 4:down.
 int g_PtzPresetPos = 0;     //preset position: 1 ~ 8.
-unsigned long g_tmPTZStart = 0, g_tmPTZStop = 0;
 
 
+unsigned long g_tmPTZStart = 0;
+unsigned long g_tmPTZStop = 0;
+
+typedef struct ptz_preset
+{
+     unsigned int presetX;
+     unsigned int presetY;
+}st_PtzPreset;
+
+st_PtzPreset s_stPtzPreset[PRESETNUM];
 
 /****************************************************
 * Suspend execution for x milliseconds intervals.
 *  @param ms Milliseconds to sleep.
 ****************************************************/
-void delayMS(int x)
+static void delayMS(int x)
 {
  	//usleep(x * 1000);
  	//usleep(x * 100);
@@ -161,7 +218,7 @@ void PTZ_Rotate_Stop(int *pins)
  * func: rorate from right side to left side.
  * GPIO: 9_0 --> 9_3.
  *********************************************/
-int MotorDir_Right_To_Left(int bit)
+static int MotorDir_Right_To_Left(int bit)
 {
     int j = 0;
     int pins[4] = {0, 1, 2, 3}; //GPIO9_0 ~ GPIO9_3.
@@ -193,7 +250,7 @@ int MotorDir_Right_To_Left(int bit)
  * func: rorate from left side to right side.
  * GPIO: 9_3 --> 9_0.
  *********************************************/
-int MotorDir_Left_To_Right(int bit)
+static int MotorDir_Left_To_Right(int bit)
 {
     int j = 0;
     int pins[4] = {3, 2, 1, 0}; //GPIO9_3 ~ GPIO9_0.
@@ -225,7 +282,7 @@ int MotorDir_Left_To_Right(int bit)
  * func: rorate from bottom side to top side.
  * GPIO: 9_4 --> 9_7.
  *********************************************/
-int MotorDir_Down_To_Up(int bit)
+static int MotorDir_Down_To_Up(int bit)
 {
     int j = 0;
     int pins[4] = {4, 5, 6, 7}; //GPIO9_4 ~ GPIO9_7.
@@ -257,7 +314,7 @@ int MotorDir_Down_To_Up(int bit)
  * func: rorate from top side to bottom side.
  * GPIO: 9_7 --> 9_4.
  *********************************************/
-int MotorDir_Up_To_Down(int bit)
+static int MotorDir_Up_To_Down(int bit)
 {
     int j = 0;
     int pins[4] = {7, 6, 5, 4}; //GPIO9_7 ~ GPIO9_4.
@@ -291,7 +348,7 @@ int MotorDir_Up_To_Down(int bit)
  *       return 0 while limit switch hit;
  *       else, return 1.
  ***********************************************/
-int PTZ_LimitSwitch_Left(void)
+static int PTZ_LimitSwitch_Left(void)
 {
 	unsigned int val_read = 0;
 	unsigned int groupnum = 5;
@@ -303,24 +360,24 @@ int PTZ_LimitSwitch_Left(void)
 	//if (0 == val_read)
 	//{		
 	//	//printf("[%s] Read GPIO%d_%d = %d....left hit....\n", __func__, groupnum, bitnum, val_read);	
-    //    g_LR_AutoRotateCount ++;
-    //    g_RotateDir_LR = COUNTER_CLOCKWISE; //change dir: left --> right.
+    //    s_LR_AutoRotateCount ++;
+    //    s_RotateDir_LR = COUNTER_CLOCKWISE; //change dir: left --> right.
 
-    //    if (1 == g_LR_AutoRotateCount)
+    //    if (1 == s_LR_AutoRotateCount)
     //    {
     //        g_LR_StepCount = 0; //reset the step length value first time.
     //    }
-    //    PTZ_DEBUG_PRT("......left hit...... g_LR_AutoRotateCount:%d, g_LRStepLength:%d, g_LR_StepCount:%d ..............\n", g_LR_AutoRotateCount, g_LRStepLength, g_LR_StepCount);
+    //    PTZ_DEBUG_PRT("......left hit...... s_LR_AutoRotateCount:%d, s_LRStepLength:%d, g_LR_StepCount:%d ..............\n", s_LR_AutoRotateCount, s_LRStepLength, g_LR_StepCount);
 
     //    return 1;
 	//}
 	//else
 	//{
-    //    if (2 <= g_LR_AutoRotateCount)
+    //    if (2 <= s_LR_AutoRotateCount)
     //    {
     //        g_LR_StepCount --; //step to preset position.
     //    }
-    //    //PTZ_DEBUG_PRT("g_LR_AutoRotateCount:%d, g_LRStepLength:%d, g_LR_StepCount:%d\n", g_LR_AutoRotateCount, g_LRStepLength, g_LR_StepCount);
+    //    //PTZ_DEBUG_PRT("s_LR_AutoRotateCount:%d, s_LRStepLength:%d, g_LR_StepCount:%d\n", s_LR_AutoRotateCount, s_LRStepLength, g_LR_StepCount);
     //    
     //    return 0;
 	//}
@@ -332,7 +389,7 @@ int PTZ_LimitSwitch_Left(void)
  *       return 0 while limit switch hit.
  *       else, return 1.
  ***********************************************/
-int PTZ_LimitSwitch_Right(void)
+static int PTZ_LimitSwitch_Right(void)
 {
 	unsigned int val_read = 0;
 	unsigned int groupnum = 5;
@@ -344,16 +401,16 @@ int PTZ_LimitSwitch_Right(void)
 	//if (0 == val_read)
 	//{		
 	//	//printf("[%s] Read GPIO%d_%d = %d....right hit....\n", __func__, groupnum, bitnum, val_read);	
-    //    g_LRStepLength = g_LR_StepCount;
-    //    g_LR_AutoRotateCount ++;
-    //    g_RotateDir_LR = CLOCKWISE; //change dir: right --> left.
-    //    PTZ_DEBUG_PRT("......right hit...... g_LR_AutoRotateCount:%d, g_LRStepLength:%d, g_LR_StepCount:%d ..............\n", g_LR_AutoRotateCount, g_LRStepLength, g_LR_StepCount);
+    //    s_LRStepLength = g_LR_StepCount;
+    //    s_LR_AutoRotateCount ++;
+    //    s_RotateDir_LR = CLOCKWISE; //change dir: right --> left.
+    //    PTZ_DEBUG_PRT("......right hit...... s_LR_AutoRotateCount:%d, s_LRStepLength:%d, g_LR_StepCount:%d ..............\n", s_LR_AutoRotateCount, s_LRStepLength, g_LR_StepCount);
     //    return 1;
     //}
 	//else
 	//{
     //    g_LR_StepCount ++; //count current motor position.
-    //    //PTZ_DEBUG_PRT("g_LR_AutoRotateCount:%d, g_LRStepLength:%d, g_LR_StepCount:%d\n", g_LR_AutoRotateCount, g_LRStepLength, g_LR_StepCount);
+    //    //PTZ_DEBUG_PRT("s_LR_AutoRotateCount:%d, s_LRStepLength:%d, g_LR_StepCount:%d\n", s_LR_AutoRotateCount, s_LRStepLength, g_LR_StepCount);
     //    return 0;
 	//}
 
@@ -365,7 +422,7 @@ int PTZ_LimitSwitch_Right(void)
  *       return 0 while limit switch hit.
  *       else, return 1.
  ***********************************************/
-int PTZ_LimitSwitch_Up(void)
+static int PTZ_LimitSwitch_Up(void)
 {
 	unsigned int val_read = 0;
 	unsigned int groupnum = 5;
@@ -377,23 +434,23 @@ int PTZ_LimitSwitch_Up(void)
 	//if (0 == val_read)
 	//{		
 	//	//printf("[%s] Read GPIO%d_%d = %d....up hit....\n", __func__, groupnum, bitnum, val_read);	
-    //    g_UD_AutoRotateCount ++;
-    //    g_RotateDir_UD = COUNTER_CLOCKWISE; //change dir: up --> down.
+    //    s_UD_AutoRotateCount ++;
+    //    s_RotateDir_UD = COUNTER_CLOCKWISE; //change dir: up --> down.
 
-    //    if (1 == g_UD_AutoRotateCount) //hit onece.
+    //    if (1 == s_UD_AutoRotateCount) //hit onece.
     //    {
     //        g_UD_StepCount = 0; //reset the step length value the first time.
     //    }
-    //    PTZ_DEBUG_PRT("......up hit...... g_UD_AutoRotateCount:%d, g_UDStepLength:%d, g_UD_StepCount:%d ..............\n", g_UD_AutoRotateCount, g_UDStepLength, g_UD_StepCount);
+    //    PTZ_DEBUG_PRT("......up hit...... s_UD_AutoRotateCount:%d, s_UDStepLength:%d, g_UD_StepCount:%d ..............\n", s_UD_AutoRotateCount, s_UDStepLength, g_UD_StepCount);
     //    return 1;
 	//}
 	//else
 	//{
-    //    if (2 <= g_UD_AutoRotateCount)
+    //    if (2 <= s_UD_AutoRotateCount)
     //    {
     //        g_UD_StepCount --; //step to preset position.
     //    }
-    //    //PTZ_DEBUG_PRT("g_UD_AutoRotateCount:%d, g_UDStepLength:%d, g_UD_StepCount:%d\n", g_UD_AutoRotateCount, g_UDStepLength, g_UD_StepCount);
+    //    //PTZ_DEBUG_PRT("s_UD_AutoRotateCount:%d, s_UDStepLength:%d, g_UD_StepCount:%d\n", s_UD_AutoRotateCount, s_UDStepLength, g_UD_StepCount);
     //    return 0;
 	//}
 	return val_read;
@@ -404,7 +461,7 @@ int PTZ_LimitSwitch_Up(void)
  *       return 0 while limit switch hit,
  *       else, return 1.
  ***********************************************/
-int PTZ_LimitSwitch_Down(void)
+static int PTZ_LimitSwitch_Down(void)
 {
 	unsigned int val_read = 0;
 	unsigned int groupnum = 5;
@@ -416,16 +473,16 @@ int PTZ_LimitSwitch_Down(void)
 	//if (0 == val_read)
 	//{		
 	//	//printf("[%s] Read GPIO%d_%d = %d....down hit....\n", __func__, groupnum, bitnum, val_read);	
-    //    g_UDStepLength = g_UD_StepCount; //save the distance from up to down.
-    //    g_UD_AutoRotateCount ++;
-    //    g_RotateDir_UD = CLOCKWISE; //change direction: down to up.
-    //    PTZ_DEBUG_PRT("......down hit...... g_UD_AutoRotateCount:%d, g_UDStepLength:%d, g_UD_StepCount:%d ..............\n", g_UD_AutoRotateCount, g_UDStepLength, g_UD_StepCount);
+    //    s_UDStepLength = g_UD_StepCount; //save the distance from up to down.
+    //    s_UD_AutoRotateCount ++;
+    //    s_RotateDir_UD = CLOCKWISE; //change direction: down to up.
+    //    PTZ_DEBUG_PRT("......down hit...... s_UD_AutoRotateCount:%d, s_UDStepLength:%d, g_UD_StepCount:%d ..............\n", s_UD_AutoRotateCount, s_UDStepLength, g_UD_StepCount);
     //    return 1;
 	//}
 	//else
 	//{
     //    g_UD_StepCount ++; //count current motor position.
-    //    //PTZ_DEBUG_PRT("g_UD_AutoRotateCount:%d, g_UDStepLength:%d, g_UD_StepCount:%d\n", g_UD_AutoRotateCount, g_UDStepLength, g_UD_StepCount);
+    //    //PTZ_DEBUG_PRT("s_UD_AutoRotateCount:%d, s_UDStepLength:%d, g_UD_StepCount:%d\n", s_UD_AutoRotateCount, s_UDStepLength, g_UD_StepCount);
     //    return 0;
 	//}
 	return val_read;
@@ -438,7 +495,7 @@ int PTZ_LimitSwitch_Down(void)
  * GPIO: 9_0(D1), 9_1(C1), 9_2(B1), 9_3(A1).
  **************************************************/
 //int PTZ_AutoRotate_LeftRight(int *pins, int direction, int delay) 
-int PTZ_AutoRotate_LeftRight(int direction, int nSpeed) 
+static int PTZ_AutoRotate_LeftRight(int direction, int nSpeed) 
 {
     int i = 0;
     unsigned int groupnum = 9;
@@ -451,54 +508,54 @@ int PTZ_AutoRotate_LeftRight(int direction, int nSpeed)
 		{		
             MotorDir_Right_To_Left(i);
 
-            if (0 == g_LR_LimitFlag) //with limit switch.
+            if (0 == s_LR_LimitFlag) //with limit switch.
             {
                 if (0 == PTZ_LimitSwitch_Left()) //hit left limit switch.
                 {
                     g_LR_StepCount = 0; //reset the step counter.
-                    PTZ_DEBUG_PRT("left hit...g_LR_LimitFlag:%d, g_LRStepLength:%d, g_LR_StepCount:%d\n", g_LR_LimitFlag, g_LRStepLength, g_LR_StepCount);
-                    g_RotateDir_LR = COUNTER_CLOCKWISE; //change dir: left --> right.
+                    PTZ_DEBUG_PRT("left hit...s_LR_LimitFlag:%d, s_LRStepLength:%d, g_LR_StepCount:%d\n", s_LR_LimitFlag, s_LRStepLength, g_LR_StepCount);
+                    s_RotateDir_LR = COUNTER_CLOCKWISE; //change dir: left --> right.
                     break;
                 }
             }
-            else if (1 == g_LR_LimitFlag) //without limit switch.
+            else if (1 == s_LR_LimitFlag) //without limit switch.
             {
                 if (0 == g_LR_StepCount) 
                 {
-                    PTZ_DEBUG_PRT("left......g_LR_LimitFlag:%d, g_LRStepLength:%d, g_LR_StepCount:%d\n", g_LR_LimitFlag, g_LRStepLength, g_LR_StepCount);
-                    g_RotateDir_LR = COUNTER_CLOCKWISE; //change dir: left --> right.
+                    PTZ_DEBUG_PRT("left......s_LR_LimitFlag:%d, s_LRStepLength:%d, g_LR_StepCount:%d\n", s_LR_LimitFlag, s_LRStepLength, g_LR_StepCount);
+                    s_RotateDir_LR = COUNTER_CLOCKWISE; //change dir: left --> right.
                     break;
                 }
             }
             
             g_LR_StepCount --; //count current motor position.
-            //PTZ_DEBUG_PRT("g_LR_LimitFlag:%d, g_LRStepLength:%d, g_LR_StepCount:%d\n", g_LR_LimitFlag, g_LRStepLength, g_LR_StepCount);
+            //PTZ_DEBUG_PRT("s_LR_LimitFlag:%d, s_LRStepLength:%d, g_LR_StepCount:%d\n", s_LR_LimitFlag, s_LRStepLength, g_LR_StepCount);
 		}
 		else if (COUNTER_CLOCKWISE == direction) //dir: L --> R.
 		{
             MotorDir_Left_To_Right(i);
 
-            if (0 == g_LR_LimitFlag) //with limit switch.
+            if (0 == s_LR_LimitFlag) //with limit switch.
             {
                 if (0 == PTZ_LimitSwitch_Right()) //hit right limit switch.
                 {
-                    PTZ_DEBUG_PRT("right hit...g_LR_LimitFlag:%d, g_LRStepLength:%d, g_LR_StepCount:%d\n", g_LR_LimitFlag, g_LRStepLength, g_LR_StepCount);
-                    g_RotateDir_LR = CLOCKWISE; //change dir: right --> left.
+                    PTZ_DEBUG_PRT("right hit...s_LR_LimitFlag:%d, s_LRStepLength:%d, g_LR_StepCount:%d\n", s_LR_LimitFlag, s_LRStepLength, g_LR_StepCount);
+                    s_RotateDir_LR = CLOCKWISE; //change dir: right --> left.
                     break;
                 }
             }
-            else if (1 == g_LR_LimitFlag) //without limit switch.
+            else if (1 == s_LR_LimitFlag) //without limit switch.
             {
                 if (g_LR_StepCount == PTZ_RANGE_LR) 
                 {
-                    PTZ_DEBUG_PRT("right......g_LR_LimitFlag:%d, g_LRStepLength:%d, g_LR_StepCount:%d\n", g_LR_LimitFlag, g_LRStepLength, g_LR_StepCount);
-                    g_RotateDir_LR = CLOCKWISE; //change dir: left --> right.
+                    PTZ_DEBUG_PRT("right......s_LR_LimitFlag:%d, s_LRStepLength:%d, g_LR_StepCount:%d\n", s_LR_LimitFlag, s_LRStepLength, g_LR_StepCount);
+                    s_RotateDir_LR = CLOCKWISE; //change dir: left --> right.
                     break;
                 }
             }
             
             g_LR_StepCount ++; //count current motor position.
-            //PTZ_DEBUG_PRT("g_LR_LimitFlag:%d, g_LRStepLength:%d, g_LR_StepCount:%d\n", g_LR_LimitFlag, g_LRStepLength, g_LR_StepCount);
+            //PTZ_DEBUG_PRT("s_LR_LimitFlag:%d, s_LRStepLength:%d, g_LR_StepCount:%d\n", s_LR_LimitFlag, s_LRStepLength, g_LR_StepCount);
 		}
 		delayMS(nSpeed);
 	}
@@ -512,7 +569,7 @@ int PTZ_AutoRotate_LeftRight(int direction, int nSpeed)
  * GPIO: 9_4(A), 9_5(B), 9_6(C), 9_7(D).
  ************************************************/
 //int PTZ_AutoRotate_UpDown(int *pins, int direction, int delay)
-int PTZ_AutoRotate_UpDown(int direction, int nSpeed)
+static int PTZ_AutoRotate_UpDown(int direction, int nSpeed)
 {
 	int i = 0, j = 0;
 	unsigned int val_set = 0; //pull down.
@@ -525,54 +582,54 @@ int PTZ_AutoRotate_UpDown(int direction, int nSpeed)
 		{
             MotorDir_Down_To_Up(i);
 
-            if (0 == g_UD_LimitFlag) //with limit switch.
+            if (0 == s_UD_LimitFlag) //with limit switch.
             {
                 if (0 == PTZ_LimitSwitch_Up()) //hit up limit switch.
                 {
                     g_UD_StepCount = 0; //reset step counter.
-                    PTZ_DEBUG_PRT("up hit...g_UD_LimitFlag:%d, g_UDStepLength:%d, g_UD_StepCount:%d\n", g_UD_LimitFlag, g_UDStepLength, g_UD_StepCount);
-                    g_RotateDir_UD = COUNTER_CLOCKWISE; //change dir: up --> down.
+                    PTZ_DEBUG_PRT("up hit...s_UD_LimitFlag:%d, s_UDStepLength:%d, g_UD_StepCount:%d\n", s_UD_LimitFlag, s_UDStepLength, g_UD_StepCount);
+                    s_RotateDir_UD = COUNTER_CLOCKWISE; //change dir: up --> down.
                     break;
                 }
             }
-            else if (1 == g_UD_LimitFlag) //without limit switch.
+            else if (1 == s_UD_LimitFlag) //without limit switch.
             {
                 if (0 == g_UD_StepCount) //change direction wihle 0 position.
                 {
-                    PTZ_DEBUG_PRT("up......g_UD_LimitFlag:%d, g_UDStepLength:%d, g_UD_StepCount:%d\n", g_UD_LimitFlag, g_UDStepLength, g_UD_StepCount);
-                    g_RotateDir_UD = COUNTER_CLOCKWISE; //change dir: up --> down.
+                    PTZ_DEBUG_PRT("up......s_UD_LimitFlag:%d, s_UDStepLength:%d, g_UD_StepCount:%d\n", s_UD_LimitFlag, s_UDStepLength, g_UD_StepCount);
+                    s_RotateDir_UD = COUNTER_CLOCKWISE; //change dir: up --> down.
                     break;
                 }
             }
 
             g_UD_StepCount --;
-            //PTZ_DEBUG_PRT("g_UD_LimitFlag:%d, g_UDStepLength:%d, g_UD_StepCount:%d\n", g_UD_LimitFlag, g_UDStepLength, g_UD_StepCount);
+            //PTZ_DEBUG_PRT("s_UD_LimitFlag:%d, s_UDStepLength:%d, g_UD_StepCount:%d\n", s_UD_LimitFlag, s_UDStepLength, g_UD_StepCount);
 		}
 		else if (COUNTER_CLOCKWISE == direction) //dir: U --> D.
 		{
             MotorDir_Up_To_Down(i);
 
-            if (0 == g_UD_LimitFlag) //with limit switch.
+            if (0 == s_UD_LimitFlag) //with limit switch.
             {
                 if (0 == PTZ_LimitSwitch_Down()) //hit down limit switch.
                 {
-                    PTZ_DEBUG_PRT("down hit...g_UD_LimitFlag:%d, g_UDStepLength:%d, g_UD_StepCount:%d\n", g_UD_LimitFlag, g_UDStepLength, g_UD_StepCount);
-                    g_RotateDir_UD = CLOCKWISE; //change dir: down --> up.
+                    PTZ_DEBUG_PRT("down hit...s_UD_LimitFlag:%d, s_UDStepLength:%d, g_UD_StepCount:%d\n", s_UD_LimitFlag, s_UDStepLength, g_UD_StepCount);
+                    s_RotateDir_UD = CLOCKWISE; //change dir: down --> up.
                     break;
                 }
             }
-            else if (1 == g_UD_LimitFlag) //without limit switch.
+            else if (1 == s_UD_LimitFlag) //without limit switch.
             {
                 if (g_UD_StepCount == PTZ_RANGE_UD) 
                 {
-                    PTZ_DEBUG_PRT("down......g_UD_LimitFlag:%d, g_UDStepLength:%d, g_UD_StepCount:%d\n", g_UD_LimitFlag, g_UDStepLength, g_UD_StepCount);
-                    g_RotateDir_UD = CLOCKWISE; //change dir: down --> up.
+                    PTZ_DEBUG_PRT("down......s_UD_LimitFlag:%d, s_UDStepLength:%d, g_UD_StepCount:%d\n", s_UD_LimitFlag, s_UDStepLength, g_UD_StepCount);
+                    s_RotateDir_UD = CLOCKWISE; //change dir: down --> up.
                     break;
                 }
             }
 
             g_UD_StepCount ++;
-            //PTZ_DEBUG_PRT("g_UD_LimitFlag:%d, g_UDStepLength:%d, g_UD_StepCount:%d\n", g_UD_LimitFlag, g_UDStepLength, g_UD_StepCount);
+            //PTZ_DEBUG_PRT("s_UD_LimitFlag:%d, s_UDStepLength:%d, g_UD_StepCount:%d\n", s_UD_LimitFlag, s_UDStepLength, g_UD_StepCount);
         }
 		delayMS(nSpeed);
 	}
@@ -581,7 +638,7 @@ int PTZ_AutoRotate_UpDown(int direction, int nSpeed)
 }
 
 
-int PTZ_AutoRotate_AllDir(int nDir_LR, int nDir_UD, int nSpeed) 
+static int PTZ_AutoRotate_AllDir(int nDir_LR, int nDir_UD, int nSpeed) 
 {
 	int i = 0;
 	
@@ -594,54 +651,54 @@ int PTZ_AutoRotate_AllDir(int nDir_LR, int nDir_UD, int nSpeed)
 		{
             MotorDir_Right_To_Left(i);
 
-            if (0 == g_LR_LimitFlag) //with limit switch.
+            if (0 == s_LR_LimitFlag) //with limit switch.
             {
                 if (0 == PTZ_LimitSwitch_Left()) //hit left limit switch.
                 {
                     g_LR_StepCount = 0; //reset the step counter.
-                    PTZ_DEBUG_PRT("left hit...g_LR_LimitFlag:%d, g_LRStepLength:%d, g_LR_StepCount:%d\n", g_LR_LimitFlag, g_LRStepLength, g_LR_StepCount);
-                    g_RotateDir_LR = COUNTER_CLOCKWISE; //change dir: left --> right.
+                    PTZ_DEBUG_PRT("left hit...s_LR_LimitFlag:%d, s_LRStepLength:%d, g_LR_StepCount:%d\n", s_LR_LimitFlag, s_LRStepLength, g_LR_StepCount);
+                    s_RotateDir_LR = COUNTER_CLOCKWISE; //change dir: left --> right.
                     break;
                 }
             }
-            else if (1 == g_LR_LimitFlag) //without limit switch.
+            else if (1 == s_LR_LimitFlag) //without limit switch.
             {
                 if (0 == g_LR_StepCount) 
                 {
-                    //PTZ_DEBUG_PRT("left......g_LR_LimitFlag:%d, g_LRStepLength:%d, g_LR_StepCount:%d\n", g_LR_LimitFlag, g_LRStepLength, g_LR_StepCount);
-                    g_RotateDir_LR = COUNTER_CLOCKWISE; //change dir: left --> right.
+                    //PTZ_DEBUG_PRT("left......s_LR_LimitFlag:%d, s_LRStepLength:%d, g_LR_StepCount:%d\n", s_LR_LimitFlag, s_LRStepLength, g_LR_StepCount);
+                    s_RotateDir_LR = COUNTER_CLOCKWISE; //change dir: left --> right.
                     break;
                 }
             }
             
             g_LR_StepCount --; //count current motor position.
-            //PTZ_DEBUG_PRT("g_LR_LimitFlag:%d, g_LRStepLength:%d, g_LR_StepCount:%d\n", g_LR_LimitFlag, g_LRStepLength, g_LR_StepCount);
+            //PTZ_DEBUG_PRT("s_LR_LimitFlag:%d, s_LRStepLength:%d, g_LR_StepCount:%d\n", s_LR_LimitFlag, s_LRStepLength, g_LR_StepCount);
 		}
 		else if (COUNTER_CLOCKWISE == nDir_LR) //dir:L --> R.
 		{
             MotorDir_Left_To_Right(i);
 
-            if (0 == g_LR_LimitFlag) //with limit switch.
+            if (0 == s_LR_LimitFlag) //with limit switch.
             {
                 if (0 == PTZ_LimitSwitch_Right()) //hit right limit switch.
                 {
-                    PTZ_DEBUG_PRT("right hit...g_LR_LimitFlag:%d, g_LRStepLength:%d, g_LR_StepCount:%d\n", g_LR_LimitFlag, g_LRStepLength, g_LR_StepCount);
-                    g_RotateDir_LR = CLOCKWISE; //change dir: right --> left.
+                    PTZ_DEBUG_PRT("right hit...s_LR_LimitFlag:%d, s_LRStepLength:%d, g_LR_StepCount:%d\n", s_LR_LimitFlag, s_LRStepLength, g_LR_StepCount);
+                    s_RotateDir_LR = CLOCKWISE; //change dir: right --> left.
                     break;
                 }
             }
-            else if (1 == g_LR_LimitFlag) //without limit switch.
+            else if (1 == s_LR_LimitFlag) //without limit switch.
             {
                 if (g_LR_StepCount == PTZ_RANGE_LR) 
                 {
-                    //PTZ_DEBUG_PRT("right......g_LR_LimitFlag:%d, g_LRStepLength:%d, g_LR_StepCount:%d\n", g_LR_LimitFlag, g_LRStepLength, g_LR_StepCount);
-                    g_RotateDir_LR = CLOCKWISE; //change dir: left --> right.
+                    //PTZ_DEBUG_PRT("right......s_LR_LimitFlag:%d, s_LRStepLength:%d, g_LR_StepCount:%d\n", s_LR_LimitFlag, s_LRStepLength, g_LR_StepCount);
+                    s_RotateDir_LR = CLOCKWISE; //change dir: left --> right.
                     break;
                 }
             }
 
             g_LR_StepCount ++; //count current motor position.
-            //PTZ_DEBUG_PRT("g_LR_LimitFlag:%d, g_LRStepLength:%d, g_LR_StepCount:%d\n", g_LR_LimitFlag, g_LRStepLength, g_LR_StepCount);
+            //PTZ_DEBUG_PRT("s_LR_LimitFlag:%d, s_LRStepLength:%d, g_LR_StepCount:%d\n", s_LR_LimitFlag, s_LRStepLength, g_LR_StepCount);
 		}
 
         /*********************************************
@@ -651,66 +708,66 @@ int PTZ_AutoRotate_AllDir(int nDir_LR, int nDir_UD, int nSpeed)
 		{			
             MotorDir_Down_To_Up(i);
 
-            if (0 == g_UD_LimitFlag) //with limit switch.
+            if (0 == s_UD_LimitFlag) //with limit switch.
             {
                 if (0 == PTZ_LimitSwitch_Up()) //hit up limit switch.
                 {
                     g_UD_StepCount = 0; //reset step counter.
-                    PTZ_DEBUG_PRT("up hit...g_UD_LimitFlag:%d, g_UDStepLength:%d, g_UD_StepCount:%d\n", g_UD_LimitFlag, g_UDStepLength, g_UD_StepCount);
-                    g_RotateDir_UD = COUNTER_CLOCKWISE; //change dir: up --> down.
+                    PTZ_DEBUG_PRT("up hit...s_UD_LimitFlag:%d, s_UDStepLength:%d, g_UD_StepCount:%d\n", s_UD_LimitFlag, s_UDStepLength, g_UD_StepCount);
+                    s_RotateDir_UD = COUNTER_CLOCKWISE; //change dir: up --> down.
                     break;
                 }
             }
-            else if (1 == g_UD_LimitFlag) //without limit switch.
+            else if (1 == s_UD_LimitFlag) //without limit switch.
             {
                 if (0 == g_UD_StepCount) 
                 {
-                    //PTZ_DEBUG_PRT("up......g_UD_LimitFlag:%d, g_UDStepLength:%d, g_UD_StepCount:%d\n", g_UD_LimitFlag, g_UDStepLength, g_UD_StepCount);
-                    g_RotateDir_UD = COUNTER_CLOCKWISE; //change dir: up --> down.
+                    //PTZ_DEBUG_PRT("up......s_UD_LimitFlag:%d, s_UDStepLength:%d, g_UD_StepCount:%d\n", s_UD_LimitFlag, s_UDStepLength, g_UD_StepCount);
+                    s_RotateDir_UD = COUNTER_CLOCKWISE; //change dir: up --> down.
                     break;
                 }
             }
 
             g_UD_StepCount --;
-            //PTZ_DEBUG_PRT("g_UD_LimitFlag:%d, g_UDStepLength:%d, g_UD_StepCount:%d\n", g_UD_LimitFlag, g_UDStepLength, g_UD_StepCount);
+            //PTZ_DEBUG_PRT("s_UD_LimitFlag:%d, s_UDStepLength:%d, g_UD_StepCount:%d\n", s_UD_LimitFlag, s_UDStepLength, g_UD_StepCount);
 		}	
         else if (COUNTER_CLOCKWISE == nDir_UD) //dir: U --> D
 		{
             MotorDir_Up_To_Down(i);
 
-            if (0 == g_UD_LimitFlag) //with limit switch.
+            if (0 == s_UD_LimitFlag) //with limit switch.
             {
                 if (0 == PTZ_LimitSwitch_Down()) //hit down limit switch.
                 {
-                    PTZ_DEBUG_PRT("down hit...g_UD_LimitFlag:%d, g_UDStepLength:%d, g_UD_StepCount:%d\n", g_UD_LimitFlag, g_UDStepLength, g_UD_StepCount);
-                    g_RotateDir_UD = CLOCKWISE; //change dir: down --> up.
+                    PTZ_DEBUG_PRT("down hit...s_UD_LimitFlag:%d, s_UDStepLength:%d, g_UD_StepCount:%d\n", s_UD_LimitFlag, s_UDStepLength, g_UD_StepCount);
+                    s_RotateDir_UD = CLOCKWISE; //change dir: down --> up.
                     break;
                 }
             }
-            else if (1 == g_UD_LimitFlag) //without limit switch.
+            else if (1 == s_UD_LimitFlag) //without limit switch.
             {
                 if (g_UD_StepCount == PTZ_RANGE_UD) 
                 {
-                    //PTZ_DEBUG_PRT("down......g_UD_LimitFlag:%d, g_UDStepLength:%d, g_UD_StepCount:%d\n", g_UD_LimitFlag, g_UDStepLength, g_UD_StepCount);
-                    g_RotateDir_UD = CLOCKWISE; //change dir: down --> up.
+                    //PTZ_DEBUG_PRT("down......s_UD_LimitFlag:%d, s_UDStepLength:%d, g_UD_StepCount:%d\n", s_UD_LimitFlag, s_UDStepLength, g_UD_StepCount);
+                    s_RotateDir_UD = CLOCKWISE; //change dir: down --> up.
                     break;
 
                 }
             }
 
             g_UD_StepCount ++;
-            //PTZ_DEBUG_PRT("g_UD_LimitFlag:%d, g_UDStepLength:%d, g_UD_StepCount:%d\n", g_UD_LimitFlag, g_UDStepLength, g_UD_StepCount);
+            //PTZ_DEBUG_PRT("s_UD_LimitFlag:%d, s_UDStepLength:%d, g_UD_StepCount:%d\n", s_UD_LimitFlag, s_UDStepLength, g_UD_StepCount);
 		}		
 		delayMS(nSpeed);
 	}
     return 0;
 }
 
-int PTZ_Rotate_Left(unsigned char count)
+static int PTZ_Rotate_Left(unsigned char count)
 {
 	int i = 0, k = 0;
 
-    if ((0 == g_LR_LimitFlag) && (0 == PTZ_LimitSwitch_Left())) //hit left limit switch.
+    if ((0 == s_LR_LimitFlag) && (0 == PTZ_LimitSwitch_Left())) //hit left limit switch.
     {
 		usleep(100*1000);
         return 0; 
@@ -722,26 +779,26 @@ int PTZ_Rotate_Left(unsigned char count)
 		{
             MotorDir_Right_To_Left(i);
 
-            if (0 == g_LR_LimitFlag) //with limit switch.
+            if (0 == s_LR_LimitFlag) //with limit switch.
             {
                 if (0 == PTZ_LimitSwitch_Left())
                 {
                     g_LR_StepCount = 0; //reset step counter.
-                    PTZ_DEBUG_PRT("left hit...g_LR_LimitFlag:%d g_LR_StepCount:%d\n", g_LR_LimitFlag, g_LR_StepCount);
+                    PTZ_DEBUG_PRT("left hit...s_LR_LimitFlag:%d g_LR_StepCount:%d\n", s_LR_LimitFlag, g_LR_StepCount);
                     return 0; 
                 }
             }
-            else if (1 == g_LR_LimitFlag) //without limit switch.
+            else if (1 == s_LR_LimitFlag) //without limit switch.
             {
                 if (0 == g_LR_StepCount)                 
                 {
-                    //PTZ_DEBUG_PRT("left......g_LR_LimitFlag:%d g_LR_StepCount:%d\n", g_LR_LimitFlag, g_LR_StepCount);
+                    //PTZ_DEBUG_PRT("left......s_LR_LimitFlag:%d g_LR_StepCount:%d\n", s_LR_LimitFlag, g_LR_StepCount);
                     return 0; 
                 }
             }
 
             g_LR_StepCount --;
-            //PTZ_DEBUG_PRT("g_LR_LimitFlag:%d, g_LRStepLength:%d, g_LR_StepCount:%d\n", g_LR_LimitFlag, g_LRStepLength, g_LR_StepCount);
+            //PTZ_DEBUG_PRT("s_LR_LimitFlag:%d, s_LRStepLength:%d, g_LR_StepCount:%d\n", s_LR_LimitFlag, s_LRStepLength, g_LR_StepCount);
             delayMS(10);
 		}				
 	}
@@ -749,11 +806,11 @@ int PTZ_Rotate_Left(unsigned char count)
 	return 0;
 }
 
-int PTZ_Rotate_Right(unsigned char count)
+static int PTZ_Rotate_Right(unsigned char count)
 {
 	int i = 0, k = 0;
 
-    if ((0 == g_LR_LimitFlag) && (0 == PTZ_LimitSwitch_Right())) //hit right limit switch.
+    if ((0 == s_LR_LimitFlag) && (0 == PTZ_LimitSwitch_Right())) //hit right limit switch.
     {
 		usleep(100*1000);
         return 0; 
@@ -765,25 +822,25 @@ int PTZ_Rotate_Right(unsigned char count)
 		{
             MotorDir_Left_To_Right(i);
 
-            if (0 == g_LR_LimitFlag) //with limit switch.
+            if (0 == s_LR_LimitFlag) //with limit switch.
             {
                 if (0 == PTZ_LimitSwitch_Right()) //hit right limit switch.
                 {
-                    PTZ_DEBUG_PRT("right hit...g_LR_LimitFlag:%d g_LR_StepCount:%d\n", g_LR_LimitFlag, g_LR_StepCount);
+                    PTZ_DEBUG_PRT("right hit...s_LR_LimitFlag:%d g_LR_StepCount:%d\n", s_LR_LimitFlag, g_LR_StepCount);
                     return 0; 
                 }
             }
-            else if (1 == g_LR_LimitFlag)
+            else if (1 == s_LR_LimitFlag)
             {
                 if (g_LR_StepCount == PTZ_RANGE_LR)                 
                 {
-                    //PTZ_DEBUG_PRT("right......g_LR_LimitFlag:%d g_LR_StepCount:%d\n", g_LR_LimitFlag, g_LR_StepCount);
+                    //PTZ_DEBUG_PRT("right......s_LR_LimitFlag:%d g_LR_StepCount:%d\n", s_LR_LimitFlag, g_LR_StepCount);
                     return 0; 
                 }
             }
 
             g_LR_StepCount ++;
-            //PTZ_DEBUG_PRT("g_LR_LimitFlag:%d, g_LRStepLength:%d, g_LR_StepCount:%d\n", g_LR_LimitFlag, g_LRStepLength, g_LR_StepCount);
+            //PTZ_DEBUG_PRT("s_LR_LimitFlag:%d, s_LRStepLength:%d, g_LR_StepCount:%d\n", s_LR_LimitFlag, s_LRStepLength, g_LR_StepCount);
             delayMS(10);
 		}
 	}
@@ -795,7 +852,7 @@ int PTZ_Rotate_Up(unsigned char count)
 {
 	int i = 0, k = 0;
 	
-    if ((0 == g_UD_LimitFlag) && (0 == PTZ_LimitSwitch_Up())) //hit up limit switch.
+    if ((0 == s_UD_LimitFlag) && (0 == PTZ_LimitSwitch_Up())) //hit up limit switch.
     {
 		usleep(100*1000);
         return 0;
@@ -807,26 +864,26 @@ int PTZ_Rotate_Up(unsigned char count)
 		{
             MotorDir_Down_To_Up(i);
 
-            if (0 == g_UD_LimitFlag) //with limit switch.
+            if (0 == s_UD_LimitFlag) //with limit switch.
             {
                 if (0 == PTZ_LimitSwitch_Up()) //hit up limit switch.
                 {
                     g_UD_StepCount = 0; //reset step counter.
-                    PTZ_DEBUG_PRT("up hit...g_UD_LimitFlag:%d, g_UD_StepCount:%d\n", g_UD_LimitFlag, g_UD_StepCount);
+                    PTZ_DEBUG_PRT("up hit...s_UD_LimitFlag:%d, g_UD_StepCount:%d\n", s_UD_LimitFlag, g_UD_StepCount);
                     return 0;
                 }
             }
-            else if (1 == g_UD_LimitFlag) //without limit switch.
+            else if (1 == s_UD_LimitFlag) //without limit switch.
             {
                 if (0 == g_UD_StepCount)            
                 {
-                    //PTZ_DEBUG_PRT("up......g_UD_LimitFlag:%d, g_UD_StepCount:%d\n", g_UD_LimitFlag, g_UD_StepCount);
+                    //PTZ_DEBUG_PRT("up......s_UD_LimitFlag:%d, g_UD_StepCount:%d\n", s_UD_LimitFlag, g_UD_StepCount);
                     return 0;
                 }
             }
 
             g_UD_StepCount --;
-            //PTZ_DEBUG_PRT("g_UD_LimitFlag:%d, g_UDStepLength:%d, g_UD_StepCount:%d\n", g_UD_LimitFlag, g_UDStepLength, g_UD_StepCount);
+            //PTZ_DEBUG_PRT("s_UD_LimitFlag:%d, s_UDStepLength:%d, g_UD_StepCount:%d\n", s_UD_LimitFlag, s_UDStepLength, g_UD_StepCount);
 			delayMS(10);
 		}		
 	}
@@ -834,11 +891,11 @@ int PTZ_Rotate_Up(unsigned char count)
 	return 0;
 }
 
-int PTZ_Rotate_Down(unsigned char count)
+static int PTZ_Rotate_Down(unsigned char count)
 {	
 	int i = 0, k = 0;
 	
-    if ((0 == g_UD_LimitFlag) && (0 == PTZ_LimitSwitch_Down())) //hit down limit switch.
+    if ((0 == s_UD_LimitFlag) && (0 == PTZ_LimitSwitch_Down())) //hit down limit switch.
     {
 		usleep(100*1000);
         return 0;
@@ -850,25 +907,25 @@ int PTZ_Rotate_Down(unsigned char count)
 		{
             MotorDir_Up_To_Down(i);
 
-            if (0 == g_UD_LimitFlag) //with limit switch.
+            if (0 == s_UD_LimitFlag) //with limit switch.
             {
                 if (0 == PTZ_LimitSwitch_Down()) //hit down limit switch.
                 {
-                    PTZ_DEBUG_PRT("down hit...g_UD_LimitFlag:%d, g_UD_StepCount:%d\n", g_UD_LimitFlag, g_UD_StepCount);
+                    PTZ_DEBUG_PRT("down hit...s_UD_LimitFlag:%d, g_UD_StepCount:%d\n", s_UD_LimitFlag, g_UD_StepCount);
                     return 0;
                 }
             }
-            else if (1 == g_UD_LimitFlag) //without limit switch.
+            else if (1 == s_UD_LimitFlag) //without limit switch.
             {
                 if (g_UD_StepCount == PTZ_RANGE_UD)            
                 {
-                    //PTZ_DEBUG_PRT("down......g_UD_LimitFlag:%d, g_UD_StepCount:%d\n", g_UD_LimitFlag, g_UD_StepCount);
+                    //PTZ_DEBUG_PRT("down......s_UD_LimitFlag:%d, g_UD_StepCount:%d\n", s_UD_LimitFlag, g_UD_StepCount);
                     return 0;
                 }
             }
 
             g_UD_StepCount ++;
-            //PTZ_DEBUG_PRT("g_UD_LimitFlag:%d, g_UDStepLength:%d, g_UD_StepCount:%d\n", g_UD_LimitFlag, g_UDStepLength, g_UD_StepCount);
+            //PTZ_DEBUG_PRT("s_UD_LimitFlag:%d, s_UDStepLength:%d, g_UD_StepCount:%d\n", s_UD_LimitFlag, s_UDStepLength, g_UD_StepCount);
 			delayMS(10);
 		}		
 	}
@@ -880,7 +937,7 @@ int PTZ_Rotate_Down(unsigned char count)
  * func: motor rotate to setted preset position.
  *****************************************************/
 //int PTZ_RotateToPresetPos(int nDir_LR, int nDir_UD, int nStepX, int nStepY, int nPos, int nSpeed) 
-int PTZ_RotateToPresetPos(int nDir_LR, int nDir_UD, int nPos, int nSpeed) 
+static int PTZ_RotateToPresetPos(int nDir_LR, int nDir_UD, int nPos, int nSpeed) 
 {
 	int i = 0, j = 0;
     unsigned int pins[8] = {0, 1, 2, 3, 4, 5, 6, 7}; //GPIO9_0 ~ 9_7.
@@ -889,22 +946,22 @@ int PTZ_RotateToPresetPos(int nDir_LR, int nDir_UD, int nPos, int nSpeed)
 	unsigned int val_set = 0; //pull down.
     unsigned int LR_PresetFlag = 0, UD_PresetFlag = 0; //1: arrived at preset position.
     
-    PTZ_DEBUG_PRT("nDir_LR:%d, nDir_UD:%d, nPos:%d, presetX:%d, presetY:%d, g_LR_StepCount:%d,  g_UD_StepCount:%d, g_LR_LimitFlag:%d, g_UD_LimitFlag:%d\n", nDir_LR, nDir_UD, nPos, g_stPtzPreset[nPos].presetX, g_stPtzPreset[nPos].presetY, g_LR_StepCount,  g_UD_StepCount, g_LR_LimitFlag, g_UD_LimitFlag);
+    PTZ_DEBUG_PRT("nDir_LR:%d, nDir_UD:%d, nPos:%d, presetX:%d, presetY:%d, g_LR_StepCount:%d,  g_UD_StepCount:%d, s_LR_LimitFlag:%d, s_UD_LimitFlag:%d\n", nDir_LR, nDir_UD, nPos, s_stPtzPreset[nPos].presetX, s_stPtzPreset[nPos].presetY, g_LR_StepCount,  g_UD_StepCount, s_LR_LimitFlag, s_UD_LimitFlag);
 
-    g_RotateRunning = 1; //enable motor rotate.
+    s_RotateRunning = 1; //enable motor rotate.
 
-    while (g_RotateRunning)
+    while (s_RotateRunning)
     {
         for (i = 0; i < 4; i++) 
         {
             if ((1 == LR_PresetFlag) && (1 == UD_PresetFlag)) //arrived at preset position,stop ptz.
             {
-                g_RotateRunning = 0; //disable motor rotate thread.
+                s_RotateRunning = 0; //disable motor rotate thread.
                 g_PtzRotateEnable = 0; //stop motor rotate.
                 return 0;
             }
 
-            if (g_stPtzPreset[nPos].presetX == g_LR_StepCount)
+            if (s_stPtzPreset[nPos].presetX == g_LR_StepCount)
             {
                 LR_PresetFlag = 1; //left & right direction arrived at the preset position. 
             }
@@ -915,40 +972,40 @@ int PTZ_RotateToPresetPos(int nDir_LR, int nDir_UD, int nPos, int nSpeed)
                 {
                     MotorDir_Right_To_Left(i);
 
-                    if (0 == g_LR_LimitFlag) //with limit switch.
+                    if (0 == s_LR_LimitFlag) //with limit switch.
                     {
                         if (0 == PTZ_LimitSwitch_Left()) //hit left limit switch.
                         {
                             break; 
                         }
                     }
-                    else if (1 == g_LR_LimitFlag) //without limit switch.
+                    else if (1 == s_LR_LimitFlag) //without limit switch.
                     {
                     
                     }
 
                     g_LR_StepCount ++; //count motor position.
-                    //PTZ_DEBUG_PRT("g_LR_LimitFlag:%d, g_LRStepLength:%d, g_LR_StepCount:%d\n", g_LR_LimitFlag, g_LRStepLength, g_LR_StepCount);
+                    //PTZ_DEBUG_PRT("s_LR_LimitFlag:%d, s_LRStepLength:%d, g_LR_StepCount:%d\n", s_LR_LimitFlag, s_LRStepLength, g_LR_StepCount);
                 }
                 else if (COUNTER_CLOCKWISE == nDir_LR) //dir:L-->R.
                 {
                     MotorDir_Left_To_Right(i);
 
-                    if (0 == g_LR_LimitFlag) //with limit switch.
+                    if (0 == s_LR_LimitFlag) //with limit switch.
                     {
                         if (0 == PTZ_LimitSwitch_Right()) //hit right limit switch.
                         {
                             break; 
                         }
                     }
-                    else if (1 == g_LR_LimitFlag) //without limit switch.
+                    else if (1 == s_LR_LimitFlag) //without limit switch.
                     {
                     
                     }
                 }
             }
 
-            if (g_stPtzPreset[nPos].presetY == g_UD_StepCount)
+            if (s_stPtzPreset[nPos].presetY == g_UD_StepCount)
             {
                 UD_PresetFlag = 1; //up & down direction arrived at the preset position. 
             }
@@ -983,7 +1040,7 @@ int PTZ_RotateToPresetPos(int nDir_LR, int nDir_UD, int nPos, int nSpeed)
 #endif
 
 
-int PTZ_Rotate_Init(void)
+static int PTZ_Rotate_Init(void)
 {
     int i = 0;
 
@@ -995,28 +1052,28 @@ int PTZ_Rotate_Init(void)
     g_PtzStepType = 0;
     g_PtzPresetPos = 0;
 
-    g_LR_LimitFlag = 0; //default with limit switch.
-    g_UD_LimitFlag = 0;
+    s_LR_LimitFlag = 0; //default with limit switch.
+    s_UD_LimitFlag = 0;
 
-    g_RotateRunning = 0;
-    g_LR_AutoRotateCount = 0;
-    g_UD_AutoRotateCount = 0;
+    s_RotateRunning = 0;
+    s_LR_AutoRotateCount = 0;
+    s_UD_AutoRotateCount = 0;
     g_UD_StepCount = 0; //calculate the whole length from top to bottom.
     g_LR_StepCount = 0; //calculate the whole lenght from left to right.
-    g_UDStepLength = 0; //up to down step distance.
-    g_LRStepLength = 0; //left to right step distance.
-	g_RotateDir_LR = CLOCKWISE; //dir: left first.
-	g_RotateDir_UD = CLOCKWISE; //dir: up first.
+    s_UDStepLength = 0; //up to down step distance.
+    s_LRStepLength = 0; //left to right step distance.
+	s_RotateDir_LR = CLOCKWISE; //dir: left first.
+	s_RotateDir_UD = CLOCKWISE; //dir: up first.
 
 	g_RotateSpeed = Get_PTZ_RotateSpeed(); //motor speed.
 
     /**get ptz preset params**/
-    memset((void *)g_stPtzPreset, 0, sizeof(st_PtzPreset)*PRESETNUM);
+    memset((void *)s_stPtzPreset, 0, sizeof(st_PtzPreset)*PRESETNUM);
     for (i = 1; i < PRESETNUM + 1; i++)
     {
-        //memset(&g_stPtzPreset[i], 0, sizeof(st_PtzPreset));
-        Get_PTZ_PresetParams(i, &g_stPtzPreset[i].presetX, &g_stPtzPreset[i].presetY);
-        PTZ_DEBUG_PRT("g_stPtzPreset[%d].presetX:%d, g_stPtzPreset[%d].presetY:%d\n", i, g_stPtzPreset[i].presetX, i, g_stPtzPreset[i].presetY);
+        //memset(&s_stPtzPreset[i], 0, sizeof(st_PtzPreset));
+        Get_PTZ_PresetParams(i, &s_stPtzPreset[i].presetX, &s_stPtzPreset[i].presetY);
+        PTZ_DEBUG_PRT("s_stPtzPreset[%d].presetX:%d, s_stPtzPreset[%d].presetY:%d\n", i, s_stPtzPreset[i].presetX, i, s_stPtzPreset[i].presetY);
     }
 
     return 0;
@@ -1028,7 +1085,7 @@ int PTZ_Rotate_Init(void)
  *       up & down   : GPIO9_4 ~ GPIO9_7.
  *       default direction: from right to left, and bottom to top side.
  ***********************************************************************/
-int PTZ_UDLR_AutoRotate(int nPos, int nSpeed)
+static int PTZ_UDLR_AutoRotate(int nPos, int nSpeed)
 {		
     int i = 0;
 	int pins[8] = {0, 1, 2, 3, 4, 5, 6, 7};	
@@ -1039,24 +1096,24 @@ int PTZ_UDLR_AutoRotate(int nPos, int nSpeed)
     unsigned int UD_StopFlag = 0;
     //int Dev_WI8812 = 0;
 
-    if ((g_stPtzPreset[nPos].presetX <= 0) || (g_stPtzPreset[nPos].presetX > PTZ_RANGE_LR))
+    if ((s_stPtzPreset[nPos].presetX <= 0) || (s_stPtzPreset[nPos].presetX > PTZ_RANGE_LR))
     {
-        g_stPtzPreset[nPos].presetX = PTZ_RANGE_LR / 2; //default L&R preset position.
+        s_stPtzPreset[nPos].presetX = PTZ_RANGE_LR / 2; //default L&R preset position.
     }
-    if ((g_stPtzPreset[nPos].presetY <= 0) || (g_stPtzPreset[nPos].presetY > PTZ_RANGE_UD))
+    if ((s_stPtzPreset[nPos].presetY <= 0) || (s_stPtzPreset[nPos].presetY > PTZ_RANGE_UD))
     {
-        g_stPtzPreset[nPos].presetY = PTZ_RANGE_UD / 2; //default U&D preset position.
+        s_stPtzPreset[nPos].presetY = PTZ_RANGE_UD / 2; //default U&D preset position.
     }
-    printf("...motor auto rotate start, nPos:%d, presetX:%d, presetY:%d, g_LR_LimitFlag:%d, g_UD_LimitFlag:%d\n", nPos, g_stPtzPreset[nPos].presetX, g_stPtzPreset[nPos].presetY, g_LR_LimitFlag, g_UD_LimitFlag);
+    printf("...motor auto rotate start, nPos:%d, presetX:%d, presetY:%d, s_LR_LimitFlag:%d, s_UD_LimitFlag:%d\n", nPos, s_stPtzPreset[nPos].presetX, s_stPtzPreset[nPos].presetY, s_LR_LimitFlag, s_UD_LimitFlag);
 
-    g_RotateRunning = 1; //enable auto rotate.
+    s_RotateRunning = 1; //enable auto rotate.
 
-	while (g_RotateRunning)
+	while (s_RotateRunning)
 	{	
 		if ((1 == UD_StopFlag) && (1 == LR_StopFlag))
 		{
         #if 0
-            if ((1 == g_UD_LimitFlag) && (0 == g_LR_LimitFlag)) //for WI8812.
+            if ((1 == s_UD_LimitFlag) && (0 == s_LR_LimitFlag)) //for WI8812.
             {
                 Dev_WI8812 = 1;
                 printf(".........Dev_WI8812: %d.........\n", Dev_WI8812);
@@ -1066,10 +1123,10 @@ int PTZ_UDLR_AutoRotate(int nPos, int nSpeed)
                     {
                         MotorDir_Up_To_Down(i);
                         g_UD_StepCount ++; //count motor position.
-                        if ((g_stPtzPreset[nPos].presetY + 200) == g_UD_StepCount)
+                        if ((s_stPtzPreset[nPos].presetY + 200) == g_UD_StepCount)
                         {
                             Dev_WI8812 = 0;
-                            PTZ_DEBUG_PRT("Dev_WI8812:%d, g_UD_AutoRotateCount:%d, g_UD_LimitFlag:%d, g_UDStepLength:%d, g_UD_StepCount:%d\n", Dev_WI8812, g_UD_AutoRotateCount, g_UD_LimitFlag, g_UDStepLength, g_UD_StepCount);
+                            PTZ_DEBUG_PRT("Dev_WI8812:%d, s_UD_AutoRotateCount:%d, s_UD_LimitFlag:%d, s_UDStepLength:%d, g_UD_StepCount:%d\n", Dev_WI8812, s_UD_AutoRotateCount, s_UD_LimitFlag, s_UDStepLength, g_UD_StepCount);
                             break;
                         }
                     }
@@ -1079,7 +1136,7 @@ int PTZ_UDLR_AutoRotate(int nPos, int nSpeed)
         #endif
 
             g_PtzPresetPos = 0; //disable preset rotate.
-            g_RotateRunning = 0; //quit auto rotate.
+            s_RotateRunning = 0; //quit auto rotate.
             PTZ_AutoRotate_Stop(pins);
             PTZ_AutoRotate_Stop(pins + 4);
             //printf("......camera auto rotate done, g_LR_StepCount:%d, g_UD_StepCount:%d......\n", g_LR_StepCount, g_UD_StepCount);
@@ -1091,155 +1148,155 @@ int PTZ_UDLR_AutoRotate(int nPos, int nSpeed)
             /*********************************************************
              ****** left & right auto rotate: GPIO9_0 ~ GPIO9_3 ******
              *********************************************************/
-            //if ((3 == g_LR_AutoRotateCount) && (g_stPtzPreset[nPos].presetX == g_LR_StepCount))
-            if ((2 == g_LR_AutoRotateCount) && (g_stPtzPreset[nPos].presetX == g_LR_StepCount))
+            //if ((3 == s_LR_AutoRotateCount) && (s_stPtzPreset[nPos].presetX == g_LR_StepCount))
+            if ((2 == s_LR_AutoRotateCount) && (s_stPtzPreset[nPos].presetX == g_LR_StepCount))
             {
                 LR_StopFlag = 1;
             }
 
             if (0 == LR_StopFlag)
             {
-                if (CLOCKWISE == g_RotateDir_LR) //cur dir: right --> left. 
+                if (CLOCKWISE == s_RotateDir_LR) //cur dir: right --> left. 
                 {
                     MotorDir_Right_To_Left(i);
 
-                    if (0 == g_LR_LimitFlag)
+                    if (0 == s_LR_LimitFlag)
                     {
                         if (0 == PTZ_LimitSwitch_Left()) //hit left limit switch.
                         {
-                            g_LR_LimitFlag = 0; //there exists limit switch. 
-                            g_LR_AutoRotateCount ++;
-                            g_RotateDir_LR = COUNTER_CLOCKWISE; //change dir: left --> right.
+                            s_LR_LimitFlag = 0; //there exists limit switch. 
+                            s_LR_AutoRotateCount ++;
+                            s_RotateDir_LR = COUNTER_CLOCKWISE; //change dir: left --> right.
 
-                            if (1 == g_LR_AutoRotateCount)
+                            if (1 == s_LR_AutoRotateCount)
                             {
                                 g_LR_StepCount = 0; //reset the step length the first hit time.
                             }
-                            PTZ_DEBUG_PRT("left hit...g_LR_AutoRotateCount:%d, g_LRStepLength:%d, g_LR_StepCount:%d, g_LR_LimitFlag:%d\n", g_LR_AutoRotateCount, g_LRStepLength, g_LR_StepCount, g_LR_LimitFlag);
+                            PTZ_DEBUG_PRT("left hit...s_LR_AutoRotateCount:%d, s_LRStepLength:%d, g_LR_StepCount:%d, s_LR_LimitFlag:%d\n", s_LR_AutoRotateCount, s_LRStepLength, g_LR_StepCount, s_LR_LimitFlag);
 
                             break;
                         }
                     }
 
-                    //if ((0 == g_LR_LimitFlag) && (0 == g_LR_AutoRotateCount))
-                    if (0 == g_LR_AutoRotateCount)
+                    //if ((0 == s_LR_LimitFlag) && (0 == s_LR_AutoRotateCount))
+                    if (0 == s_LR_AutoRotateCount)
                     {
                         g_LR_StepCount ++; //count current motor position.
-                        //PTZ_DEBUG_PRT("g_LR_AutoRotateCount:%d, g_LR_LimitFlag:%d, g_LRStepLength:%d, g_LR_StepCount:%d\n", g_LR_AutoRotateCount, g_LR_LimitFlag, g_LRStepLength, g_LR_StepCount);
+                        //PTZ_DEBUG_PRT("s_LR_AutoRotateCount:%d, s_LR_LimitFlag:%d, s_LRStepLength:%d, g_LR_StepCount:%d\n", s_LR_AutoRotateCount, s_LR_LimitFlag, s_LRStepLength, g_LR_StepCount);
 
                         if (g_LR_StepCount >= PTZ_RANGE_LR)
                         {
                             printf(".......... L&R without limit switch ...........\n");
-                            g_LR_LimitFlag = 1; //there's no limit switch existed. 
+                            s_LR_LimitFlag = 1; //there's no limit switch existed. 
                             g_LR_StepCount = 0;
-                            g_LR_AutoRotateCount = 2; //3;
-                            g_RotateDir_LR = COUNTER_CLOCKWISE; //change dir: left --> right.
+                            s_LR_AutoRotateCount = 2; //3;
+                            s_RotateDir_LR = COUNTER_CLOCKWISE; //change dir: left --> right.
                             break;
                         }
                     }
-                    //else if ((0 == g_LR_LimitFlag) && (2 <= g_LR_AutoRotateCount))
-                    else if (2 <= g_LR_AutoRotateCount)
+                    //else if ((0 == s_LR_LimitFlag) && (2 <= s_LR_AutoRotateCount))
+                    else if (2 <= s_LR_AutoRotateCount)
                     {
                         g_LR_StepCount --; //count motor position.
                     }
                 }
-                else if (COUNTER_CLOCKWISE == g_RotateDir_LR) //cur dir: left --> right.
+                else if (COUNTER_CLOCKWISE == s_RotateDir_LR) //cur dir: left --> right.
                 {
                     MotorDir_Left_To_Right(i);
 
-                    if (0 == g_LR_LimitFlag)
+                    if (0 == s_LR_LimitFlag)
                     {
                         if (0 == PTZ_LimitSwitch_Right()) //hit right limit switch.
                         {	
-                            g_LR_LimitFlag = 0; //there exists limit switch. 
-                            g_LRStepLength = g_LR_StepCount; //save the distance from left to right.
-                            g_stPtzPreset[nPos].presetX = g_LRStepLength / 2;
-                            g_LR_AutoRotateCount ++;
-                            g_RotateDir_LR = CLOCKWISE; //change dir: right --> left.
-                            PTZ_DEBUG_PRT("right hit...g_LR_AutoRotateCount:%d, g_LRStepLength:%d, g_LR_StepCount:%d, g_LR_LimitFlag:%d, g_stPtzPreset[nPos].presetX:%d\n", g_LR_AutoRotateCount, g_LRStepLength, g_LR_StepCount, g_LR_LimitFlag, g_stPtzPreset[nPos].presetX);
+                            s_LR_LimitFlag = 0; //there exists limit switch. 
+                            s_LRStepLength = g_LR_StepCount; //save the distance from left to right.
+                            s_stPtzPreset[nPos].presetX = s_LRStepLength / 2;
+                            s_LR_AutoRotateCount ++;
+                            s_RotateDir_LR = CLOCKWISE; //change dir: right --> left.
+                            PTZ_DEBUG_PRT("right hit...s_LR_AutoRotateCount:%d, s_LRStepLength:%d, g_LR_StepCount:%d, s_LR_LimitFlag:%d, s_stPtzPreset[nPos].presetX:%d\n", s_LR_AutoRotateCount, s_LRStepLength, g_LR_StepCount, s_LR_LimitFlag, s_stPtzPreset[nPos].presetX);
                             break; 
                         }
                     }
 
                     g_LR_StepCount ++; //count motor position.
-                    //PTZ_DEBUG_PRT("g_LR_AutoRotateCount:%d, g_LR_LimitFlag:%d, g_LRStepLength:%d, g_LR_StepCount:%d\n", g_LR_AutoRotateCount, g_LR_LimitFlag, g_LRStepLength, g_LR_StepCount);
+                    //PTZ_DEBUG_PRT("s_LR_AutoRotateCount:%d, s_LR_LimitFlag:%d, s_LRStepLength:%d, g_LR_StepCount:%d\n", s_LR_AutoRotateCount, s_LR_LimitFlag, s_LRStepLength, g_LR_StepCount);
                 }
             }
 
             /******************************************************
              ****** up & down auto rotate: GPIO9_4 ~ GPIO9_7 ******
              ******************************************************/
-            //if ((3 == g_UD_AutoRotateCount) && (g_stPtzPreset[nPos].presetY == g_UD_StepCount))
-            if ((2 == g_UD_AutoRotateCount) && (g_stPtzPreset[nPos].presetY == g_UD_StepCount))
+            //if ((3 == s_UD_AutoRotateCount) && (s_stPtzPreset[nPos].presetY == g_UD_StepCount))
+            if ((2 == s_UD_AutoRotateCount) && (s_stPtzPreset[nPos].presetY == g_UD_StepCount))
             {
                 UD_StopFlag = 1;
             }
 
             if (0 == UD_StopFlag)
             {
-                if (CLOCKWISE == g_RotateDir_UD) //cur dir: down --> up.
+                if (CLOCKWISE == s_RotateDir_UD) //cur dir: down --> up.
                 {
                     MotorDir_Down_To_Up(i);
 
-                    if (0 == g_UD_LimitFlag)
+                    if (0 == s_UD_LimitFlag)
                     {
                         if (0 == PTZ_LimitSwitch_Up()) //hit down limit switch.
                         {
-                            g_UD_LimitFlag = 0; //there exists limit switch.
-                            g_UD_AutoRotateCount ++;
-                            g_RotateDir_UD = COUNTER_CLOCKWISE; //change dir: up --> down.
+                            s_UD_LimitFlag = 0; //there exists limit switch.
+                            s_UD_AutoRotateCount ++;
+                            s_RotateDir_UD = COUNTER_CLOCKWISE; //change dir: up --> down.
 
-                            if (1 == g_UD_AutoRotateCount) 
+                            if (1 == s_UD_AutoRotateCount) 
                             {
                                 g_UD_StepCount = 0; //reset the step length value the first hit time.
                             }
-                            PTZ_DEBUG_PRT("up hit...g_UD_AutoRotateCount:%d, g_UDStepLength:%d, g_UD_StepCount:%d, g_UD_LimitFlag:%d\n", g_UD_AutoRotateCount, g_UDStepLength, g_UD_StepCount, g_UD_LimitFlag);
+                            PTZ_DEBUG_PRT("up hit...s_UD_AutoRotateCount:%d, s_UDStepLength:%d, g_UD_StepCount:%d, s_UD_LimitFlag:%d\n", s_UD_AutoRotateCount, s_UDStepLength, g_UD_StepCount, s_UD_LimitFlag);
                             break; 
                         }
                     }
 
-                    //if ((0 == g_UD_LimitFlag) && (0 == g_UD_AutoRotateCount)) 
-                    if (0 == g_UD_AutoRotateCount) 
+                    //if ((0 == s_UD_LimitFlag) && (0 == s_UD_AutoRotateCount)) 
+                    if (0 == s_UD_AutoRotateCount) 
                     {
                         g_UD_StepCount ++; //count motor position.
-                        //PTZ_DEBUG_PRT("g_UD_AutoRotateCount:%d, g_UD_LimitFlag:%d, g_UDStepLength:%d, g_UD_StepCount:%d\n", g_UD_AutoRotateCount, g_UD_LimitFlag, g_UDStepLength, g_UD_StepCount);
+                        //PTZ_DEBUG_PRT("s_UD_AutoRotateCount:%d, s_UD_LimitFlag:%d, s_UDStepLength:%d, g_UD_StepCount:%d\n", s_UD_AutoRotateCount, s_UD_LimitFlag, s_UDStepLength, g_UD_StepCount);
 
                         if (g_UD_StepCount >= PTZ_RANGE_UD)
                         {
                             printf(".......... U&D without limit switch ...........\n");
-                            g_UD_LimitFlag = 1; //there's no limit switch.
+                            s_UD_LimitFlag = 1; //there's no limit switch.
                             g_UD_StepCount = 0;
-                            g_UD_AutoRotateCount = 2; //3;
-                            g_RotateDir_UD = COUNTER_CLOCKWISE; //change dir: up --> down.
+                            s_UD_AutoRotateCount = 2; //3;
+                            s_RotateDir_UD = COUNTER_CLOCKWISE; //change dir: up --> down.
                             break;
                         }
                     }
-                    //else if ((0 == g_UD_LimitFlag) && (2 <= g_UD_AutoRotateCount))
-                    else if (2 <= g_UD_AutoRotateCount)
+                    //else if ((0 == s_UD_LimitFlag) && (2 <= s_UD_AutoRotateCount))
+                    else if (2 <= s_UD_AutoRotateCount)
                     {
                         g_UD_StepCount --; //count motor position.
                     }
                 }	
-                else if (COUNTER_CLOCKWISE == g_RotateDir_UD) //cur dir: up --> down.
+                else if (COUNTER_CLOCKWISE == s_RotateDir_UD) //cur dir: up --> down.
                 {			
                     MotorDir_Up_To_Down(i);
 
-                    if (0 == g_UD_LimitFlag)
+                    if (0 == s_UD_LimitFlag)
                     {
                         if (0 == PTZ_LimitSwitch_Down()) //hit up limit switch.
                         {
-                            g_UD_LimitFlag = 0; //there exists limit switch.
-                            g_UDStepLength = g_UD_StepCount; //save the distance from up to down.
-                            g_stPtzPreset[nPos].presetY = g_UDStepLength / 2;
-                            g_UD_AutoRotateCount ++;
-                            g_RotateDir_UD = CLOCKWISE; //change direction: down to up.
-                            PTZ_DEBUG_PRT("down hit...g_UD_AutoRotateCount:%d, g_UDStepLength:%d, g_UD_StepCount:%d, g_UD_LimitFlag:%d, g_stPtzPreset[nPos].presetY:%d\n", g_UD_AutoRotateCount, g_UDStepLength, g_UD_StepCount, g_UD_LimitFlag, g_stPtzPreset[nPos].presetY);
+                            s_UD_LimitFlag = 0; //there exists limit switch.
+                            s_UDStepLength = g_UD_StepCount; //save the distance from up to down.
+                            s_stPtzPreset[nPos].presetY = s_UDStepLength / 2;
+                            s_UD_AutoRotateCount ++;
+                            s_RotateDir_UD = CLOCKWISE; //change direction: down to up.
+                            PTZ_DEBUG_PRT("down hit...s_UD_AutoRotateCount:%d, s_UDStepLength:%d, g_UD_StepCount:%d, s_UD_LimitFlag:%d, s_stPtzPreset[nPos].presetY:%d\n", s_UD_AutoRotateCount, s_UDStepLength, g_UD_StepCount, s_UD_LimitFlag, s_stPtzPreset[nPos].presetY);
                             break; 
                         }
                     }
 
                     g_UD_StepCount ++; //count motor position.
-                    //PTZ_DEBUG_PRT("g_UD_AutoRotateCount:%d, g_UD_LimitFlag:%d, g_UDStepLength:%d, g_UD_StepCount:%d\n", g_UD_AutoRotateCount, g_UD_LimitFlag, g_UDStepLength, g_UD_StepCount);
+                    //PTZ_DEBUG_PRT("s_UD_AutoRotateCount:%d, s_UD_LimitFlag:%d, s_UDStepLength:%d, g_UD_StepCount:%d\n", s_UD_AutoRotateCount, s_UD_LimitFlag, s_UDStepLength, g_UD_StepCount);
                 }
             }
             delayMS(nSpeed);
@@ -1250,23 +1307,23 @@ int PTZ_UDLR_AutoRotate(int nPos, int nSpeed)
 }
 
 
-void * HK_Ptz()
+static void * HK_Ptz()
 {
     int i = 0;
 	int pins[8] = {0, 1, 2, 3, 4, 5, 6, 7};	
     printf("========> PTZ thread start <========\n");
 
     PTZ_Rotate_Init();
-    PTZ_DEBUG_PRT("g_RotateDir_LR:%d, g_RotateDir_UD:%d, g_RotateSpeed:%d, g_LR_AutoRotateCount:%d, g_UD_AutoRotateCount:%d, g_UDStepLength:%d, g_LRStepLength:%d\n", g_RotateDir_LR, g_RotateDir_UD, g_RotateSpeed, g_LR_AutoRotateCount, g_UD_AutoRotateCount, g_UDStepLength, g_LRStepLength);
+    PTZ_DEBUG_PRT("s_RotateDir_LR:%d, s_RotateDir_UD:%d, g_RotateSpeed:%d, s_LR_AutoRotateCount:%d, s_UD_AutoRotateCount:%d, s_UDStepLength:%d, s_LRStepLength:%d\n", s_RotateDir_LR, s_RotateDir_UD, g_RotateSpeed, s_LR_AutoRotateCount, s_UD_AutoRotateCount, s_UDStepLength, s_LRStepLength);
  
     /**rotate to preset position on system restart**/
     g_PtzPresetPos = 1; //preset1.
 	PTZ_UDLR_AutoRotate(g_PtzPresetPos, g_RotateSpeed); //motor auto cruise on system restart.
 
     /**rotate control by client**/
-	g_RotateDir_LR = CLOCKWISE;
-	g_RotateDir_UD = CLOCKWISE;
-    PTZ_DEBUG_PRT("......camera auto rotate done, g_RotateRunning:%d, g_RotateDir_LR:%d, g_RotateDir_UD:%d, g_RotateSpeed:%d, g_LR_AutoRotateCount:%d, g_UD_AutoRotateCount:%d, g_UDStepLength:%d, g_LRStepLength:%d, g_PtzRotateEnable:%d, g_PtzRotateType:%d, g_PtzStepType:%d, g_PtzPresetPos:%d, g_LR_LimitFlag:%d, g_UD_LimitFlag:%d, g_LR_StepCount:%d, g_UD_StepCount:%d\n", g_RotateRunning, g_RotateDir_LR, g_RotateDir_UD, g_RotateSpeed, g_LR_AutoRotateCount, g_UD_AutoRotateCount, g_UDStepLength, g_LRStepLength, g_PtzRotateEnable, g_PtzRotateType, g_PtzStepType, g_PtzPresetPos, g_LR_LimitFlag, g_UD_LimitFlag, g_LR_StepCount, g_UD_StepCount);
+	s_RotateDir_LR = CLOCKWISE;
+	s_RotateDir_UD = CLOCKWISE;
+    PTZ_DEBUG_PRT("......camera auto rotate done, s_RotateRunning:%d, s_RotateDir_LR:%d, s_RotateDir_UD:%d, g_RotateSpeed:%d, s_LR_AutoRotateCount:%d, s_UD_AutoRotateCount:%d, s_UDStepLength:%d, s_LRStepLength:%d, g_PtzRotateEnable:%d, g_PtzRotateType:%d, g_PtzStepType:%d, g_PtzPresetPos:%d, s_LR_LimitFlag:%d, s_UD_LimitFlag:%d, g_LR_StepCount:%d, g_UD_StepCount:%d\n", s_RotateRunning, s_RotateDir_LR, s_RotateDir_UD, g_RotateSpeed, s_LR_AutoRotateCount, s_UD_AutoRotateCount, s_UDStepLength, s_LRStepLength, g_PtzRotateEnable, g_PtzRotateType, g_PtzStepType, g_PtzPresetPos, s_LR_LimitFlag, s_UD_LimitFlag, g_LR_StepCount, g_UD_StepCount);
 
     while (1)
     {	
@@ -1275,13 +1332,13 @@ void * HK_Ptz()
             switch (g_PtzRotateType)//type ==> 1:leftright; 2:updown; 3:all direction auto rotate.
             {
                 case 1:					
-                    PTZ_AutoRotate_LeftRight(g_RotateDir_LR, g_RotateSpeed);
+                    PTZ_AutoRotate_LeftRight(s_RotateDir_LR, g_RotateSpeed);
                     break;
                 case 2:					
-                    PTZ_AutoRotate_UpDown(g_RotateDir_UD, g_RotateSpeed);
+                    PTZ_AutoRotate_UpDown(s_RotateDir_UD, g_RotateSpeed);
                     break;
                 case 3:					
-                    PTZ_AutoRotate_AllDir(g_RotateDir_LR, g_RotateDir_UD, g_RotateSpeed);					
+                    PTZ_AutoRotate_AllDir(s_RotateDir_LR, s_RotateDir_UD, g_RotateSpeed);					
                     break;
                 default:
                     break;
@@ -1318,41 +1375,41 @@ void * HK_Ptz()
                     {
                         /**get ptz preset params**/
                     #if 0
-                        memset((void *)g_stPtzPreset, 0, sizeof(st_PtzPreset)*PRESETNUM);
+                        memset((void *)s_stPtzPreset, 0, sizeof(st_PtzPreset)*PRESETNUM);
                         for (i = 1; i < PRESETNUM + 1; i++)
                         {
-                            //memset(&g_stPtzPreset[i], 0, sizeof(st_PtzPreset));
-                            Get_PTZ_PresetParams(i, &g_stPtzPreset[i].presetX, &g_stPtzPreset[i].presetY);
-                            PTZ_DEBUG_PRT("g_stPtzPreset[%d].presetX:%d, g_stPtzPreset[%d].presetY:%d\n", i, g_stPtzPreset[i].presetX, i, g_stPtzPreset[i].presetY);
+                            //memset(&s_stPtzPreset[i], 0, sizeof(st_PtzPreset));
+                            Get_PTZ_PresetParams(i, &s_stPtzPreset[i].presetX, &s_stPtzPreset[i].presetY);
+                            PTZ_DEBUG_PRT("s_stPtzPreset[%d].presetX:%d, s_stPtzPreset[%d].presetY:%d\n", i, s_stPtzPreset[i].presetX, i, s_stPtzPreset[i].presetY);
                         }
                     #else
-                        Get_PTZ_PresetParams(g_PtzPresetPos, &g_stPtzPreset[g_PtzPresetPos].presetX, &g_stPtzPreset[g_PtzPresetPos].presetY);
-                        PTZ_DEBUG_PRT("g_stPtzPreset[%d].presetX:%d, g_stPtzPreset[%d].presetY:%d, g_LR_StepCount:%d, g_UD_StepCount:%d\n", g_PtzPresetPos, g_stPtzPreset[g_PtzPresetPos].presetX, g_PtzPresetPos, g_stPtzPreset[g_PtzPresetPos].presetY, g_LR_StepCount, g_UD_StepCount);
+                        Get_PTZ_PresetParams(g_PtzPresetPos, &s_stPtzPreset[g_PtzPresetPos].presetX, &s_stPtzPreset[g_PtzPresetPos].presetY);
+                        PTZ_DEBUG_PRT("s_stPtzPreset[%d].presetX:%d, s_stPtzPreset[%d].presetY:%d, g_LR_StepCount:%d, g_UD_StepCount:%d\n", g_PtzPresetPos, s_stPtzPreset[g_PtzPresetPos].presetX, g_PtzPresetPos, s_stPtzPreset[g_PtzPresetPos].presetY, g_LR_StepCount, g_UD_StepCount);
                     #endif
 
-                        if (g_stPtzPreset[g_PtzPresetPos].presetX > g_LR_StepCount)
+                        if (s_stPtzPreset[g_PtzPresetPos].presetX > g_LR_StepCount)
                         {
-                            g_RotateDir_LR = COUNTER_CLOCKWISE;	//change dir:L-->R, g_LR_StepCount++.
+                            s_RotateDir_LR = COUNTER_CLOCKWISE;	//change dir:L-->R, g_LR_StepCount++.
                         }
-                        else if (g_stPtzPreset[g_PtzPresetPos].presetX < g_LR_StepCount)
+                        else if (s_stPtzPreset[g_PtzPresetPos].presetX < g_LR_StepCount)
                         {				
-                            g_RotateDir_LR = CLOCKWISE;	//change dir:R-->L, g_LR_StepCount--.
+                            s_RotateDir_LR = CLOCKWISE;	//change dir:R-->L, g_LR_StepCount--.
                         }
 
-                        if (g_stPtzPreset[g_PtzPresetPos].presetY > g_UD_StepCount)
+                        if (s_stPtzPreset[g_PtzPresetPos].presetY > g_UD_StepCount)
                         {
-                            g_RotateDir_UD = COUNTER_CLOCKWISE;	//change dir:U-->D, g_UD_StepCount++.
+                            s_RotateDir_UD = COUNTER_CLOCKWISE;	//change dir:U-->D, g_UD_StepCount++.
                         }
-                        else if (g_stPtzPreset[g_PtzPresetPos].presetY < g_UD_StepCount)
+                        else if (s_stPtzPreset[g_PtzPresetPos].presetY < g_UD_StepCount)
                         {				
-                            g_RotateDir_UD = CLOCKWISE;	//change dir: D-->U, g_UD_StepCount--.
+                            s_RotateDir_UD = CLOCKWISE;	//change dir: D-->U, g_UD_StepCount--.
                         }
-                        //PTZ_DEBUG_PRT("g_PtzPresetPos:%d, g_RotateDir_LR:%d, g_RotateDir_UD:%d, presetX:%d, presetY:%d, g_LR_StepCount:%d,  g_UD_StepCount:%d\n", g_PtzPresetPos, g_RotateDir_LR, g_RotateDir_UD, g_stPtzPreset[g_PtzPresetPos].presetX, g_stPtzPreset[g_PtzPresetPos].presetY, g_LR_StepCount,  g_UD_StepCount);
+                        //PTZ_DEBUG_PRT("g_PtzPresetPos:%d, s_RotateDir_LR:%d, s_RotateDir_UD:%d, presetX:%d, presetY:%d, g_LR_StepCount:%d,  g_UD_StepCount:%d\n", g_PtzPresetPos, s_RotateDir_LR, s_RotateDir_UD, s_stPtzPreset[g_PtzPresetPos].presetX, s_stPtzPreset[g_PtzPresetPos].presetY, g_LR_StepCount,  g_UD_StepCount);
                     #if 0
-                        PTZ_RotateToPresetPos(g_RotateDir_LR, g_RotateDir_UD, g_PtzPresetPos, g_RotateSpeed);
+                        PTZ_RotateToPresetPos(s_RotateDir_LR, s_RotateDir_UD, g_PtzPresetPos, g_RotateSpeed);
                     #else
-                        g_LR_AutoRotateCount = 2; //3;
-                        g_UD_AutoRotateCount = 2; //3;
+                        s_LR_AutoRotateCount = 2; //3;
+                        s_UD_AutoRotateCount = 2; //3;
                         PTZ_UDLR_AutoRotate(g_PtzPresetPos, g_RotateSpeed);
                     #endif
                     }
@@ -1395,30 +1452,30 @@ int HK_PTZ_AutoRotate_Stop(int nPos)
             g_PtzRotateType = 0;
             g_PtzStepType = 0;	
 
-            Get_PTZ_PresetParams(nPos, &g_stPtzPreset[nPos].presetX, &g_stPtzPreset[nPos].presetY);
-            PTZ_DEBUG_PRT("g_stPtzPreset[%d].presetX:%d, g_stPtzPreset[%d].presetY:%d, g_LR_StepCount:%d, g_UD_StepCount:%d\n", nPos, g_stPtzPreset[nPos].presetX, nPos, g_stPtzPreset[nPos].presetY, g_LR_StepCount, g_UD_StepCount);
+            Get_PTZ_PresetParams(nPos, &s_stPtzPreset[nPos].presetX, &s_stPtzPreset[nPos].presetY);
+            PTZ_DEBUG_PRT("s_stPtzPreset[%d].presetX:%d, s_stPtzPreset[%d].presetY:%d, g_LR_StepCount:%d, g_UD_StepCount:%d\n", nPos, s_stPtzPreset[nPos].presetX, nPos, s_stPtzPreset[nPos].presetY, g_LR_StepCount, g_UD_StepCount);
 
-            if (g_stPtzPreset[nPos].presetX >= g_LR_StepCount)
+            if (s_stPtzPreset[nPos].presetX >= g_LR_StepCount)
             {
-                g_RotateDir_LR = COUNTER_CLOCKWISE;	//change dir:L-->R, g_LR_StepCount++.
+                s_RotateDir_LR = COUNTER_CLOCKWISE;	//change dir:L-->R, g_LR_StepCount++.
             }
-            else if (g_stPtzPreset[nPos].presetX <= g_LR_StepCount)
+            else if (s_stPtzPreset[nPos].presetX <= g_LR_StepCount)
             {				
-                g_RotateDir_LR = CLOCKWISE;	//change dir:R-->L, g_LR_StepCount--.
+                s_RotateDir_LR = CLOCKWISE;	//change dir:R-->L, g_LR_StepCount--.
             }
 
-            if (g_stPtzPreset[nPos].presetY >= g_UD_StepCount)
+            if (s_stPtzPreset[nPos].presetY >= g_UD_StepCount)
             {
-                g_RotateDir_UD = COUNTER_CLOCKWISE;	//change dir:U-->D, g_UD_StepCount++.
+                s_RotateDir_UD = COUNTER_CLOCKWISE;	//change dir:U-->D, g_UD_StepCount++.
             }
-            else if (g_stPtzPreset[nPos].presetY <= g_UD_StepCount)
+            else if (s_stPtzPreset[nPos].presetY <= g_UD_StepCount)
             {				
-                g_RotateDir_UD = CLOCKWISE;	//change dir: D-->U, g_UD_StepCount--.
+                s_RotateDir_UD = CLOCKWISE;	//change dir: D-->U, g_UD_StepCount--.
             }
-            //PTZ_DEBUG_PRT("nPos:%d, g_RotateDir_LR:%d, g_RotateDir_UD:%d, presetX:%d, presetY:%d, g_LR_StepCount:%d,  g_UD_StepCount:%d\n", nPos, g_RotateDir_LR, g_RotateDir_UD, g_stPtzPreset[nPos].presetX, g_stPtzPreset[nPos].presetY, g_LR_StepCount,  g_UD_StepCount);
+            //PTZ_DEBUG_PRT("nPos:%d, s_RotateDir_LR:%d, s_RotateDir_UD:%d, presetX:%d, presetY:%d, g_LR_StepCount:%d,  g_UD_StepCount:%d\n", nPos, s_RotateDir_LR, s_RotateDir_UD, s_stPtzPreset[nPos].presetX, s_stPtzPreset[nPos].presetY, g_LR_StepCount,  g_UD_StepCount);
 
-            g_LR_AutoRotateCount = 2; //3;
-            g_UD_AutoRotateCount = 2; //3;
+            s_LR_AutoRotateCount = 2; //3;
+            s_UD_AutoRotateCount = 2; //3;
             PTZ_UDLR_AutoRotate(nPos, g_RotateSpeed);
         }
     }

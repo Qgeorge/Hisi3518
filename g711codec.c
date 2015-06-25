@@ -1,7 +1,15 @@
-#include "g711codec.h"
+/*
+ * u-law, A-law and linear PCM conversions.
+ */
+#define	SIGN_BIT	(0x80)		/* Sign bit for a A-law byte. */
+#define	QUANT_MASK	(0xf)		/* Quantization field mask. */
+#define	NSEGS		(8)			/* Number of A-law segments. */
+#define	SEG_SHIFT	(4)			/* Left shift for segment number. */
+#define	SEG_MASK	(0x70)		/* Segment field mask. */
+#define	BIAS		(0x84)		/* Bias for linear code. */
 
 static short seg_end[8] = {0xFF, 0x1FF, 0x3FF, 0x7FF,
-			    0xFFF, 0x1FFF, 0x3FFF, 0x7FFF};
+	0xFFF, 0x1FFF, 0x3FFF, 0x7FFF};
 
 static int search(int val, short	*table, int	size)
 {
@@ -15,9 +23,9 @@ static int search(int val, short	*table, int	size)
 }
 
 /*
-* alaw2linear() - Convert an A-law value to 16-bit linear PCM
-*
-*/
+ * alaw2linear() - Convert an A-law value to 16-bit linear PCM
+ *
+ */
 static int alaw2linear( unsigned char a_val )
 {
 	int	t;
@@ -44,14 +52,14 @@ static int alaw2linear( unsigned char a_val )
 
 
 /*
-* ulaw2linear() - Convert a u-law value to 16-bit linear PCM
-*
-* First, a biased linear code is derived from the code word. An unbiased
-* output can then be obtained by subtracting 33 from the biased code.
-*
-* Note that this function expects to be passed the complement of the
-* original code word. This is in keeping with ISDN conventions.
-*/
+ * ulaw2linear() - Convert a u-law value to 16-bit linear PCM
+ *
+ * First, a biased linear code is derived from the code word. An unbiased
+ * output can then be obtained by subtracting 33 from the biased code.
+ *
+ * Note that this function expects to be passed the complement of the
+ * original code word. This is in keeping with ISDN conventions.
+ */
 static int ulaw2linear(unsigned char u_val)
 {
 	int	t;
@@ -60,9 +68,9 @@ static int ulaw2linear(unsigned char u_val)
 	u_val = ~u_val;
 
 	/*
-	* Extract and bias the quantization bits. Then
-	* shift up by the segment number and subtract out the bias.
-	*/
+	 * Extract and bias the quantization bits. Then
+	 * shift up by the segment number and subtract out the bias.
+	 */
 	t = ((u_val & QUANT_MASK) << 3) + BIAS;
 	t <<= ((unsigned)u_val & SEG_MASK) >> SEG_SHIFT;
 
@@ -182,25 +190,25 @@ int g711u_decode(short amp[], const unsigned char g711u_data[], int g711u_bytes)
 
 int g711a_encode(unsigned char g711_data[], const short amp[], int len)
 {
-    int i;
+	int i;
 
-    for (i = 0;  i < len;  i++)
+	for (i = 0;  i < len;  i++)
 	{
-        g711_data[i] = linear2alaw(amp[i]);
-    }
+		g711_data[i] = linear2alaw(amp[i]);
+	}
 
-    return len;
+	return len;
 }
 
 int g711u_encode(unsigned char g711_data[], const short amp[], int len)
 {
-    int i;
+	int i;
 
-    for (i = 0;  i < len;  i++)
+	for (i = 0;  i < len;  i++)
 	{
-        g711_data[i] = linear2ulaw(amp[i]);
-    }
+		g711_data[i] = linear2ulaw(amp[i]);
+	}
 
-    return len;
+	return len;
 }
 

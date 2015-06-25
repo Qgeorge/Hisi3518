@@ -1,5 +1,5 @@
-#ifndef __ATTACH_H__
-#define __ATTACH_H__
+#ifndef __IPC_SSL_H__
+#define __IPC_SSL_H__
 
 #include <assert.h>
 #include <sys/ioctl.h>
@@ -141,4 +141,10 @@ typedef struct tagCommand_Entry
     int error;
 }__attribute__((packed)) Command_Entry;
 
-#endif //__ATTACH_H__
+/*************************************************************************
+ * func: sending email in ssl security.
+ ************************************************************************/
+int send_ssl_email(char *smtp_server, char *passwd, char *send_from, const char *send_to,
+                   char *smtp_user, char *body, int iType, int mport, int secType);
+
+#endif

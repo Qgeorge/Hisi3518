@@ -46,14 +46,16 @@ MODULES = 	$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/MOD_NetSvRtsp.a \
 			$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/LIB_WebServer.a	
 
 LINKFLAGS   = -Wall -g
-COMPFLAGS   = -c -O2 -fPIC -lpthread -D_GNU_SOURCE -D_HKIPC -DRTSARM 
+#COMPFLAGS   = -c -O2 -fPIC -lpthread -D_GNU_SOURCE -D_HKIPC -DRTSARM -Wimplicit-function-declaration -Werror
+COMPFLAGS   = -c -O2 -fPIC -lpthread -D_GNU_SOURCE -D_HKIPC -DRTSARM -Wimplicit-function-declaration
 CXX         = arm-hisiv100nptl-linux-gcc
 
 
 all:$(TARGET)
 
 $(TARGET):$(OBJS)
-	$(CXX) $(LINKFLAGS) $(FULLOBJS) -o $(TARGET) $(LIBPATH) $(MODULES)
+	#$(CXX) $(LINKFLAGS) $(FULLOBJS) -o $(TARGET) $(LIBPATH) $(MODULES)
+	$(CXX) $(LINKFLAGS) $(FULLOBJS) -o $(TARGET) $(LIBPATH)
 	arm-hisiv100nptl-linux-strip $(TARGET)
 	rm -f $(OBJPATH)/.*.swp
 	rm -f $(OBJPATH)/*.o
@@ -61,7 +63,8 @@ $(TARGET):$(OBJS)
 	cp $(TARGET) $(TARGETPATH)/
 
 $(OBJS):$(SOURCES)
-	$(CXX) $(COMPFLAGS) $*.c -o $(OBJPATH)/$@ $(INCPATH) $(MODULES)
+	#$(CXX) $(COMPFLAGS) $*.c -o $(OBJPATH)/$@ $(INCPATH) $(MODULES)
+	$(CXX) $(COMPFLAGS) $*.c -o $(OBJPATH)/$@ $(INCPATH)
 
 clr:
 	rm -f $(OBJPATH)/*.o

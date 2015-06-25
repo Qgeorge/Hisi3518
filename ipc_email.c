@@ -1,10 +1,58 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <time.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/mman.h>
+#include <netdb.h>
+
+#include <string.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+#include <openssl/ssl.h>
+#include <openssl/rand.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
+#include <openssl/md5.h>
+#include <openssl/evp.h>
+#include <openssl/hmac.h>
+
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <signal.h>
+#include <sys/wait.h>
 
 #include "ipc_email.h"
 
+#ifndef TRUE
+#define TRUE	1
+#endif
+
+#ifndef FALSE
+#define FALSE	0
+#endif
+
+#define CHARSET  "gbk"
+//#define CHARSET "utf-8"
+//#define CHARSET "sjis"
+#define BOUNDARY "---sinamailerqwertyuiop---"
+
+#define MIME            "MIME-Version: 1.0"
+#define CONTENT_TYPE    "Content-Type: multipart/mixed; boundary=\"" BOUNDARY "\""        
+#define FIRST_BODY      "--" BOUNDARY "\r\nContent-Type: text/plain;charset=" CHARSET \
+                                        "\r\nContent-Transfer-Encoding: 7bit\r\n\r\n"
+
+#define mail_error(x) do { printf("%s:%d ERR:%s\n" , __func__ , __LINE__ , (x));} while(0) 
+#define printf(args...) printf(args)
+
 extern int imgSize[MAXIMGNUM];
 extern char g_JpegBuffer[MAXIMGNUM][ALLIMGBUF];
-
 extern HKEMAIL_T hk_email;
+
 /*** Tonly for get Email Infomation ***/
 
 /*

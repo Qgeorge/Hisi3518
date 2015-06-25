@@ -83,14 +83,16 @@ typedef struct _CaptionAdd
 
 
 //function call:
+int VOSD_Init();
+int OSD_Overlay_RGN_Display_Time( RGN_HANDLE RgnHandle,VENC_GRP RgnVencChn);
 //int Get_Current_DayTime(unsigned char *pTime); //获取系统当前日期和时间
 //int OSD_RGN_Init( st_OSD_Region *pOsdRgn, RGN_HANDLE RgnHandle, const char *pRgnContent ); //初始化OSD显示区域
 //int OSD_RGN_Display(st_OSD_Region *pOsdRgn, RGN_HANDLE RgnHandle, const char *pRgnContent, VENC_GRP RgnVencChn);//OSD内容显示
 //int OSD_RGN_Handle_Initialize(void); //准备要显示的内容,初始化,并创建区域句柄
 //int OSD_RGN_Handle_Display_Update(VENC_GRP RgnVencChn); //区域显示刷新
 //int OSD_RGN_Handle_Finalize(VENC_GRP RgnVencChn); //销毁已经创建的区域句柄
-//
-////int OSD_Overlay_RGN_Handle_Init(unsigned int ContentLen, VENC_GRP RgnVencChnStart);
+
+//int OSD_Overlay_RGN_Handle_Init(unsigned int ContentLen, VENC_GRP RgnVencChnStart);
 //int OSD_Overlay_RGN_Handle_Init(RGN_HANDLE RgnHandle, unsigned int ContentLen, VENC_GRP RgnVencChn, int RgnVdWidth, int LorR);
 //int OSD_Overlay_RGN_Display_Static( RGN_HANDLE RgnHandle, const unsigned char *pRgnContent );
 //int OSD_Overlay_RGN_Handle_Finalize( RGN_HANDLE RgnHandle, VENC_GRP RgnVencChn );

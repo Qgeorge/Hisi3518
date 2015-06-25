@@ -1,3 +1,5 @@
+#ifndef __IPC_HK_H__
+#define __IPC_HK_H__
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,6 +14,8 @@
 #include <math.h>
 #include <unistd.h>
 #include <time.h>
+#include "hi_type.h"
+#include "hi_comm_venc.h"
 
 
 /******************* debug print (zqjun)***********************/
@@ -38,8 +42,8 @@
 #define DEV_INFRARED    0 //xhd infrared remoter.
 
 #define ENABLE_ONVIF    0 //0:disable onvif; 1:enable onvif.
-#define ENABLE_P2P	0
-#define ENABLE_QQ	1
+#define ENABLE_P2P	1
+#define ENABLE_QQ	0
 
 #define JPEG_SNAP       0
 
@@ -266,3 +270,48 @@ typedef struct _VideoDataRecord
     VideoData g_VideoData[POOLSIZE+1];
 }VideoDataRecord;
 
+
+
+
+
+/*******************************************
+ * func: calculate SD card storage size.
+ ******************************************/
+int GetStorageInfo();
+
+void wrap_sys_restart();
+
+void be_present(int x);
+
+/*
+ *  enable wifi search, parse wifi node, 
+ *  and save the scan result into wifi list file.
+ */
+//static int ScanWifiInfo( REMOTE_WIFI_FIND *wifi )
+int ScanWifiInfo(REMOTE_WIFI_FIND *pWifi);
+int Sort_WifiInfo(REMOTE_WIFI_FIND *pWifiInfo);
+
+/*******************************************************************
+ * func: check ftp configuration & enable FTP bakup for SD data.
+ ******************************************************************/
+void hk_start_ftp_server();
+
+/************************************************************
+ * func: disable specified VENC channel.
+ ***********************************************************/
+HI_S32 Video_DisableVencChn(VENC_CHN venchn);
+
+/**************************************************************************
+ * func: enable specified VENC channel for resolution exchange.
+ *************************************************************************/
+HI_S32 Video_EnableVencChn(VENC_CHN venchn);
+
+void be_present2(int iLen, char *cWifiInfo, char *cSend, unsigned int ulParam );
+
+#ifndef bool
+#define bool int
+#define false 0
+#define true 1
+#endif
+
+#endif

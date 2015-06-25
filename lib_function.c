@@ -376,67 +376,67 @@ void time_to_string_auto(char * buffer, time_t now)
 
 void rgb24_to_rgb1555_flip(byte * rgb, int width, int height, byte * rgb1555, unsigned transparent)
 {
-    rgb += width * height * 3;
-    rgb--;
+	rgb += width * height * 3;
+	rgb--;
 
-    byte * crgb = (byte *)&transparent;
+	byte * crgb = (byte *)&transparent;
 
-    byte cb = *crgb++;
-    byte cg = *crgb++;
-    byte cr = *crgb++;
+	byte cb = *crgb++;
+	byte cg = *crgb++;
+	byte cr = *crgb++;
 
-    cb >>= 3;
-    cg >>= 3;
-    cr >>= 3;
+	cb >>= 3;
+	cg >>= 3;
+	cr >>= 3;
 
-    const unsigned short c1555 = (1 << 15) | (cb << 10) | (cg << 5) | cr;
-    unsigned short * d1555 = (unsigned short *)rgb1555;
+	const unsigned short c1555 = (1 << 15) | (cb << 10) | (cg << 5) | cr;
+	unsigned short * d1555 = (unsigned short *)rgb1555;
 
-    int h;
-    for(h = 0; h < height; ++h)
-    {
-        int w;
-        for( w = 0; w < width; ++w)
-        {
-            byte r = *rgb; rgb--;
-            byte g = *rgb; rgb--;
-            byte b = *rgb; rgb--;
+	int h;
+	for(h = 0; h < height; ++h)
+	{
+		int w;
+		for( w = 0; w < width; ++w)
+		{
+			byte r = *rgb; rgb--;
+			byte g = *rgb; rgb--;
+			byte b = *rgb; rgb--;
 
-            b >>= 3;
-            g >>= 3;
-            r >>= 3;
+			b >>= 3;
+			g >>= 3;
+			r >>= 3;
 
-            *d1555 = (1 << 15) | (b << 10) | (g << 5) | r;
-            if(c1555 == *d1555)
-            {
-                *d1555 = (b << 10) | (g << 5) | r;
-            }
-            d1555++;
-        }
-    }
+			*d1555 = (1 << 15) | (b << 10) | (g << 5) | r;
+			if(c1555 == *d1555)
+			{
+				*d1555 = (b << 10) | (g << 5) | r;
+			}
+			d1555++;
+		}
+	}
 }
 
 void rgb24_to_rgb1555_auto(byte * rgb, int width, int height, byte * rgb1555, unsigned transparent)
 {
-    byte * crgb = (byte *)&transparent;
-    byte cb = *crgb++;
-    byte cg = *crgb++;
-    byte cr = *crgb++;
+	byte * crgb = (byte *)&transparent;
+	byte cb = *crgb++;
+	byte cg = *crgb++;
+	byte cr = *crgb++;
 
-    cb >>= 3;
-    cg >>= 3;
-    cr >>= 3;
+	cb >>= 3;
+	cg >>= 3;
+	cr >>= 3;
 
 	const unsigned short c1555 = (1 << 15) | (cb << 10) | (cg << 5) | cr;
 
 	unsigned short * d1555 = (unsigned short *)rgb1555;
 
-    int h;
+	int h;
 	for( h = 0; h < height; ++h)
-    {
-        int w;
+	{
+		int w;
 		for( w = 0; w < width; ++w)
-        {
+		{
 			byte b = *rgb; rgb++;
 			byte g = *rgb; rgb++;
 			byte r = *rgb; rgb++;
@@ -447,7 +447,7 @@ void rgb24_to_rgb1555_auto(byte * rgb, int width, int height, byte * rgb1555, un
 
 			*d1555 = (1 << 15) | (b << 10) | (g << 5) | r;
 			if(c1555 == *d1555)
-            {
+			{
 				*d1555 = (b << 10) | (g << 5) | r;
 			}
 			d1555++;
@@ -457,12 +457,12 @@ void rgb24_to_rgb1555_auto(byte * rgb, int width, int height, byte * rgb1555, un
 
 void pcopy(byte * src, int src_width, int src_height, byte * dst, int dst_stride)
 {
-    int h;
+	int h;
 	for( h = 0; h < src_height; ++h)
-    {
-        int w;
+	{
+		int w;
 		for( w = 0; w < src_width; ++w)
-        {
+		{
 			*dst = *src;
 			dst++;
 			src++;

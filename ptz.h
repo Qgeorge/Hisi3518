@@ -2,11 +2,6 @@
 #ifndef __PTZ_H__
 #define __PTZ_H__
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-
-
 #ifndef TRUE
 #define TRUE	1
 #endif
@@ -15,46 +10,22 @@
 #define FALSE	0
 #endif
 
-#define PTZ_PRINT_ENABLE    1
-#if PTZ_PRINT_ENABLE
-    #define PTZ_DEBUG_PRT(fmt...) \
-        do {                      \
-            printf("[%s - %d]: ", __FUNCTION__, __LINE__);\
-            printf(fmt);          \
-        }while(0)
-#else
-    #define PTZ_DEBUG_PRT(fmt...) \
-        do { ; } while(0) //do nothing.
-#endif
+extern int g_RotateSpeed;		//rotate speed
+extern int g_UD_StepCount;		//calculate the UP down current position.
+extern int g_LR_StepCount;		//calculate the left rightcurrent position.
+extern int g_PtzRotateEnable;		//ptz rotate flag, 1:enable rotate, 0:ptz stop
+extern int g_PtzRotateType;		//type ==> 1:leftright; 2:updown; 3:all direction auto rotate.
+extern int g_PtzStepType;		//ptz step, 1:left, 2:right, 3:up, 4:down.
+extern int g_PtzPresetPos;		//preset position: 1 ~ 8.	
+extern unsigned long g_tmPTZStart;	//PTZ start time;
 
-//thread.
-#define	HK_CREATE_THREADEX(Func, Args,Ret)	do{					\
-		pthread_t		__pth__;									\
-		if (0 == pthread_create(&__pth__, NULL, (void *)Func, (void *)Args))	\
-			Ret = TRUE; \
-		else \
-			Ret = FALSE; \
-      }while(0)
+int HK_PtzMotor();
+int HK_PTZ_AutoRotate_Stop(int nPos);
+int Set_PTZ_RotateSpeed(int nPtzSpeed);
+int Get_PTZ_RotateSpeed(void);
+int Set_PTZ_PresetParams(int nValue, int xPos, int yPos);
+int Get_PTZ_PresetParams(int nValue, int *xPos, int *yPos);
 
-#define GPIO_READ  0
-#define GPIO_WRITE 1
-
-#define CLOCKWISE 1
-#define COUNTER_CLOCKWISE 2
-
-#define PTZ_CONF  "/mnt/sif/ptz.conf"
-#define PRESETNUM 9 //8 //preset level: 1~8.
-
-#define PTZ_RANGE_LR 2020 //L & R max length.
-#define PTZ_RANGE_UD 620 //U & D max length.
-
-typedef struct ptz_preset 
-{
-    unsigned int presetX;
-    unsigned int presetY;
-} st_PtzPreset;
-
-st_PtzPreset g_stPtzPreset[PRESETNUM];
 
 #endif  /* ptz.h */
 

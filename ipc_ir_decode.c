@@ -219,7 +219,7 @@ static inline void ir_config_fun(int fp, hiir_dev_param dev_param)
     ioctl(fp, IR_IOC_SET_CNT1_B, tmp);
 }
 
-void Hi_IR_FUNC_TEST()
+static void Hi_IR_FUNC_TEST()
 {
     int filp;
     int i;
@@ -354,7 +354,7 @@ void *Handle_IR_Key_Event(void* arg)
     return 0;
 }
 #else
-void *Handle_IR_Key_Event(void* arg)
+static void *Handle_IR_Key_Event(void* arg)
 {
     HK_IR_DEBUG("Handle IR key event thread start !\n");
 
@@ -409,7 +409,7 @@ void *Handle_IR_Key_Event(void* arg)
 }
 #endif
 
-void *Handle_Light_Control(void* arg)
+static void *Handle_Light_Control(void* arg)
 {
     unsigned int val_read = 0, val_set = 0, curState = 0;
     unsigned int groupnum = 0, bitnum = 0;

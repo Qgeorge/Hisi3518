@@ -9,26 +9,31 @@
 #include <sys/times.h>
 
 #include "ipc_hk.h"
+#include "ipc_vbVideo.h"
+#include "ipc_monc.h"
+#include "ipc_email.h"
 
 #include "rs.h"
 #include "sys.h"
 #include "utils/HKMonCmdDefine.h"
 #include "utils/HKCmdPacket.h"
+#include "utils/HKUtilAPI.h"
+
 //#include "utils/HKDataBase.h"
 
 extern bool b_hkSaveSd;
-static RSObject file_sd_inst;
-static RSObjectIRQEvent ev_irq = NULL;
+extern HKEMAIL_T hk_email;
+static RSObject s_file_sd_inst;
+static RSObjectIRQEvent s_ev_irq = NULL;
 //static pthread_rwlock_t fd_rwlock;
 //static pthread_mutex_t plock_mutex;
 
-static pthread_mutex_t g_MutexLock_TF = PTHREAD_MUTEX_INITIALIZER;
-static short g_TF_start=0;
-//char g_cDataBuf[200*1024]={0};
-char *g_cDataBuf = NULL;
+static pthread_mutex_t s_MutexLock_TF = PTHREAD_MUTEX_INITIALIZER;
+static short s_TF_start=0;
+char *s_cDataBuf = NULL;
 
 #define max_count	5
-static int g_FileReadSum = 0;
+static int s_FileReadSum = 0;
 #pragma pack(1)
 
 typedef struct HK_VHeader_v2
@@ -44,6 +49,7 @@ typedef struct HK_VHeader_v2
 HK_VHeader g_hkHeader;
 int g_delcount=0;
 int g_allcount=0;
+
 HKFrameHead *frameRec=NULL;
 extern HK_SD_PARAM_ hkSdParam;
 extern int GetStorageInfo();
@@ -106,10 +112,14 @@ FrameIndex_ m_frameIndex;
 FileHead_ m_fileHead;
 FrameHead_ m_frameHead;
 
+static void WriteFrameHead(FILE* pFile, long nID, int nLength, unsigned int nDataType/* = HK_MFF_VIDEO | HK_MFF_MPEG4*/,int iStreamType);
+static int WriteFileHeader(FileHead_* pFileHead);
+int file_SdDeleteFile( const char *cFileName );
+
 static void sd_deleteRec();
 static void SetIRQEventCallback(RSObjectIRQEvent cb) 
 {
-	ev_irq = cb;
+	s_ev_irq = cb;
 }
 
 static const char* Retrieve()
@@ -134,12 +144,12 @@ file_rlist file_r[max_count] = {0};
 
 static int Read(int obj, char *buf, unsigned int bufsiz, long *flags)
 {
-	//HK_DEBUG_PRT("...SD Read, g_sdIsOnline:%d, g_FileReadSum:%d, *flags:%d, obj:%d ...\n", g_sdIsOnline, g_FileReadSum, *flags, obj);
+	//HK_DEBUG_PRT("...SD Read, g_sdIsOnline:%d, s_FileReadSum:%d, *flags:%d, obj:%d ...\n", g_sdIsOnline, s_FileReadSum, *flags, obj);
 	if (0 == g_sdIsOnline)
 		return -1;
 
 	obj -= 1;
-	usleep(40*1000 + g_FileReadSum*2000);
+	usleep(40*1000 + s_FileReadSum*2000);
 	unsigned int nRead=0;
 	*flags = 0;
 	if( file_r[obj].fpRead == NULL )
@@ -149,9 +159,9 @@ static int Read(int obj, char *buf, unsigned int bufsiz, long *flags)
 	}
 
 	int nReadSize = 4096;
-	if (g_FileReadSum > 3)
+	if (s_FileReadSum > 3)
 	{
-		g_FileReadSum = 1024;
+		s_FileReadSum = 1024;
 	}
 
 	nRead = fread( buf, 1, nReadSize, file_r[obj].fpRead );  //read ..
@@ -212,6 +222,18 @@ static char* GetTimeChar(char* buf)
 	printf("... update sys time, time_Sec:%u ...\n", time_Sec);
 
 	return buf;
+}
+static int hk_SdInfoEmail(int iType)
+{
+	int ret = 0;
+	char emailMSG[512]={0};
+	sprintf(emailMSG, "%s ID:%s", SDMSG, getenv("USER"));
+
+	ret = send_mail_to_user(hk_email.mailserver, hk_email.passwd, hk_email.mailfrom, hk_email.mailto, hk_email.username,emailMSG, 0);
+	if(ret == 0)
+	{
+		HK_DEBUG("-----SD---Send Success!--------\n"); 
+	}
 }
 
 #define FILE_HEADER_MASK   "HEK"
@@ -284,7 +306,7 @@ static int Open(const char* name, const char* args, int* threq)
 				file_r[i].rflag =1;
 				file_r[i].fpRead = fpRead;
 				*threq=1;
-				g_FileReadSum = i+1;
+				s_FileReadSum = i+1;
 				DestroyFrame(frameOpenRec);
 				int iObj = i+1;
 				printf("scc Open SD success obj=%d...\n",iObj);
@@ -317,9 +339,9 @@ static void Close(int obj)
 	else if(obj > 0 )
 	{
 		obj -= 1;
-		if( g_FileReadSum>0 )
+		if( s_FileReadSum>0 )
 		{
-			g_FileReadSum--;
+			s_FileReadSum--;
 		}
 		if(NULL!=file_r[obj].fpRead)
 		{
@@ -342,7 +364,7 @@ unsigned long GetTickCount()
 	  return now.tv_sec*1000+now.tv_usec/1000; */
 }
 
-void WriteFrameHead(FILE* pFile, long nID, int nLength, unsigned int nDataType/* = HK_MFF_VIDEO | HK_MFF_MPEG4*/,int iStreamType)
+static void WriteFrameHead(FILE* pFile, long nID, int nLength, unsigned int nDataType/* = HK_MFF_VIDEO | HK_MFF_MPEG4*/,int iStreamType)
 {
 	int nRelativeTime = 0;
 
@@ -410,7 +432,7 @@ int Write_(long nID, const void* pBuffer, int nLength,int iFream, unsigned int n
 	return 1;
 }
 
-int WriteFileHeader(FileHead_* pFileHead)
+static int WriteFileHeader(FileHead_* pFileHead)
 {
 	if( NULL == pFileHead || NULL == g_fp )
 	{
@@ -456,13 +478,13 @@ static int sccISIframe(const char *buffer, int length)
 static unsigned int g_nLen=0;
 static int g_nFlgX=0;
 
-static char *g_cDataBufc=NULL;
+static char *s_cDataBufc=NULL;
 static int OnDataBuf( int iIndex, const char *data, unsigned int iLen )
 {
 	if( iIndex==3)
 	{
-		memset(g_cDataBufc, 0, sizeof(g_cDataBufc));
-		memcpy(g_cDataBufc, data, iLen);
+		memset(s_cDataBufc, 0, sizeof(s_cDataBufc));
+		memcpy(s_cDataBufc, data, iLen);
 		g_nFlgX= iIndex;
 		g_nLen = iLen;
 		return 1;
@@ -471,13 +493,13 @@ static int OnDataBuf( int iIndex, const char *data, unsigned int iLen )
 	{
 		if( g_nFlgX!=3)
 		{
-			memset(g_cDataBufc, 0, sizeof(g_cDataBufc));
+			memset(s_cDataBufc, 0, sizeof(s_cDataBufc));
 			g_nFlgX= 0;
 			g_nLen = 0;
 			return 0;
 		}
 		iLen -= 2;
-		memcpy(g_cDataBufc+g_nLen, data+2, iLen);
+		memcpy(s_cDataBufc+g_nLen, data+2, iLen);
 		g_nLen += iLen;
 		g_nFlgX= iIndex;
 		return 1;
@@ -486,19 +508,19 @@ static int OnDataBuf( int iIndex, const char *data, unsigned int iLen )
 	{
 		if( g_nFlgX!=2)
 		{
-			memset(g_cDataBufc, 0, sizeof(g_cDataBufc));
+			memset(s_cDataBufc, 0, sizeof(s_cDataBufc));
 			g_nFlgX= 0;
 			g_nLen = 0;
 			return 0;
 		}
 		iLen -= 2;
-		memcpy(g_cDataBufc+g_nLen, data+2, iLen);
+		memcpy(s_cDataBufc+g_nLen, data+2, iLen);
 		g_nLen += iLen;
 
-		int flag = sccISIframe( g_cDataBufc, g_nLen);
+		int flag = sccISIframe( s_cDataBufc, g_nLen);
 		//flags=1;
 
-		sccPushVideoData_TF(0,g_cDataBufc,g_nLen, flag, 4, 4, hostVideoDataPTF);
+		sccPushVideoData_TF(0,s_cDataBufc,g_nLen, flag, 4, 4, hostVideoDataPTF);
 		g_nLen = 0;
 		g_nFlgX= 0;
 		return 1;
@@ -541,11 +563,11 @@ static int Write(int obj, const char* buf, unsigned int len, long flags)
 	memcpy( &hkHeader, buf, 2 );
 	if( hkHeader.fragx != 0 )
 	{
-		if( g_cDataBufc ==NULL)
+		if( s_cDataBufc ==NULL)
 		{
-			g_cDataBufc = malloc( 200*1024);
+			s_cDataBufc = malloc( 200*1024);
 		}
-		if( g_cDataBufc != NULL )
+		if( s_cDataBufc != NULL )
 		{
 			OnDataBuf( hkHeader.fragx, buf, len );
 		}
@@ -1007,18 +1029,18 @@ void SD_RSLoadObjects(RegisterFunctType reg)
 	stat("/mnt", &a);
 	if ( ((stat("/mnt/mmc", &b) == 0) && (a.st_dev != b.st_dev)) )
 	{
-		file_sd_inst.SetIRQEventCallback = &SetIRQEventCallback;
-		file_sd_inst.Retrieve      = &Retrieve;
-		file_sd_inst.GetObjectInfo = &GetObjectInfo;
-		file_sd_inst.Open          = &Open;
-		file_sd_inst.Read          = &Read;
-		file_sd_inst.Write         = &Write;
-		file_sd_inst.DoEvent       = &DoEvent;
-		file_sd_inst.Close         = &Close;
-		file_sd_inst.Convert       = NULL;
-		ev_irq = NULL;
+		s_file_sd_inst.SetIRQEventCallback = &SetIRQEventCallback;
+		s_file_sd_inst.Retrieve      = &Retrieve;
+		s_file_sd_inst.GetObjectInfo = &GetObjectInfo;
+		s_file_sd_inst.Open          = &Open;
+		s_file_sd_inst.Read          = &Read;
+		s_file_sd_inst.Write         = &Write;
+		s_file_sd_inst.DoEvent       = &DoEvent;
+		s_file_sd_inst.Close         = &Close;
+		s_file_sd_inst.Convert       = NULL;
+		s_ev_irq = NULL;
 
-		(*reg)(&file_sd_inst);
+		(*reg)(&s_file_sd_inst);
 
 		mkdir("/mnt/mmc/snapshot", 0755);
 		if( Sd_check()==1 )
@@ -1037,13 +1059,13 @@ static int sccGetVideoDataSlaveTF(int pStreamType, char *pVideoData, unsigned in
 #if 0
 static int GetTfDataWrite()
 {
-	char g_cDataBuf[200*1024]={0};
+	char s_cDataBuf[200*1024]={0};
 	int len = 0;
 	int iFream = 0;
 	int iResType = 0;
 	int iStreamType = 0;
 
-	int iflag = sccGetVideoDataSlaveTF( 0, g_cDataBuf, &len, &iFream, &iResType, &iStreamType );
+	int iflag = sccGetVideoDataSlaveTF( 0, s_cDataBuf, &len, &iFream, &iResType, &iStreamType );
 	//printf("Get flag=%d,,fream=%d..len=%d.streamType=%d.\n", iflag, iFream, len, iStreamType);
 	if ( (len <= 0) || (iflag==0) )
 	{
@@ -1080,14 +1102,14 @@ static int GetTfDataWrite()
 		{
 			//printf("scc........audio........\n");
 			g_ulDataLen += len;
-			Write_( 0, g_cDataBuf, len, 0, HK_MFF_AUDIO|HK_MFF_G711, 0 );
+			Write_( 0, s_cDataBuf, len, 0, HK_MFF_AUDIO|HK_MFF_G711, 0 );
 			return len;
 		}
 
 		g_hkHeader.resolution = iResType;
 		g_ulDataLen += len;
 		//printf("scc.iFream=%d...streamType=%d....\n", iFream, iStreamType);
-		Write_( 0, g_cDataBuf, len, iFream, HK_MFF_VIDEO|HK_MFF_MPEG4, iStreamType );
+		Write_( 0, s_cDataBuf, len, iFream, HK_MFF_VIDEO|HK_MFF_MPEG4, iStreamType );
 		return len;
 	}
 	return len;
@@ -1096,13 +1118,13 @@ static int GetTfDataWrite()
 
 static int GetTfDataWrite()
 {
-	//char g_cDataBuf[200*1024]={0};
+	//char s_cDataBuf[200*1024]={0};
 	int len = 0;
 	int iFream = 0;
 	int iResType = 0;
 	int iStreamType = 0;
 
-	int iflag = sccGetVideoDataSlaveTF( 0, g_cDataBuf, &len, &iFream, &iResType, &iStreamType );
+	int iflag = sccGetVideoDataSlaveTF( 0, s_cDataBuf, &len, &iFream, &iResType, &iStreamType );
 	//printf("Get flag=%d,,fream=%d..len=%d.streamType=%d.\n", iflag, iFream, len, iStreamType);
 	if ( (len <= 0) || (iflag==0) )
 	{
@@ -1140,14 +1162,14 @@ static int GetTfDataWrite()
 		{
 			//printf("scc........audio........\n");
 			g_ulDataLen += len;
-			Write_( 0, g_cDataBuf, len, 0, HK_MFF_AUDIO|HK_MFF_G711, 0 );
+			Write_( 0, s_cDataBuf, len, 0, HK_MFF_AUDIO|HK_MFF_G711, 0 );
 			return len;
 		}
 
 		g_hkHeader.resolution = iResType;
 		g_ulDataLen += len;
 		//printf("scc.iFream=%d...streamType=%d....\n", iFream, iStreamType);
-		Write_( 0, g_cDataBuf, len, iFream, HK_MFF_VIDEO|HK_MFF_MPEG4, iStreamType );
+		Write_( 0, s_cDataBuf, len, iFream, HK_MFF_VIDEO|HK_MFF_MPEG4, iStreamType );
 		return len;
 	}
 	return len;
@@ -1155,7 +1177,7 @@ static int GetTfDataWrite()
 
 
 
-static short g_TF_flag = 0;
+static short s_TF_flag = 0;
 int TFTIME(HI_VOID)
 {
 	int iCount = 0;
@@ -1165,17 +1187,17 @@ int TFTIME(HI_VOID)
 	IPCAM_setTskName("TF_Thread");  
 #endif
 
-	g_cDataBuf = (char *)malloc(200*1024*sizeof(char));;
-	if (NULL == g_cDataBuf)
+	s_cDataBuf = (char *)malloc(200*1024*sizeof(char));;
+	if (NULL == s_cDataBuf)
 	{
 		printf("...%s...malloc error, %s\n", __func__, strerror(errno)); 
 		return 0;
 	}
 
 	pthread_detach(pthread_self()); 
-	while (g_TF_flag)
+	while (s_TF_flag)
 	{
-		if (g_TF_start == 0)//close
+		if (s_TF_start == 0)//close
 		{
 			sleep(2);
 			continue;
@@ -1200,21 +1222,21 @@ int TFTIME(HI_VOID)
 		}
 	}
 
-	if (g_cDataBuf) 
+	if (s_cDataBuf) 
 	{
-		free(g_cDataBuf);
-		g_cDataBuf = NULL;
+		free(s_cDataBuf);
+		s_cDataBuf = NULL;
 	}
 	return 1;
 }
 
 static int CreateTFThread(void)
 {
-	if (0 == g_TF_flag)
+	if (0 == s_TF_flag)
 	{
 		int ret = -1;
 		pthread_t tfid;
-		g_TF_flag = 1;
+		s_TF_flag = 1;
 
 		ret = pthread_create(&tfid, NULL, (void *)TFTIME, NULL);
 		if (0 != ret)
@@ -1262,10 +1284,10 @@ static int sd_video_start()
 void sd_record_stop()
 {
 	printf(".........sd_record_stop...\n");
-	if (g_TF_start == 0)
+	if (s_TF_start == 0)
 		return;
 
-	g_TF_start = 0;
+	s_TF_start = 0;
 	sleep(1);
 	g_ulDataLen = 0;
 	if( NULL != g_fp )
@@ -1284,15 +1306,15 @@ void sd_record_stop()
 
 int sd_record_start()
 {
-	printf("[%s, %d]..........sd_record_start, g_TF_Start:%d... \n", __func__, __LINE__, g_TF_start);
-	if (1 == g_TF_start)
+	printf("[%s, %d]..........sd_record_start, g_TF_Start:%d... \n", __func__, __LINE__, s_TF_start);
+	if (1 == s_TF_start)
 	{
 		HK_DEBUG_PRT("......SD card is already in recording thread !\n");
 		return 1;
 	}
 
 	sd_video_start();
-	g_TF_start = 1;
+	s_TF_start = 1;
 
 	return 0;
 
@@ -1337,15 +1359,15 @@ int sd_record_start()
 
 int sccPushTfData(int pStreamType, char *pData, unsigned int nSize, short iFrame, int iResType, int iStreamType )
 {
-	if ( g_TF_start == 0)
+	if ( s_TF_start == 0)
 		return 0;
 
 	if ((hkSdParam.audio != 1) && (iStreamType == 0))
 		return 0;
 
-	pthread_mutex_lock( &g_MutexLock_TF );
+	pthread_mutex_lock( &s_MutexLock_TF );
 	sccPushVideoData_TF( pStreamType, pData, nSize, iFrame, iResType, iStreamType, hostVideoDataPTF );
-	pthread_mutex_unlock( &g_MutexLock_TF );
+	pthread_mutex_unlock( &s_MutexLock_TF );
 
 	return 0;
 }
@@ -1472,9 +1494,9 @@ static int sccGetVideoDataSlaveTF(int pStreamType, char *pVideoData, unsigned in
 	int ret = 0;
 	if((pStreamType == 0) && (hostVideoDataPTF != NULL))
 	{
-		pthread_mutex_lock( &g_MutexLock_TF );
+		pthread_mutex_lock( &s_MutexLock_TF );
 		ret = sccGetVideoData_TF( pStreamType, pVideoData, nSize, iFream, iResType, iStreamType, hostVideoDataPTF );
-		pthread_mutex_unlock( &g_MutexLock_TF );
+		pthread_mutex_unlock( &s_MutexLock_TF );
 	}
 	return ret;
 }
@@ -1541,7 +1563,7 @@ static int sccGetVideoData_TF(int pStreamType, char *pVideoData, unsigned int *n
 static void sccResetVideDataTF(int pStreamType, VideoDataRecord *mVideoDataBuffer)
 {
 	HK_DEBUG_PRT("...... sd reset video data, pStreamType: %d ......\n", pStreamType);
-	pthread_mutex_lock( &g_MutexLock_TF );
+	pthread_mutex_lock( &s_MutexLock_TF );
 
 	mVideoDataBuffer->g_writePos     = 0;
 	mVideoDataBuffer->g_readPos      = 0;
@@ -1554,6 +1576,6 @@ static void sccResetVideDataTF(int pStreamType, VideoDataRecord *mVideoDataBuffe
 	mVideoDataBuffer->g_haveFrameCnt = 0;
 	memset(mVideoDataBuffer->g_videoBuf, 0, sizeof(mVideoDataBuffer->g_videoBuf));
 
-	pthread_mutex_unlock( &g_MutexLock_TF );
+	pthread_mutex_unlock( &s_MutexLock_TF );
 }
 

@@ -15,6 +15,13 @@
 
 #include "sample_comm.h"
 #include "ipc_hk.h"
+#include "ipc_vbVideo.h"
+
+/*defined in ipc_vbVideo.h*/
+extern int g_MotionDetectSensitivity;
+extern int g_iCifOrD1;   //main stream channel index.
+extern int g_isH264Open;  //main stream open flag.
+extern struct HKVProperty video_properties_;
 
 #ifndef bool
 #define bool int
@@ -29,10 +36,6 @@
  * 2: middle sensitivity; 
  * 3: high sensitivity;
  *********************************/
-extern int g_MotionDetectSensitivity;
-extern int g_iCifOrD1;   //main stream channel index.
-extern int g_isH264Open;  //main stream open flag.
-extern struct HKVProperty video_properties_;
 #define MD_LEVEL_LOW     8000
 #define MD_LEVEL_MIDDLE  2000
 #define MD_LEVEL_HIGH    800
@@ -61,7 +64,7 @@ extern int HK_Check_PIR_State();
 /******************************************************************************
 * funciton : vda MD mode print -- SAD
 ******************************************************************************/
-HI_S32 VDA_MdPrtSad(FILE *fp, VDA_DATA_S *pstVdaData)
+static HI_S32 VDA_MdPrtSad(FILE *fp, VDA_DATA_S *pstVdaData)
 {
 	HI_S32 i, j;
 	HI_VOID *pAddr;
@@ -109,7 +112,7 @@ HI_S32 VDA_MdPrtSad(FILE *fp, VDA_DATA_S *pstVdaData)
 /******************************************************************************
 * funciton : vda MD mode print -- Md OBJ
 ******************************************************************************/
-HI_S32 VDA_MdPrtObj(FILE *fp, VDA_DATA_S *pstVdaData)
+static HI_S32 VDA_MdPrtObj(FILE *fp, VDA_DATA_S *pstVdaData)
 {
 	VDA_OBJ_S *pstVdaObj;
 	HI_S32 i;
@@ -142,7 +145,7 @@ HI_S32 VDA_MdPrtObj(FILE *fp, VDA_DATA_S *pstVdaData)
 /******************************************************************************
 * funciton : vda MD mode print -- Alarm Pixel Count
 ******************************************************************************/
-HI_S32 VDA_MdPrtAp(FILE *fp, VDA_DATA_S *pstVdaData)
+static HI_S32 VDA_MdPrtAp(FILE *fp, VDA_DATA_S *pstVdaData)
 {
     //printf("[%s, %d] g_MotionDetectLevel:%d, bPelsNumValid:%d, AlarmPixCnt:%d\n", __func__, __LINE__, g_MotionDetectLevel, pstVdaData->unData.stMdData.bPelsNumValid, pstVdaData->unData.stMdData.u32AlarmPixCnt);
 
@@ -186,6 +189,7 @@ HI_S32 VDA_MdPrtAp(FILE *fp, VDA_DATA_S *pstVdaData)
         #else
             {
         #endif
+
                 CheckAlarm(1, 1, 0, NULL); //alarm notification.
                 AlarmVideoRecord(true); //alarm video record.
             }
@@ -266,7 +270,7 @@ HI_S32 VDA_MdPrtAp(FILE *fp, VDA_DATA_S *pstVdaData)
 /******************************************************************************
 * funciton : vda MD mode thread process
 ******************************************************************************/
-HI_VOID *VDA_MdGetResult(HI_VOID *pdata)
+static HI_VOID *VDA_MdGetResult(HI_VOID *pdata)
 {
 	HI_S32 s32Ret;
 	VDA_CHN VdaChn;
@@ -361,7 +365,7 @@ HI_VOID *VDA_MdGetResult(HI_VOID *pdata)
 /******************************************************************************
 * funciton : start vda MD mode
 ******************************************************************************/
-HI_S32 VDA_MdStart(VDA_CHN VdaChn, VI_CHN ViChn, SIZE_S *pstSize)
+static HI_S32 VDA_MdStart(VDA_CHN VdaChn, VI_CHN ViChn, SIZE_S *pstSize)
 {
 	HI_S32 s32Ret = HI_SUCCESS;
 	VDA_CHN_ATTR_S stVdaChnAttr;
@@ -431,7 +435,7 @@ HI_S32 VDA_MdStart(VDA_CHN VdaChn, VI_CHN ViChn, SIZE_S *pstSize)
 /******************************************************************************
 * funciton : stop vda, and stop vda thread -- MD
 ******************************************************************************/
-HI_VOID VDA_MdStop(VDA_CHN VdaChn, VI_CHN ViChn)
+static HI_VOID VDA_MdStop(VDA_CHN VdaChn, VI_CHN ViChn)
 {
 	HI_S32 s32Ret = HI_SUCCESS;
 	
@@ -480,7 +484,7 @@ HI_VOID VDA_MdStop(VDA_CHN VdaChn, VI_CHN ViChn)
 /******************************************************************************
 * funciton : vda OD mode thread process
 ******************************************************************************/
-HI_VOID *VDA_OdGetResult(HI_VOID *pdata)
+static HI_VOID *VDA_OdGetResult(HI_VOID *pdata)
 {
 	HI_S32 i;
 	HI_S32 s32Ret;
@@ -538,7 +542,7 @@ HI_VOID *VDA_OdGetResult(HI_VOID *pdata)
 /******************************************************************************
 * funciton : start vda OD mode
 ******************************************************************************/
-HI_S32 VDA_OdStart(VDA_CHN VdaChn, VI_CHN ViChn, SIZE_S *pstSize)
+static HI_S32 VDA_OdStart(VDA_CHN VdaChn, VI_CHN ViChn, SIZE_S *pstSize)
 {
 	VDA_CHN_ATTR_S stVdaChnAttr;
 	MPP_CHN_S stSrcChn, stDestChn;
@@ -665,7 +669,7 @@ int VDA_MotionDetect_Start(int md_level)
 }
 
 
-int VDA_MoveStop()
+static int VDA_MoveStop()
 {
 	VDA_CHN VdaChn = 0;
 	VI_CHN ViChn = 1;
@@ -674,7 +678,7 @@ int VDA_MoveStop()
 	return 0;
 }
 
-int VDA_OverlayStart()
+static int VDA_OverlayStart()
 {
 	HI_S32 s32Ret;
 	VI_CHN ViExtChn = 2;

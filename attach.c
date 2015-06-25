@@ -1,4 +1,3 @@
-
 #include "ipc_email.h"
 #include "ipc_ssl.h"
 
@@ -44,7 +43,7 @@ Command_Entry* FindCommandEntry(int command)
     return pEntry;
 }
 
-int SendData_SSL(SSL* ssl, Command_Entry* pEntry)
+static int SendData_SSL(SSL* ssl, Command_Entry* pEntry)
 {
     int offset = 0;
     int res = 0;
