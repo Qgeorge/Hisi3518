@@ -189,6 +189,11 @@ bool g_bMDXY = false;
 int COMM_Get_VencStream_FD(int s32venchn);
 void AlarmVideoRecord(bool bAlarm);
 
+void OnCmdPtz( int ev )
+{
+	printf("this func is bing ptz\n");	
+}
+
 static  unsigned short GetMainVideoRate( unsigned int nSize )
 {   
 	unsigned short nRate = 0;
@@ -1463,7 +1468,7 @@ static void raise_alarm_server( int iType, int nReserved,char *cFtpData)
 
 	iLen = DictEncode(buf, sizeof(buf), DictPacket);
 	buf[iLen] = '\0';
-	NetSend( HK_KEY_MONSERVER, buf, iLen );
+	//NetSend( HK_KEY_MONSERVER, buf, iLen );
 	DictDestroy(DictPacket);
 }
 
@@ -1788,31 +1793,6 @@ static int CreatePICThread(void)
 	return 0;
 }
 
-/*******************************************************
- * func: .
- ******************************************************/
-static int sccLocalAlarm(int iChannel, int nAlarmType, int nReserved, char *cFtpData)
-{
-	char cBuf[2048]={0};
-	HKFrameHead *hfAlarm = CreateFrameB();
-
-	DictSetInt( hfAlarm, HK_KEY_CHANNEL, nReserved );
-	DictSetInt( hfAlarm, HK_KEY_ALERT_TYPE, nAlarmType );
-	DictSetStr( hfAlarm, HK_KEY_FROM, getenv("USER"));
-	if ( NULL != cFtpData )
-	{
-		char outBuf[1024]={0};
-		//sccEncodeBuf(outBuf, cFtpData, strlen(cFtpData));
-		DictSetStr( hfAlarm, HK_KEY_FTPSERVER, outBuf );
-	}
-
-	int iLen = DictEncode(cBuf, sizeof(cBuf), hfAlarm);
-	cBuf[iLen] = '\0';
-
-	be_present2( iLen, cBuf, "LocalAlarm", 0);
-	DestroyFrame( hfAlarm );
-}
-
 
 /***************************************************
  * func: check alarm type & snap picture.
@@ -1837,12 +1817,12 @@ int CheckAlarm(int iChannel, int iType, int nReserved, char *cFtpData)
 	{
 		raise_alarm_server(iType,nReserved, cFtpData);
 		raise_alarm("video.vbVideo.MPEG4", MPEG4);
-		sccLocalAlarm(iChannel, iType, nReserved, cFtpData);
+		//sccLocalAlarm(iChannel, iType, nReserved, cFtpData);
 	}
 	else if (cur - raise_time > ALARMTIME)
 	{
 		raise_alarm_server(iType ,nReserved, cFtpData);
-		sccLocalAlarm(iChannel, iType, nReserved, cFtpData);
+		//sccLocalAlarm(iChannel, iType, nReserved, cFtpData);
 		raise_alarm("video.vbVideo.MPEG4", MPEG4);
 
 		raise_time = Getms();
@@ -2952,7 +2932,7 @@ static void GetInitAlarmParam(HKFrameHead *pFrameHead)
 		}
 	}
 }
-
+#if 0
 void sccGetVideoInfo(char buf2[1024*8],int nCmd, int nSubCmd, unsigned int ulParam)
 {
 	char buf[1014*8]={0};
@@ -3030,9 +3010,9 @@ void sccGetVideoInfo(char buf2[1024*8],int nCmd, int nSubCmd, unsigned int ulPar
 
 	strcpy(buf2, buf);
 }
+#endif
 
-
-
+#if 0
 /********************************************************************************
 func:	open read and so on ¿¿¿
 ********************************************************************************/
@@ -5083,4 +5063,4 @@ void video_RSLoadObjects(RegisterFunctType reg)
 	}
 
 }
-
+#endif

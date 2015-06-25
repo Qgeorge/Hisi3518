@@ -10,7 +10,7 @@
 
 #include "ipc_hk.h"
 #include "ipc_vbVideo.h"
-#include "ipc_monc.h"
+//#include "ipc_monc.h"
 #include "ipc_email.h"
 
 #include "rs.h"
