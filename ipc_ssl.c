@@ -1,6 +1,78 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <time.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/mman.h>
+#include <netdb.h>
+
+#include <string.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <signal.h>
+#include <sys/wait.h>
+#include <ctype.h>
+
+
+#include <assert.h>
+#include <sys/ioctl.h>
+
+#include <openssl/ssl.h>
+#include <openssl/rand.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
+#include <openssl/md5.h>
+#include <openssl/evp.h>
+#include <openssl/hmac.h>
+
 #include "ipc_email.h"
 #include "ipc_ssl.h"
-#include <ctype.h>
+
+#define INVALID_SOCKET  (unsigned int)(~0)
+#define SOCKET_ERROR -1
+#define TLSPORT   587
+#define SSLPORT   465
+
+typedef unsigned short WORD;
+typedef int SOCKET;
+typedef struct sockaddr_in SOCKADDR_IN;
+typedef struct hostent* LPHOSTENT;
+typedef struct servent* LPSERVENT;
+typedef struct in_addr* LPIN_ADDR;
+typedef struct sockaddr* LPSOCKADDR;
+
+
+extern HKEMAIL_T hk_email;
+extern char g_JpegBuffer[MAXIMGNUM][ALLIMGBUF];
+extern int imgSize[MAXIMGNUM];
+
+
+int gmail_socket;
+int m_type;
+extern HKEMAIL_T hk_email;
+//extern char g_JpegBuffer[MAXIMGNUM][ALLIMGBUF];
+//extern int imgSize[MAXIMGNUM];
+
+SSL_CTX* m_ctx;
+SSL* m_ssl;
+int m_bConnected ;
+char SendBuf[BUFFER_SIZE];
+char RecvBuf[2048];
+
+enum //secure type.
+{
+    NO_SECURITY,
+    USE_TLS,
+    USE_SSL,
+    DO_NOT_SET
+};
+
 extern Command_Entry* FindCommandEntry(int command);
 extern char *base64_encode(const char * bytes_to_encode,  int in_len);
 

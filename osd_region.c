@@ -1,6 +1,6 @@
-
 #include "osd_region.h"
-#include "asc16.h"
+#include "osd_region_asc16.h"
+#include "utils_biaobiao.h"
 
 HI_S32 gs_s32RgnCnt = 2; //每个窗口叠加区域数：2
 

@@ -26,8 +26,8 @@ INCPATH     = -I . -I $(PRO_DIR)/IPCAM_LIB/system/include 		  \
 #LIBPATH     = -L ../lib_so -lsystem -lchinalink -lnetfactory -lutils 
 LIBPATH     = -L ../lib_so  -lutils \
 			  -L ../p2p_server/lib/arm-hisiv100nptl-linux-gcc -lp2p -lpthread -lm \
-			  -L ../amr-lib/lib -lopencore-amrnb \
-			  -L ../qq_server/lib/ -ltxdevicesdk -lpthread -ldl -lssl -lcrypto -lstdc++ \
+			  -L ../amr-lib/lib  \
+			  -L ../qq_server/lib/  -lpthread -ldl -lssl -lcrypto -lstdc++ \
 			  -L ../../lib -lpthread -lm -lmpi -lVoiceEngine -laec -lresampler -lanr -lisp -lsns_ov9712 \
 			  -L $(PRO_DIR)/IPCAM_LIB/openssl_3518/lib_openssl/lib -lssl -lcrypto \
 			  -L $(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/LibSo -lrtsp -lOnvif

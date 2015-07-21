@@ -1,4 +1,3 @@
-
 #include <assert.h>
 #include <signal.h>
 #include <sys/time.h>
@@ -6,7 +5,6 @@
 #include <sys/socket.h>
 #include <sys/prctl.h>
 #include <ctype.h>
-
 
 #include "utils/HKMonCmdDefine.h"
 #include "utils/HKCmdPacket.h"
@@ -32,7 +30,6 @@
 #include "osd_region.h"
 #include "ipc_vbVideo.h"
 #include "ipc_vbAudio.h"
-//#include "ipc_monc.h"
 #include "gpiodriver.h"
 #include "ipc_email.h"
 #include "ipc_sd_upgrade.h"
@@ -89,28 +86,22 @@ unsigned int g_RUN_grp      = 5;
 unsigned int g_RUN_bit      = 3; //RUN light:5_3.
 #endif
 
-
-/*** Key Reset ***/
+/***************** Key Reset ******************/
 unsigned int g_KeyResetCount = 0;
 unsigned int g_KeyReset_grp = 5;
 unsigned int g_KeyReset_bit = 2; //GPIO:5_2 ==> reset key.
 
 
-/************* SD Card *************/
+/***************** SD Card ******************/
 short g_sdIsOnline = 0;
 bool b_hkSaveSd = false;
 short g_nFtpIsOpen = 0;
 HK_SD_PARAM_ hkSdParam;
 
-/**************audio   alarm*****************/
+/************** audio alarm *****************/
 int audio_alarm = 0;
 
-/***************** WIFI Params *****************/
-#define PATH_PUBLIC      "/mnt/sif/bin"
-#define BSSID_LEN        20
-#define CONF_WIFILIST    "/mnt/sif/wifilist.conf"
-#define IPADDR_APMODE    "192.168.100.2"
-
+/************** Eable Print *****************/
 #define PRINT_ENABLE    1
 #if PRINT_ENABLE
 #define HK_DEBUG_PRT(fmt...)  \
@@ -123,16 +114,12 @@ int audio_alarm = 0;
 	do { ; } while(0)
 #endif
 
-//add by ali
-
 short g_DevPTZ = 0; //0: without PTZ; 1: PTZ device.
 short g_onePtz = 0;
 short g_DevIndex = 0;
+
 int g_startCheckAlarm = 0;
 int g_irOpen = 0;
-
-static char *GetInterIP( char *iter );
-static char sysLocalIP[255]={0};
 
 enum Excode
 {
@@ -148,7 +135,6 @@ enum Excode
 	Excode_Complete_Init,
 };
 
-unsigned int gResetTime = 0;
 static const char* user_ = NULL;
 static const char* passwd_ = "123456";
 static const char* host_ = "www.uipcam.com";
@@ -158,17 +144,23 @@ static pid_t watcher_pid_ = 0;
 #define HK_SYS_TIMEOUT  60*15
 static time_t  gSysTime = 0;
 static short   gbStartTime = 0;
-int g_isWifiInit = 0;
+
 volatile int quit_ = 0;
-static short g_isWanEnable=0;
-static int g_lanPort=0;
-
 extern void OnRestorationParam();
-
 static const char* getEnv(const char* x, const char* defs) { return ((x = getenv(x)) ? x : defs); }
-
 static int hk_WirelessCard_Reset(void);
 
+typedef struct _HKIPAddres
+{
+    short bStatus;
+    char  ipMode[64];//dhcp fixeip
+    char  ip[64];
+    char  netmask[64];
+    char  gateway[64];
+    char  dns1[64];
+    char  dns2[64];
+    char  mac[64];
+}HKIPAddres;
 HKIPAddres eth0Addr;
 
 void OnRestorationParam( )
@@ -249,8 +241,6 @@ static void Daemonize( void )
 	signal(SIGTTOU,SIG_IGN);
 	signal(SIGTTIN,SIG_IGN);
 	signal(SIGTSTP,SIG_IGN); 
-	//signal(SIGPIPE, SIG_IGN);
-	//signal(SIGALRM, SIG_IGN);
 }
 
 static void create_my_detached_thread(int (*func)())
@@ -262,6 +252,7 @@ static void create_my_detached_thread(int (*func)())
         pthread_create(&tid, &a, (void *)func, NULL);
         pthread_attr_destroy(&a);
 }
+
 static void create_detached_thread(void *(*func)(void*), void* arg)
 {
 	pthread_t tid;
@@ -660,65 +651,6 @@ static void exiting_progress()
 	}
 }
 
-
-#define FLASH_BLK "/dev/mtdblock3"
-
-typedef struct {
-	unsigned char eth0_mac[20];
-	unsigned char eth0_ip[20];
-	unsigned char eth0_mask[20];
-	unsigned char eth1_mac[20];
-	unsigned char eth1_ip[20];
-	unsigned char eth1_mask[20];
-	unsigned int  super_key;
-	unsigned int  user_key[10];
-}tMacKey;
-
-const tMacKey* mtd_write_raw(const tMacKey *buf)
-{
-	int     fd;
-	if((fd = open(FLASH_BLK, O_WRONLY)) < 0)
-	{
-		perror("open error");
-		return 0;
-	}
-	if(write(fd, buf, sizeof(*buf)) < sizeof(*buf))
-	{
-		perror("write error");
-		close(fd);
-		return 0;
-	}
-	fsync(fd);
-	close(fd);
-	return buf;
-}
-
-tMacKey* mtd_read_raw(tMacKey* buf)
-{
-	int    fd;
-	memset(buf, 0, sizeof(*buf));
-	if( (fd = open(FLASH_BLK, O_RDONLY)) < 0)
-	{
-		return 0;
-	}
-	if(read(fd, (void*)buf, sizeof(*buf)) < sizeof(*buf))
-	{
-		close(fd);
-		return 0;
-	}
-	close(fd);
-	return buf;
-}
-
-const char* get_if_hwaddr(char mac[18])
-{
-	tMacKey mk;
-	if (mtd_read_raw(&mk))
-		return strcpy(mac, mk.eth0_mac);
-	return NULL;
-}
-
-
 /*******************************************************
  * func: get configuration params & init HKEMAIL_T.
  ******************************************************/
@@ -788,27 +720,6 @@ static int CheckSDStatus()
 	return 0;
 }
 
-/*******************************************
- * func: calculate SD card storage size.
- ******************************************/
-int GetStorageInfo()
-{
-	struct statfs statFS;
-	char *MountPoint = "/mnt/mmc/";
-
-	if (statfs(MountPoint, &statFS) == -1)
-	{  
-		printf("error, statfs failed !\n");
-		return -1;
-	}
-
-	hkSdParam.allSize   = ((statFS.f_blocks/1024)*(statFS.f_bsize/1024));
-	hkSdParam.leftSize  = (statFS.f_bfree/1024)*(statFS.f_bsize/1024); 
-	hkSdParam.haveUse   = hkSdParam.allSize - hkSdParam.leftSize;
-	//HK_DEBUG_PRT("......SD totalsize=%ld...freesize=%ld...usedsize=%ld......\n", hkSdParam.allSize, hkSdParam.leftSize, hkSdParam.haveUse);
-
-	return 0;
-}
 
 
 /*******************************************************************
@@ -1410,8 +1321,6 @@ void hk_set_system_time()
 		ts.tv_nsec = 0;
 		clock_settime(CLOCK_REALTIME, &ts);
 	}
-
-	gResetTime = time(0);
 }
 
 static void CheckNetDevCfg()
@@ -1460,6 +1369,28 @@ static void init_conf()
 	system("touch /mnt/sif/hkpppoe.conf");
 }
 
+
+/*******************************************
+ * func: calculate SD card storage size.
+ ******************************************/
+int GetStorageInfo()
+{
+	struct statfs statFS;
+	char *MountPoint = "/mnt/mmc/";
+
+	if (statfs(MountPoint, &statFS) == -1)
+	{  
+		printf("error, statfs failed !\n");
+		return -1;
+	}
+
+	hkSdParam.allSize   = ((statFS.f_blocks/1024)*(statFS.f_bsize/1024));
+	hkSdParam.leftSize  = (statFS.f_bfree/1024)*(statFS.f_bsize/1024); 
+	hkSdParam.haveUse   = hkSdParam.allSize - hkSdParam.leftSize;
+	//HK_DEBUG_PRT("......SD totalsize=%ld...freesize=%ld...usedsize=%ld......\n", hkSdParam.allSize, hkSdParam.leftSize, hkSdParam.haveUse);
+
+	return 0;
+}
 
 /**********************************************
  * func: check SD insert status;
@@ -1524,7 +1455,7 @@ void HK_Onvif_Init(void)
 	CreateVideoThread(); 
 	CreateSubVideoThread(); 
 
-	//ONVIF协议初始化
+	//ONVIF协??????
 	EnableOnvif = conf_get_int("/mnt/sif/web.conf","bOnvifEnable");
 	if(EnableOnvif)
 	{	    	
@@ -1549,16 +1480,12 @@ void IPC_Video_Audio_Thread_Init(void)
 
 int main(int argc, char* argv[])
 {  
-	unsigned long tmStartDDNS  =  0;
-	unsigned long tmSTopDDNS   =  0;
-	int DdnsTimeInterval = 0;
 	int IRCutBoardType = 0;
-	int threq = 0;
+	char cSensorType[32]={0};
 
-	//hk_load_pppoe();
 	CheckNetDevCfg();
-	init_conf(); //create system configurate file.
-	hk_set_system_time(); //update device time.
+	init_conf(); 
+	hk_set_system_time(); 
 
 	int counter = 0;
 	if (argc >= 3)
@@ -1578,7 +1505,6 @@ int main(int argc, char* argv[])
 	Daemonize();
 	init_sighandler();
 
-	char cSensorType[32]={0};
 	conf_get( HOME_DIR"/sensor.conf", "sensortype", cSensorType, 32 );
 	if (strcmp(cSensorType, "ar0130") == 0)
 	{
@@ -1595,19 +1521,12 @@ int main(int argc, char* argv[])
 		printf("...scc...unknown sensor type, use default: ov9712d lib......\n");  
 		g_HK_SensorType = HK_OV9712; //ov9712d.
 	}
-	g_isWifiInit       = conf_get_int(HOME_DIR"/wifinet.cfg", "isopen");
 	g_HK_VideoResoType = conf_get_int(HOME_DIR"/hkipc.conf", "HKVIDEOTYPE");
 	g_DevIndex         = conf_get_int(HOME_DIR"/hkclient.conf", "IndexID"); 
-	g_isWanEnable      = conf_get_int(HOME_DIR"/hkclient.conf", "WANENABLE");
-	g_lanPort          = conf_get_int(HOME_DIR"/hkclient.conf", "LANPORT");
 	g_irOpen           = conf_get_int(HOME_DIR"/hkipc.conf", "iropen");
 	g_onePtz           = conf_get_int(HOME_DIR"/hkipc.conf", "oneptz");
 	g_DevPTZ           = conf_get_int(HOME_DIR"/ptz.conf", "HKDEVPTZ");
-	DdnsTimeInterval   = conf_get_int("/mnt/sif/web.conf", "DdnsTimeInterval");
 	IRCutBoardType     = conf_get_int("/mnt/sif/hkipc.conf", "IRCutBoardType");
-	HK_DEBUG_PRT("g_isWifiInit:%d, g_HK_SensorType:%d, g_HK_VideoResoType:%d, g_DevIndex:%d, g_isWanEnable:%d, g_lanPort:%d, g_irOpen:%d, g_onePtz:%d, g_DevPTZ:%d, DdnsTimeInterval:%d, IRCutBoardType:%d\n", \
-	g_isWifiInit, g_HK_SensorType, g_HK_VideoResoType, g_DevIndex, g_isWanEnable, \
-	g_lanPort, g_irOpen, g_onePtz, g_DevPTZ, DdnsTimeInterval, IRCutBoardType);
 
 	/**** init video Sub System. ****/
 	if ( HI_SUCCESS != Video_SubSystem_Init() )
@@ -1642,10 +1561,10 @@ int main(int argc, char* argv[])
 	}
 #endif
 
+/*hong wai*/
 #if (DEV_INFRARED)
 	HK_Infrared_Decode();
 #endif
-
 
 #if ENABLE_QQ
 	printf("####################################################\n");
@@ -1663,7 +1582,6 @@ int main(int argc, char* argv[])
 #endif
 
 #if ENABLE_ONVIF
-	IPCAM_StartWebServer();
 	HK_Onvif_Init();
 #endif
 
@@ -1770,7 +1688,7 @@ int main(int argc, char* argv[])
 		if (g_startCheckAlarm <= 4)
 		{
 			//printf("...startcheckalarm=%d.....\n",g_startCheckAlarm);
-			g_startCheckAlarm++;
+			//g_startCheckAlarm++;
 		}
 	}
 

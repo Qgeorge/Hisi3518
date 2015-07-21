@@ -22,7 +22,7 @@
 #include "mpi_aenc.h"
 #include "mpi_adec.h"
 #include "sample_comm.h"
-#include "scc_video.h"
+//#include "scc_video.h"
 
 #include "gpiodriver.h"
 #include "ipc_hk.h"
@@ -431,6 +431,7 @@ static int scc_AudioOpen(const char *name, const char *args, int *threadreq)
 }
 
 extern VideoDataRecord *slaveAudioDataP;
+
 static int Open(const char *name, const char *args, int *threadreq) 
 {
 	HK_DEBUG_PRT("...name:%s, ..\n", name);
@@ -543,7 +544,6 @@ static int Read(int obj, char* buf, unsigned int bufsiz, long* flags)
 	*flags |= (nLevel<<8);
 	return iLen;
 }
-
 
 static int Getms()
 {
@@ -1109,4 +1109,3 @@ void audio_RSLoadObjects(RegisterFunctType reg)
 	(*reg)(&vbAudio.super);
 	assert((void*)&vbAudio.super == (void*)&vbAudio);
 }
-

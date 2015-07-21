@@ -405,7 +405,7 @@ INT32 NetReadCallback(PEER_INFO* pPeerInfo, CHAR* _u8Buf, INT32 length)
 INT32 p2p_server_f()
 {
 	
-        char argv[4][100] ={"4","server","115.28.168.140","Demo"};
+        char argv[4][100] ={"4","server","115.28.168.140","HM-003"};
 	int argc = atoi(argv[0]);
 	CHAR cServerID[MAX_ID_LEN+1] = {0};
 	CHAR cRole[16] = {0};

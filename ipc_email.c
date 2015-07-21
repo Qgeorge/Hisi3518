@@ -53,21 +53,6 @@ extern int imgSize[MAXIMGNUM];
 extern char g_JpegBuffer[MAXIMGNUM][ALLIMGBUF];
 extern HKEMAIL_T hk_email;
 
-/*** Tonly for get Email Infomation ***/
-
-/*
-typedef struct emailInfo
-{
-    char mailserver[64];
-    char mailfrom[64];
-    char mailto[64];
-    char username[64];
-    char passwd[64];
-    int  port;
-
-}HKEMAIL_T;
-*/
-
 static char* GetTimeCharRand(char* buf)
 {
     time_t timep;

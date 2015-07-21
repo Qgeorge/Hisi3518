@@ -71,7 +71,7 @@
 
 #define HK_WIFI_FIND_LEN 100 
 #define SSID_LEN         37
-
+/*
 typedef struct hk_remote_wffi_info
 {
     char nettype;	//0:Infra; 1:Adhoc	
@@ -86,7 +86,8 @@ typedef struct hk_remote_wifi_find
 {                                           
     int count;                              
     REMOTE_INFO wifi_info[HK_WIFI_FIND_LEN];
-}REMOTE_WIFI_FIND;     
+}REMOTE_WIFI_FIND;
+*/
 /****************** WIFI Params End *****************/
 
 
@@ -106,7 +107,6 @@ typedef struct hk_sd_param
     unsigned long haveUse;
     unsigned long leftSize;
 }HK_SD_PARAM_;
-
 
 enum HKV_SingleProperty
 {
@@ -220,7 +220,7 @@ typedef unsigned char byte;
 //#define MAX_VIDEODATA_SLAVETREAM 200*1024 //1024*1024
 #define MAX_VIDEODATA_HOSTSTREAM 200*1024 //200K
 #define MAX_VIDEODATA_SLAVETREAM 200*1024 //200K
-
+/*
 typedef struct _HKIPAddres
 {
     short bStatus;
@@ -232,7 +232,7 @@ typedef struct _HKIPAddres
     char  dns2[64];
     char  mac[64];
 }HKIPAddres;
-
+*/
 typedef struct hk_wifi_cfg
 {
     char apmode[64];
@@ -281,15 +281,15 @@ int GetStorageInfo();
 
 void wrap_sys_restart();
 
-void be_present(int x);
+//void be_present(int x);
 
 /*
  *  enable wifi search, parse wifi node, 
  *  and save the scan result into wifi list file.
  */
 //static int ScanWifiInfo( REMOTE_WIFI_FIND *wifi )
-int ScanWifiInfo(REMOTE_WIFI_FIND *pWifi);
-int Sort_WifiInfo(REMOTE_WIFI_FIND *pWifiInfo);
+//int ScanWifiInfo(REMOTE_WIFI_FIND *pWifi);
+//int Sort_WifiInfo(REMOTE_WIFI_FIND *pWifiInfo);
 
 /*******************************************************************
  * func: check ftp configuration & enable FTP bakup for SD data.
@@ -306,7 +306,7 @@ HI_S32 Video_DisableVencChn(VENC_CHN venchn);
  *************************************************************************/
 HI_S32 Video_EnableVencChn(VENC_CHN venchn);
 
-void be_present2(int iLen, char *cWifiInfo, char *cSend, unsigned int ulParam );
+//void be_present2(int iLen, char *cWifiInfo, char *cSend, unsigned int ulParam );
 
 #ifndef bool
 #define bool int

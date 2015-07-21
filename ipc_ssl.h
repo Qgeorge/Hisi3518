@@ -1,61 +1,15 @@
 #ifndef __IPC_SSL_H__
 #define __IPC_SSL_H__
 
-#include <assert.h>
-#include <sys/ioctl.h>
-
-#include <openssl/ssl.h>
-#include <openssl/rand.h>
-#include <openssl/err.h>
-#include <openssl/rand.h>
-#include <openssl/md5.h>
-#include <openssl/evp.h>
-#include <openssl/hmac.h>
-
 #define INVALID_SOCKET  (unsigned int)(~0)
 #define SOCKET_ERROR -1
 #define TLSPORT   587
 #define SSLPORT   465
 
-typedef unsigned short WORD;
-typedef int SOCKET;
-typedef struct sockaddr_in SOCKADDR_IN;
-typedef struct hostent* LPHOSTENT;
-typedef struct servent* LPSERVENT;
-typedef struct in_addr* LPIN_ADDR;
-typedef struct sockaddr* LPSOCKADDR;
-
 #define MSG_SIZE_IN_MB 5
 #define BUFFER_SIZE 10240
 #define TIME_IN_SEC  3*60
 #define BOUNDARY_TEXT "__MESSAGE__ID__54yg6f6h6y456345"
-
-extern HKEMAIL_T hk_email;
-extern char g_JpegBuffer[MAXIMGNUM][ALLIMGBUF];
-extern int imgSize[MAXIMGNUM];
-
-static unsigned char base64_chars[] ={"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"};
-
-
-int gmail_socket;
-int m_type;
-extern HKEMAIL_T hk_email;
-//extern char g_JpegBuffer[MAXIMGNUM][ALLIMGBUF];
-//extern int imgSize[MAXIMGNUM];
-SSL_CTX* m_ctx;
-SSL* m_ssl;
-int m_bConnected ;
-char SendBuf[BUFFER_SIZE];
-char RecvBuf[2048];
-
-enum //secure type.
-{
-    NO_SECURITY,
-    USE_TLS,
-    USE_SSL,
-    DO_NOT_SET
-};
-
 
 enum
 {
@@ -141,10 +95,15 @@ typedef struct tagCommand_Entry
     int error;
 }__attribute__((packed)) Command_Entry;
 
+
+SSL_CTX* m_ctx;
+SSL* m_ssl;
+
+static unsigned char base64_chars[] ={"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"};
+
 /*************************************************************************
  * func: sending email in ssl security.
  ************************************************************************/
 int send_ssl_email(char *smtp_server, char *passwd, char *send_from, const char *send_to,
                    char *smtp_user, char *body, int iType, int mport, int secType);
-
 #endif
