@@ -6,9 +6,9 @@
 #include <sys/prctl.h>
 #include <ctype.h>
 
-#include "utils/HKMonCmdDefine.h"
-#include "utils/HKCmdPacket.h"
-#include "utils/HKUtilAPI.h"
+//#include "utils/HKMonCmdDefine.h"
+//#include "utils/HKCmdPacket.h"
+//#include "utils/HKUtilAPI.h"
 #include "sys.h"
 
 #include "ipc_hk.h"
@@ -1561,7 +1561,7 @@ int main(int argc, char* argv[])
 	}
 #endif
 
-/*hong wai*/
+/*hong wai 红外*/
 #if (DEV_INFRARED)
 	HK_Infrared_Decode();
 #endif
