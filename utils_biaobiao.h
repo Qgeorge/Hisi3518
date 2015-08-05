@@ -1,5 +1,4 @@
 /*
-一些获取配置类的工具函数
 */
 #ifndef __UTILS_BIAOBIAO_H__
 #define __UTILS_BIAOBIAO_H__

@@ -6,9 +6,9 @@
 #include <sys/prctl.h>
 #include <ctype.h>
 
-//#include "utils/HKMonCmdDefine.h"
-//#include "utils/HKCmdPacket.h"
-//#include "utils/HKUtilAPI.h"
+#include "utils/HKMonCmdDefine.h"
+#include "utils/HKCmdPacket.h"
+#include "utils/HKUtilAPI.h"
 #include "sys.h"
 
 #include "ipc_hk.h"
@@ -40,6 +40,7 @@
 #if ENABLE_P2P
 #include "P2Pserver.h"
 #include "BaseType.h"
+#include "recordSDK.h"
 extern INT32 p2p_server_f(); 
 #endif
 
@@ -1579,6 +1580,11 @@ int main(int argc, char* argv[])
 /*add by biaobiao*/
 #if ENABLE_P2P
 	IPC_Video_Audio_Thread_Init();
+#endif
+
+/*add by biaobiao*/
+#if ENABLE_P2P
+	RECORDSDK_Start();
 #endif
 
 #if ENABLE_ONVIF

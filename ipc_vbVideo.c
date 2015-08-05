@@ -896,7 +896,7 @@ HI_S32 VISP_SetAE(int nExposureType, int nExposureValue, int nDigitalGain)
 
 	stAEAttrEx.u32SystemGainMax = 1024*15;//1024*20;
 	stAEAttrEx.u32ExpTimeMax= 1644;
-	//stAEAttrEx.u8ExpCompensation = 200;  //add 背光补偿量
+	//stAEAttrEx.u8ExpCompensation = 200;  //add ????????
 	//stAEAttrEx.enAEMode = AE_MODE_LOW_NOISE;
 	stAEAttrEx.enAEMode = AE_MODE_FRAME_RATE;
 	stAEAttrEx.u8ExpStep = 80;
@@ -952,7 +952,7 @@ HI_S32 VISP_SetAE(int nAEMode)
 
 	stAEAttrEx.u32SystemGainMax = 1024*15;//1024*20;
 	stAEAttrEx.u32ExpTimeMax= 1644;
-	//stAEAttrEx.u8ExpCompensation = 200;  //add 背光补偿量
+	//stAEAttrEx.u8ExpCompensation = 200;  //add ????????
 	stAEAttrEx.u8ExpStep = 80;
 	stAEAttrEx.enFrameEndUpdateMode = 2;
 

@@ -40,7 +40,7 @@
 #include "IPCAM_Export.h"
 #endif
 extern int PCM2AMR(char *pStream, int len, char *outbuf);
-//extern LPIPCAM_AUDIOBUFFER g_AudioBuf;
+
 //zqjun.
 /************************ AUDIO params **************************/
 
@@ -54,63 +54,30 @@ extern int PCM2AMR(char *pStream, int len, char *outbuf);
 		printf("s32ret=%#x,fuc:%s,line:%d\n", s32ret, __FUNCTION__, __LINE__);\
 	}while(0)
 
-#define SET_MICBIAS_LEVEL 0x35
-
-//#define SIO0_WORK_MODE    AIO_MODE_I2S_MASTER
-#define SIO0_WORK_MODE      AIO_MODE_I2S_SLAVE
-#define SIO1_WORK_MODE  	AIO_MODE_I2S_SLAVE
-#define AUDIO_PAYLOAD_TYPE  PT_G711A /*encoder type, PT_ADPCMA,PT_G711A,PT_AAC...*/
-//#define AUDIO_PAYLOAD_TYPE  PT_ADPCMA /*encoder type, PT_ADPCMA,PT_G711A,PT_AAC...*/
-
-#define AUDIO_ADPCM_TYPE ADPCM_TYPE_IMA /* ADPCM_TYPE_IMA, ADPCM_TYPE_DVI4*/
-#define AUDIO_AAC_TYPE AAC_TYPE_AACLC   /* AAC_TYPE_AACLC, AAC_TYPE_EAAC, AAC_TYPE_EAACPLUS*/
-#define G726_BPS MEDIA_G726_16K         /* MEDIA_G726_16K, MEDIA_G726_24K ... */
-#define AMR_FORMAT AMR_FORMAT_MMS       /* AMR_FORMAT_MMS, AMR_FORMAT_IF1, AMR_FORMAT_IF2*/
-#define AMR_MODE AMR_MODE_MR122         /* AMR_MODE_MR122, AMR_MODE_MR102 ... */
-#define AMR_DTX 1
 
 #define AUDIO_POINT_NUM 320             /* point num of one frame 80,160,320,480*/
-//#define AUDIO_POINT_NUM 160             /* point num of one frame 80,160,320,480*/
 
 static PAYLOAD_TYPE_E gs_enPayloadType = PT_LPCM; //PT_G711A; PT_G711U; PT_ADPCMA;
 static PAYLOAD_TYPE_E gs_decPayloadType = PT_G711A; //PT_G711U; PT_ADPCMA;
-//static HI_BOOL gs_bMicIn = HI_TRUE; //MICIN (error).
+
 static HI_BOOL gs_bMicIn = HI_FALSE;  //LINEIN.
+
 static HI_BOOL gs_bAiAnr = HI_FALSE;
-//static HI_BOOL gs_bAiAnr = HI_TRUE; //HI_FALSE;
+
+
 static HI_BOOL gs_bAioReSample = HI_FALSE;
 static HI_BOOL gs_bUserGetMode = HI_FALSE; //HI_TRUE;
+
 static AUDIO_RESAMPLE_ATTR_S *gs_pstAiReSmpAttr = NULL;
 static AUDIO_RESAMPLE_ATTR_S *gs_pstAoReSmpAttr = NULL;
-extern HK_SD_PARAM_ hkSdParam;
 
-HI_U32 g_AiChnCnt = 2;   //audio input channel number.
-AUDIO_DEV g_AiDevId = 0; //audio input device (only 0).
-AUDIO_DEV g_AiChn = 0;   //audio input channel.
-AENC_CHN g_AencChn = 0;  //audio encode channel.
-ADEC_CHN g_AdecChn = 0;  //audio decode channel.
-AUDIO_DEV g_AoDevId = 0; //audio output device.
-AO_CHN g_AoChn = 0;      //audio output channel.
+//extern HK_SD_PARAM_ hkSdParam;
 
-HI_S32 g_AiFd = 0;       //audio input file descriptor.
+
 HI_S32 g_AencFd = 0;     //audio encode file descriptor.
 
 FILE *pfd_AEnc = NULL;   //audio encode file descriptor.
-FILE *pfd_ADec = NULL;   //audio decode file descriptor.
 
-static char g_testAudioBuf[320]={0};
-/*
-   typedef struct
-   {
-   HI_BOOL bStart;
-   HI_BOOL bUseAEC;
-   HI_S32 s32AiDev;
-   HI_S32 s32AiChn;
-   HI_S32 s32AencChn; 
-   FILE *pfd;
-   pthread_t stAencPid;
-   } SAMPLE_AENC_S;
- */
 
 typedef struct tagSAMPLE_AENC_S
 {
@@ -122,45 +89,6 @@ typedef struct tagSAMPLE_AENC_S
 	HI_BOOL bSendAdChn;
 } SAMPLE_AENC_S;
 
-SAMPLE_AENC_S *pstSampleAenc = NULL;
-static SAMPLE_AENC_S s_stSampleAenc[8];
-static SAMPLE_AENC_S gs_stSampleAenc[AENC_MAX_CHN_NUM];
-SAMPLE_AENC_S *pstAenc = &gs_stSampleAenc[0];
-
-/************************* end **********************************/
-
-
-#define CFG_FILE "/mnt/sif/cfg.ini"
-
-#define CHANNEL_NUM 0
-#define CALLER_ID 0
-
-typedef struct Date_Head
-{
-	char 	codec_type;
-	char 	operation_type;
-	short 	talker_id;
-	unsigned int  	timestamp;
-}Date_Head;
-
-Date_Head bufhead;
-
-//#define G729_len 20
-//#define buf_count 20
-//static char audio_buf[buf_count][4*G729_len+1];
-//static int count_in=0;
-//static int count_out=0;
-
-#define PUTS(...) HKLOG(L_DBG, __VA_ARGS__)
-
-typedef struct IM_Input_Object 
-{
-	RSObject super;
-	RSObjectIRQEvent irq;
-
-} IM_Input_Object;
-extern IM_Input_Object vbAudio;
-IM_Input_Object vbAudio;
 
 int CreateAudioThread(void);
 
@@ -303,7 +231,6 @@ HI_S32 SAMPLE_Audio_AiAenc()
 	printf("------------------> g_AencFd = %d <-----------------\n", g_AencFd);
 
 #if AUDIO_WRITE
-	//pfd_AEnc = SAMPLE_AUDIO_OpenAencFile(g_AencChn, gs_enPayloadType);
 	pfd_AEnc = SAMPLE_AUDIO_OpenAencFile(s_AencChn, gs_enPayloadType);
 	if (!pfd_AEnc)
 	{
@@ -383,17 +310,6 @@ HI_S32 SAMPLE_Audio_AdecAo()
 		return HI_FAILURE;
 	}
 	printf("bind adec:%d to ao(%d,%d) ok \n", s_AdecChn, s_AoDev, s_AoChn);
-
-	//#if AUDIO_WRITE
-	//    //pfd_ADec = SAMPLE_AUDIO_OpenAdecFile(g_AdecChn, gs_enPayloadType);
-	//    pfd_ADec = SAMPLE_AUDIO_OpenAdecFile(s_AdecChn, gs_enPayloadType);
-	//    if (!pfd_ADec)
-	//    {
-	//        SAMPLE_DBG(HI_FAILURE);
-	//        return HI_FAILURE;
-	//    }
-	//    HK_DEBUG_PRT("open adec file ok!\n");
-	//#endif
 
 	return HI_SUCCESS;          
 }
@@ -560,7 +476,6 @@ AUDIO_FRAME_INFO_S stAudioFrameInfo;
 AO_CHN_STATE_S pstStatus;
 
 static char aryVoiceBuf[1280] = {0};
-//static char aryVoiceBuf[4000] = {0};
 static char aryHeard[4] = {0,1,160,0}; //hisi audio header.
 
 /***********************************************************
@@ -608,34 +523,12 @@ static int Write(int obj, const char* buf, unsigned int bufsiz, long flags)
 		//HK_DEBUG_PRT("...bufsiz=%d, iCont=%d, p[0]=%d, p[1]=%d, p[2]=%d, p[3]=%d...\n", bufsiz, iCont, p[0], p[1],p[2],p[3] );
 
 		p += iLen;
-
-		//s32ret = HI_MPI_ADEC_SendStream(g_AdecChn, &stAudioStream, HI_TRUE);
-		//s32ret = HI_MPI_ADEC_SendStream(g_AdecChn, &stAudioStream, HI_FALSE);
 		s32ret = HI_MPI_ADEC_SendStream(s_AdecChn, &stAudioStream, HI_FALSE);
 		if (s32ret)
 		{
 			printf("error: HI_MPI_ADEC_SendStream failed with:%#x\n", s32ret);
 			return 0;
 		}
-
-		//#if AUDIO_WRITE
-		//    //int AoFd = HI_MPI_AO_GetFd(g_AoDevId, g_AoChn);
-		//    int AoFd = HI_MPI_AO_GetFd(s_AoDev, s_AoChn);
-		//    HK_DEBUG_PRT("...... AoFd = %d ......\n");
-		//#endif
-
-#if 0
-		//s32ret = HI_MPI_AO_QueryChnStat(g_AoDevId, g_AoChn, &pstStatus);
-		s32ret = HI_MPI_AO_QueryChnStat(s_AoDev, s_AoChn, &pstStatus);
-		if (s32ret)
-		{
-			printf("error: HI_MPI_AO_QueryChnStat failed with:%#x\n", s32ret);
-		}
-		else
-			HK_DEBUG_PRT("-----> pstStatus: u32ChnTotalNum=%d, u32ChnFreeNum=%d, u32ChnBusyNum=%d <------\n", pstStatus.u32ChnTotalNum, pstStatus.u32ChnFreeNum, pstStatus.u32ChnBusyNum);
-#endif
-
-		//HI_MPI_ADEC_ClearChnBuf(g_AdecChn);
 	}
 	return bufsiz;
 }
@@ -671,59 +564,6 @@ int IPCAM_AudioDecode(char *pAudioBuf,unsigned int len)
 
 	return 1;
 }
-
-//static int Write2dev(char* buf, unsigned int bufsiz,int loop)
-//{
-//	int buf_len, wr_len;
-//	int left;
-//	int bytes=0;
-//	char *write_buf;
-//	static int atm = -1;
-//	int btm;
-//			
-//	buf_len = bufsiz / loop;
-//
-//	write_buf = malloc(buf_len + 8);
-//	if(write_buf == NULL)
-//	{
-//		PUTS("vbAudio Write can not malloc buf\n");
-//		return -1;
-//	}
-//	
-//	while (loop-- > 0)
-//	{
-//		btm = Getms() - atm;
-//		if((btm < 19) && (btm >= 0))
-//		{
-//			usleep((19-btm)*1000);
-//			PUTS("...Write Audio time is %ld %ld...\n",Getms(),atm);
-//		}
-//		memset(write_buf,0,buf_len + 8);
-//			
-//		bufhead.codec_type = 0;
-//		bufhead.operation_type = 0;
-//		bufhead.talker_id = 0;
-//		bufhead.timestamp = HKMSGetTick();
-//	
-//		memcpy(write_buf,&bufhead,8);
-//		memcpy(&write_buf[8],&buf[bytes],buf_len);
-//
-//		wr_len = ApiAudioWriteVoiceFrame(CHANNEL_NUM, write_buf, buf_len + 8);
-//		atm = Getms();
-//		if (wr_len <= 0) 
-//		{
-//			PUTS("Audio, Write error\n");
-//			free(write_buf);
-//			return -1;
-//		}
-//	
-//		bytes += wr_len - 8;
-//	
-//	}
-//	free(write_buf);
-//	PUTS("...Write Audio bytes is %d....\n",bytes);
-//	return bytes;
-//}
 
 int g_Audio_Thread=0;
 void AudioThread(void)
@@ -825,13 +665,6 @@ void AudioThread(void)
 
 				HI_MPI_AENC_ReleaseStream(s_AencChn, &stStream);
 #if ENABLE_ONVIF
-				//pAudioBuf->dwFameSize = stStream.u32Len;
-				//pAudioBuf->dwFrameNumber= stStream.u32Seq;
-				//pAudioBuf->bzEncType	= STREAM_ENCTYPE_AUDIO_G711UL;
-				//pAudioBuf->dwSec		= stStream.u64TimeStamp/1000;//TimeoutVal.tv_sec;
-				//pAudioBuf->dwUsec		= (stStream.u64TimeStamp%1000)*1000;//TimeoutVal.tv_usec;	
-				//memcpy(pAudioBuf->AudioBuffer, stStream.pStream, stStream.u32Len);
-				//IPCAM_PutStreamData(VIDEO_LOCAL_RECORD, 0, VOIDEO_MEDIATYPE_AUDIO, pAudioBuf);
 
 				/**transfered to g711u for NVR**/
 				G711U_Len = PCM2G711u(stStream.pStream, pAudioBuf->AudioBuffer, stStream.u32Len, 0);
@@ -841,30 +674,6 @@ void AudioThread(void)
 				pAudioBuf->dwSec		= stStream.u64TimeStamp/1000;//TimeoutVal.tv_sec;
 				pAudioBuf->dwUsec		= (stStream.u64TimeStamp%1000)*1000;//TimeoutVal.tv_usec;	
 				IPCAM_PutStreamData(VIDEO_LOCAL_RECORD, 0, VOIDEO_MEDIATYPE_AUDIO, pAudioBuf);
-#endif
-#if 0
-				/**transfered to g711a for PC client**/
-				G711A_Len = PCM2G711a(stStream.pStream, g711a_buf, stStream.u32Len, 0);
-				buf_len = G711A_Len;
-				//printf("-----> G711U_Len:%d, G711A_Len:%d <------\n", G711U_Len, G711A_Len);
-				if ( buf_len > 8 )
-				{
-					memcpy(buf+bytes, g711a_buf, buf_len ); 
-				}
-
-				HI_MPI_AENC_ReleaseStream(s_AencChn, &stStream);
-
-				if ( buf_len <= 8 ) 
-				{
-					usleep(1000);
-					loop++;
-					continue;
-				}
-
-				bytes += buf_len;
-				left -= buf_len;
-				if (left < 0)
-					break;
 #endif
 			}    
 		}
@@ -899,108 +708,13 @@ int CreateAudioThread(void)
 		ret = pthread_create(&id, NULL, (void *)AudioThread, NULL);
 		if (ret != 0)
 		{
-			PUTS("CreateAudioThread error!\n");
+			printf("CreateAudioThread error!\n");
 			return -1;
 		}
 		//pthread_detach(id);
 	}
 	return 1;
 }
-
-static void SetIRQEventCallback(RSObjectIRQEvent irq) 
-{
-	irq = irq;
-}
-
-enum _HK_CONFIG_TYPE
-{
-	STR_STR = 0,
-	STR_INT,
-	STR_DOUBLE,
-};
-
-static int GetConfigStrValue(char* buff, void* pValue, int nType) 
-{
-	if ((buff = strstr(buff, "=")) == NULL)
-		return -1;
-	buff += 1;
-	switch (nType) 
-	{
-		case STR_INT:
-			*(int*) pValue = atoi(buff);
-			break;
-		case STR_DOUBLE:
-			*(double*) pValue = atof(buff);
-			break;
-		case STR_STR:
-			strcpy((char*) pValue, buff);
-			break;
-		default:
-			return -1;
-	}
-	return 0;
-}
-
-static int _xGetConfigValue(char* szPath, char* szRoot, char* szName, void* pValue,
-		int nType)
-{
-	FILE* pfile;
-	int nFlag = 0;
-	char buff[1024], *p;
-
-	if ( (pfile = fopen(szPath, "r")) == NULL)
-	{
-		PUTS("fopen %s: error\n", szPath);;
-		return -1;
-	}
-
-	while (fgets(buff, sizeof(buff), pfile))
-	{
-		// fprintf(stderr, buff);
-		if (buff[0] == '#') 
-		{
-			continue;
-		}
-		if ( (p = strchr(buff, '\r')))
-			*p = '\0';
-		if ( (p = strstr(buff, "\n")))
-			*p = '\0';
-		if (nFlag == 0 && buff[0] != '[') 
-		{
-			continue;
-		} 
-		else if (nFlag == 0 && buff[0] == '[') 
-		{
-			if (strncmp(buff+1, szRoot, strlen(szRoot)) == 0)
-				nFlag = 1;
-		} else if (nFlag == 1 && buff[0] == '[') 
-		{
-			break;
-		} 
-		else 
-		{
-			if (strstr(buff, szName) == &buff[0]) 
-			{
-				GetConfigStrValue(buff, pValue, nType);
-				fclose(pfile);
-				return 0;
-			}
-		}
-	}
-	fclose(pfile);
-	return -1;
-}
-
-static const char* Retrieve() 
-{
-	return "audio.vbAudio.Out,audio.vbAudio.In";
-
-	//static char buf[128];
-	//_xGetConfigValue( CFG_FILE, "system", "DEVID", buf, STR_STR);
-
-	//return buf;
-}
-
 
 /********************************************
   step 6: exit the process
@@ -1063,49 +777,4 @@ static void Close(int obj)
 	{
 		exit(1);
 	}
-}
-
-
-static const char* GetObjectInfo() 
-{
-	return "Type=audio.vbAudio;Outpin=G723,G723_24,G726_24;";
-}
-
-static int DoEvent(const char* devname, int obj, const char* ev) 
-{
-
-	HKFrameHead *pFrameHead;
-	char *cValue;
-	int iValue;
-
-	pFrameHead = CreateFrameA(ev, strlen(ev) );
-	iValue = GetParamUN(pFrameHead, "Volume");
-	SetAudioAttValue("Volume", iValue);
-
-	iValue = GetParamUN(pFrameHead, "direction");
-	SetAudioAttValue("direction", iValue);
-
-	iValue = GetParamUN(pFrameHead, "Volume");
-	SetAudioAttValue("Volume", iValue);
-
-	return 0;
-}
-
-void audio_RSLoadObjects(RegisterFunctType reg) 
-{
-	vbAudio.super.SetIRQEventCallback = SetIRQEventCallback;
-	vbAudio.super.Compare       = NULL;
-	vbAudio.super.Retrieve      = &Retrieve;
-	vbAudio.super.GetObjectInfo = &GetObjectInfo;
-	vbAudio.super.Open          = &Open;
-	vbAudio.super.Read          = &Read;
-	vbAudio.super.Write         = &Write;
-	vbAudio.super.DoEvent       = &DoEvent;
-	vbAudio.super.Close         = &Close;
-
-	vbAudio.super.Convert = NULL;
-	vbAudio.irq = NULL;
-
-	(*reg)(&vbAudio.super);
-	assert((void*)&vbAudio.super == (void*)&vbAudio);
 }
