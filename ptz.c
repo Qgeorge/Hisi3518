@@ -1314,7 +1314,6 @@ static void * HK_Ptz()
     printf("========> PTZ thread start <========\n");
 
     PTZ_Rotate_Init();
-    PTZ_DEBUG_PRT("s_RotateDir_LR:%d, s_RotateDir_UD:%d, g_RotateSpeed:%d, s_LR_AutoRotateCount:%d, s_UD_AutoRotateCount:%d, s_UDStepLength:%d, s_LRStepLength:%d\n", s_RotateDir_LR, s_RotateDir_UD, g_RotateSpeed, s_LR_AutoRotateCount, s_UD_AutoRotateCount, s_UDStepLength, s_LRStepLength);
  
     /**rotate to preset position on system restart**/
     g_PtzPresetPos = 1; //preset1.
@@ -1323,7 +1322,6 @@ static void * HK_Ptz()
     /**rotate control by client**/
 	s_RotateDir_LR = CLOCKWISE;
 	s_RotateDir_UD = CLOCKWISE;
-    PTZ_DEBUG_PRT("......camera auto rotate done, s_RotateRunning:%d, s_RotateDir_LR:%d, s_RotateDir_UD:%d, g_RotateSpeed:%d, s_LR_AutoRotateCount:%d, s_UD_AutoRotateCount:%d, s_UDStepLength:%d, s_LRStepLength:%d, g_PtzRotateEnable:%d, g_PtzRotateType:%d, g_PtzStepType:%d, g_PtzPresetPos:%d, s_LR_LimitFlag:%d, s_UD_LimitFlag:%d, g_LR_StepCount:%d, g_UD_StepCount:%d\n", s_RotateRunning, s_RotateDir_LR, s_RotateDir_UD, g_RotateSpeed, s_LR_AutoRotateCount, s_UD_AutoRotateCount, s_UDStepLength, s_LRStepLength, g_PtzRotateEnable, g_PtzRotateType, g_PtzStepType, g_PtzPresetPos, s_LR_LimitFlag, s_UD_LimitFlag, g_LR_StepCount, g_UD_StepCount);
 
     while (1)
     {	
@@ -1384,7 +1382,6 @@ static void * HK_Ptz()
                         }
                     #else
                         Get_PTZ_PresetParams(g_PtzPresetPos, &s_stPtzPreset[g_PtzPresetPos].presetX, &s_stPtzPreset[g_PtzPresetPos].presetY);
-                        PTZ_DEBUG_PRT("s_stPtzPreset[%d].presetX:%d, s_stPtzPreset[%d].presetY:%d, g_LR_StepCount:%d, g_UD_StepCount:%d\n", g_PtzPresetPos, s_stPtzPreset[g_PtzPresetPos].presetX, g_PtzPresetPos, s_stPtzPreset[g_PtzPresetPos].presetY, g_LR_StepCount, g_UD_StepCount);
                     #endif
 
                         if (s_stPtzPreset[g_PtzPresetPos].presetX > g_LR_StepCount)
@@ -1404,7 +1401,6 @@ static void * HK_Ptz()
                         {				
                             s_RotateDir_UD = CLOCKWISE;	//change dir: D-->U, g_UD_StepCount--.
                         }
-                        //PTZ_DEBUG_PRT("g_PtzPresetPos:%d, s_RotateDir_LR:%d, s_RotateDir_UD:%d, presetX:%d, presetY:%d, g_LR_StepCount:%d,  g_UD_StepCount:%d\n", g_PtzPresetPos, s_RotateDir_LR, s_RotateDir_UD, s_stPtzPreset[g_PtzPresetPos].presetX, s_stPtzPreset[g_PtzPresetPos].presetY, g_LR_StepCount,  g_UD_StepCount);
                     #if 0
                         PTZ_RotateToPresetPos(s_RotateDir_LR, s_RotateDir_UD, g_PtzPresetPos, g_RotateSpeed);
                     #else

@@ -22,7 +22,7 @@
 #define UPGRADE_TYPE_ROOTFS "ROOTFS"
 #define UPGRADE_IMG_KERNEL  "uImage"
 #define UPGRADE_IMG_ROOTFS  "rootfs_64k.jffs2"
-
+#define CONF_UPGRADE_FILE	"/mnt/mmc/SDUpgrade/app.img"
 
 typedef struct conf_info
 {
@@ -306,11 +306,76 @@ static int Check_Upgrade_VersionAndImage()
 }
 
 
+static int Check_Upgrade_Image()
+{
+	char tmpBuf[64] = {0};
+	FILE *fp;
+	char cmd[64] = {0};
+	int ret;
+    	int NewImgVersion = 0; //new image version.
+    	char CurImgVersion[8] = {0};
+	#define UP_DEBUG 1
+	#if UP_DEBUG
+	printf("**********************check**************************************\n");
+	#endif
+	system("pkill crond");
+	system("pkill udhcpc");
+	system("pkill globefish");
+	
+	if (0 == access(CONF_SD_UPGRADE, F_OK | R_OK | W_OK))
+	{
+		memset(cmd, '\0', sizeof(cmd));
+		memset(tmpBuf, '\0', sizeof(tmpBuf));
+		sprintf(cmd, "sed -n '1p' %s", CONF_SD_UPGRADE);
+		if (NULL == (fp = popen(cmd, "r")))
+		{
+			printf("popen failed with:%d, %s\n", errno, strerror(errno));
+			return -1;
+		}
+
+		fgets(tmpBuf, sizeof(tmpBuf), fp);
+		sscanf(tmpBuf, "upgrade_version=%d", &NewImgVersion);
+
+		printf("[%s, %d] NewImgVersion:%d\n", __func__, __LINE__, NewImgVersion);
+		if (fp)  pclose(fp);
+		fp = NULL;
+		Get_Conf_Info(CONF_HKCLIENT, "VERSION", CurImgVersion);
+		if (atoi(CurImgVersion) >= NewImgVersion) //there is no need to upgrade.
+		{
+			printf("Note: there is no need to upgrade your firmware !\n");
+			return 0;
+		}
+		else
+		{
+			memset(cmd, '\0', sizeof(cmd));
+			sprintf(cmd, "dd if=%s of=/dev/mtdblock3", CONF_UPGRADE_FILE);
+			ret = system(cmd);
+			#if UP_DEBUG
+			printf("**********************update success**************************************\n");
+			#endif	
+			if(ret == -1)
+			{
+				printf("upgrade img fail\n");
+			}
+			ret = system(cmd);
+			#if UP_DEBUG
+			printf("**********************update success**************************************\n");
+			system("reboot -f");
+			#endif	
+			if(ret == -1)
+			{
+				printf("upgrade img fail\n");
+			}
+		}
+	}
+}
 /****************************************************
  * func: check upgrade file on sd card.
  ****************************************************/
 int HK_Check_SD_Upgrade(int SdOnline)
 {
+    Check_Upgrade_Image();
+    #if 0
     int ret = 0;
 
     if (0 == SdOnline)
@@ -348,5 +413,6 @@ int HK_Check_SD_Upgrade(int SdOnline)
     }
 
     return 0;
+    #endif
 }
 

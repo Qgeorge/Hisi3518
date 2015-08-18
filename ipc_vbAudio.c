@@ -22,7 +22,6 @@
 #include "mpi_aenc.h"
 #include "mpi_adec.h"
 #include "sample_comm.h"
-//#include "scc_video.h"
 
 #include "gpiodriver.h"
 #include "ipc_hk.h"
@@ -58,7 +57,7 @@ extern int PCM2AMR(char *pStream, int len, char *outbuf);
 #define AUDIO_POINT_NUM 320             /* point num of one frame 80,160,320,480*/
 
 static PAYLOAD_TYPE_E gs_enPayloadType = PT_LPCM; //PT_G711A; PT_G711U; PT_ADPCMA;
-static PAYLOAD_TYPE_E gs_decPayloadType = PT_G711A; //PT_G711U; PT_ADPCMA;
+static PAYLOAD_TYPE_E gs_decPayloadType = PT_LPCM; //PT_G711U; PT_ADPCMA;
 
 static HI_BOOL gs_bMicIn = HI_FALSE;  //LINEIN.
 
@@ -70,8 +69,6 @@ static HI_BOOL gs_bUserGetMode = HI_FALSE; //HI_TRUE;
 
 static AUDIO_RESAMPLE_ATTR_S *gs_pstAiReSmpAttr = NULL;
 static AUDIO_RESAMPLE_ATTR_S *gs_pstAoReSmpAttr = NULL;
-
-//extern HK_SD_PARAM_ hkSdParam;
 
 
 HI_S32 g_AencFd = 0;     //audio encode file descriptor.
@@ -318,7 +315,7 @@ HI_S32 SAMPLE_Audio_AdecAo()
 static int inOpen = 0;
 static int nopen = 0;  //client listening index.
 
-static int scc_AudioOpen(const char *name, const char *args, int *threadreq) 
+int scc_AudioOpen(const char *name, const char *args, int *threadreq) 
 {
 	HK_DEBUG_PRT("...name:%s, .\n", name);
 	if (strcmp(name, "audio.vbAudio.Out") == 0)
@@ -478,6 +475,20 @@ AO_CHN_STATE_S pstStatus;
 static char aryVoiceBuf[1280] = {0};
 static char aryHeard[4] = {0,1,160,0}; //hisi audio header.
 
+int P2P_Write(const char* buf, unsigned int bufsiz, long flags)
+{
+	HI_U8 s32ret;
+	static ADEC_CHN  s_AdecChn = 0;
+	stAudioStream.pStream = buf;
+	stAudioStream.u32Len = bufsiz; 
+
+	s32ret = HI_MPI_ADEC_SendStream(s_AdecChn, &stAudioStream, HI_FALSE);
+	if (s32ret)
+	{
+		printf("error: HI_MPI_ADEC_SendStream failed with:%#x\n", s32ret);
+		return 0;
+	}
+}
 /***********************************************************
  * func: receive audio from client,then decode and paly.
  **********************************************************/
@@ -519,8 +530,6 @@ static int Write(int obj, const char* buf, unsigned int bufsiz, long flags)
 		HI_U8 s32ret;
 		stAudioStream.pStream = p;
 		stAudioStream.u32Len = iLen; 
-
-		//HK_DEBUG_PRT("...bufsiz=%d, iCont=%d, p[0]=%d, p[1]=%d, p[2]=%d, p[3]=%d...\n", bufsiz, iCont, p[0], p[1],p[2],p[3] );
 
 		p += iLen;
 		s32ret = HI_MPI_ADEC_SendStream(s_AdecChn, &stAudioStream, HI_FALSE);
@@ -677,17 +686,6 @@ void AudioThread(void)
 #endif
 			}    
 		}
-#if 0
-		if ((nopen != 0) && (bytes > 0))
-		{
-			sccPushStream( 1234, PSTREAUDIO, buf, bytes, 0, 0, 10 );
-		}
-
-		if ((bytes > 0) && (1 == hkSdParam.audio))
-		{			
-			sccPushTfData( PSTREAMTWO, buf, bytes, 1, 0, 0 );
-		}
-#endif
 		usleep(1000*100);
 	}
 
@@ -719,31 +717,13 @@ int CreateAudioThread(void)
 /********************************************
   step 6: exit the process
  ********************************************/
-static void Close(int obj) 
+void Audio_Close(int obj) 
 {
 	if( obj == 1)
 	{
 		if( nopen == 0 )
 			return;
 		nopen = 0;
-
-		/*
-		   static AUDIO_DEV s_AiDev = 0;
-		   static AI_CHN    s_AiChn = 0;
-		   static AENC_CHN  s_AencChn = 0;
-		   int i = 0;
-		   HI_S32 s32AencChnCnt = 1;
-
-		   for (i = 0; i < s32AencChnCnt; i++)
-		   {
-		//SAMPLE_COMM_AUDIO_AencUnbindAi(g_AiDevId, g_AiChn, g_AencChn);
-		SAMPLE_COMM_AUDIO_AencUnbindAi(s_AiDev, s_AiChn, s_AencChn);
-		}
-
-		SAMPLE_COMM_AUDIO_StopAenc(s32AencChnCnt);
-		//SAMPLE_COMM_AUDIO_StopAi(g_AiDevId, g_AiChnCnt, gs_bAiAnr, HI_FALSE);
-		SAMPLE_COMM_AUDIO_StopAi(s_AiDev, g_AiChnCnt, gs_bAiAnr, HI_FALSE);
-		 */
 		printf("[%s, %d]......audio out closed !\n", __func__, __LINE__);
 	}
 	else if ( obj == 2 )
@@ -765,9 +745,6 @@ static void Close(int obj)
 		static ADEC_CHN  s_AdecChn = 0;
 		inOpen = 0;
 
-		//SAMPLE_COMM_AUDIO_AoUnbindAdec(g_AoDevId, g_AoChn, g_AdecChn);
-		//SAMPLE_COMM_AUDIO_StopAdec(g_AdecChn);
-		//SAMPLE_COMM_AUDIO_StopAo(g_AoDevId, g_AoChn, gs_bAioReSample);
 		SAMPLE_COMM_AUDIO_AoUnbindAdec(s_AoDev, s_AoChn, s_AdecChn);
 		SAMPLE_COMM_AUDIO_StopAdec(s_AdecChn);
 		SAMPLE_COMM_AUDIO_StopAo(s_AoDev, s_AoChn, gs_bAioReSample);

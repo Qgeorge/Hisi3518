@@ -1483,6 +1483,7 @@ int main(int argc, char* argv[])
 {  
 	int IRCutBoardType = 0;
 	char cSensorType[32]={0};
+	hk_load_sd(); //mount sd card.
 
 	CheckNetDevCfg();
 	init_conf(); 
@@ -1527,7 +1528,7 @@ int main(int argc, char* argv[])
 	g_irOpen           = conf_get_int(HOME_DIR"/hkipc.conf", "iropen");
 	g_onePtz           = conf_get_int(HOME_DIR"/hkipc.conf", "oneptz");
 	g_DevPTZ           = conf_get_int(HOME_DIR"/ptz.conf", "HKDEVPTZ");
-	IRCutBoardType     = conf_get_int("/mnt/sif/hkipc.conf", "IRCutBoardType");
+	IRCutBoardType     = conf_get_int(HOME_DIR"/hkipc.conf", "IRCutBoardType");
 
 	/**** init video Sub System. ****/
 	if ( HI_SUCCESS != Video_SubSystem_Init() )
@@ -1552,7 +1553,6 @@ int main(int argc, char* argv[])
 	GetAlarmEmailInfo(); //get email configuration info
 	GetSdAlarmParam(); //get sd card configuration info.
 
-	hk_load_sd(); //mount sd card.
 
 #if (HK_PLATFORM_HI3518E)
 	/*****neck Cruise*****/
@@ -1616,13 +1616,13 @@ int main(int argc, char* argv[])
 	unsigned int valSetRun = 0;
 	for ( ; !quit_; counter++)
 	{
-		if (1 != HI3518_WDTFeed())
-		{
-			printf("Feed Dog Failed!\n");
-		}
+	//	if (1 != HI3518_WDTFeed())
+	//	{
+	//		printf("Feed Dog Failed!\n");
+	//	}
 		ISP_Ctrl_Sharpness();
 
-		if (b_hkSaveSd)
+		if ( b_hkSaveSd )
 		{
 			printf("[%s, %d] scc stop sd....\n", __func__, __LINE__);
 			b_OpenSd = true;
@@ -1647,7 +1647,7 @@ int main(int argc, char* argv[])
 		}
 
 #if (!DEV_KELIV)
-		if (m433enable == 0)
+		if ( m433enable == 0 )
 		{
 			CheckIOAlarm();//check AlarmIn & AlarmOut.
 		}
@@ -1696,6 +1696,20 @@ int main(int argc, char* argv[])
 			//printf("...startcheckalarm=%d.....\n",g_startCheckAlarm);
 			//g_startCheckAlarm++;
 		}
+		//#ifdef ENABLE_P2P
+		#if 0
+		RECORDSDK_CMD_PARAM cmdParam;
+		char buffer[100];
+		int ret;
+		cmdParam.nChannel = 0;
+		cmdParam.nOpt = RSDKCMD_SEND_FRAME;
+		cmdParam.param.frameBuffer = buffer;
+		ret = RECORDSDK_Operate(&cmdParam, NULL, NULL);
+		if(ret == -1)
+		{
+			printf("RECORDSDK_Operate ERROR\n");
+		}
+		#endif
 	}
 
 	sd_record_stop();

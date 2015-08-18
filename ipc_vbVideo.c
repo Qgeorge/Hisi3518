@@ -29,6 +29,14 @@
 #include "ipc_vbAudio.h"
 //#include "scc_video.h"
 #include "utils_biaobiao.h"
+//add by biaobiao
+#define RECORD 1
+ 
+#if RECORD
+#include "recordStruct.h"
+#include "recordSDK.h"
+#endif
+
 
 #if ENABLE_ONVIF
 #include "IPCAM_Export.h"
@@ -36,140 +44,89 @@
 
 #define MPEG4           1
 #define M_JPEG          2
-//#define YUV420        3
-//#define MPEG4_JPEG_SYNC 3
+
 #define H263            4
 #define H264            4
 #define H264_TF         6
 #define NULL 0
 
-VENC_CHN_ATTR_S g_stVencChnAttrMain;
-VENC_CHN_ATTR_S g_stVencChnAttrSlave;
-static int g_Chan = -1;
-int g_sccDevCode = -1;
 
-extern VENC_CHN_ATTR_S stVencChnAttr;
-extern VENC_ATTR_H264_S stH264Attr;
-extern VENC_ATTR_H264_CBR_S stH264Cbr;
-extern VENC_ATTR_H264_VBR_S stH264Vbr;
-
-extern VideoDataRecord *hostVideoDataP;//master starem //*mVideoDataBuffer;
-extern VideoDataRecord *slaveVideoDataP; //slave starem
-
+/*报警检查*/
 extern int g_startCheckAlarm;
-extern int g_IRCutCurState;
+//extern int g_IRCutCurState;
 
 /********************* IO alarm & email ***********************/
 #define PATH_SNAP "/mnt/mmc/snapshot"
 HI_S32 g_vencSnapFd = -1; //picture snap fd.
 short g_SavePic = 0;
-static const HI_U8 g_SOI[2] = {0xFF, 0xD8};//start of image.
-static const HI_U8 g_EOI[2] = {0xFF, 0xD9};//end of image.
-int imgSize[MAXIMGNUM] = {0};
-char g_JpegBuffer[MAXIMGNUM][ALLIMGBUF] = {0}; //picture buffer.
 bool get_pic_flag = false; //enable snap pictures.
 static int g_SnapCnt = 0; //picture snap counter.
-static int g_OpenAlarmEmail = 0; //enable send alarm email.
 static bool g_bIsOpenPict = false;
+
+
+int imgSize[MAXIMGNUM] = {0};
+//截图的存储空间
+char g_JpegBuffer[MAXIMGNUM][ALLIMGBUF] = {0}; //picture buffer.
+
+//enable picture snap for sending alarm email.
+static int g_OpenAlarmEmail = 0; //enable send alarm email.
+
 HKEMAIL_T hk_email; //email info struct.
+
+/*移动侦测灵敏度*/
 int g_MotionDetectSensitivity = 0;
 
-bool g_bPhCifOrD1=false;
-bool g_bCifOrD1 = false;
-extern short g_onePtz;
-extern int  g_DevVer;
-extern short g_DevIndex;
+/*主码流分辨率索引*/
+enumVGAMode g_iCifOrD1;
 
+/*次码流分辨率索引*/
+enumVGAMode g_sunCifOrD1;
 
-int g_iCifOrD1=0;  //main stream resolution index.
-//static short g_sunCifOrD1=0;
-int g_sunCifOrD1=0; //sub stream resolution index.
-
-//HI_S32 SODTIME(HI_VOID);
-int g_iMonitorStatus=0; 
-
-
-HI_S32 s32VencFd=0;
-HI_S32 s32JPEGFd=0;
-HI_S32 s32TFH264Fd=0;
-HI_U32 u32FrameIdx = 0;
-
-
-VENC_CHN_STAT_S stStat;
-VENC_CHN_STAT_S stJpegStat;
-VENC_CHN_STAT_S stTFStat;
-
-
-VENC_CHN_ATTR_S stAttr[5];
+/*编码器属性*/
 VENC_ATTR_H264_S stH264Attr;
-VENC_ATTR_H264_S stCifH264Attr;
-VENC_ATTR_H264_S st1CifH264Attr;
-VENC_ATTR_H264_S stSunCifH264Attr;
-VENC_ATTR_H264_S stTfCifH264Attr;
-VENC_ATTR_JPEG_S stJpegAttr;
-
-
-extern volatile int quit_;
-
-static RSObject video_inst_;
-static RSObjectIRQEvent ev_irq_;
-//static pthread_rwlock_t rwlock_;
 
 extern short g_sdIsOnline;
+
 extern HK_SD_PARAM_ hkSdParam;
 
 /********* Open & Read video stream parameters ***********/
 
+/*通道索引*/
 HI_S32 g_s32venchn = 0; //main stream channel.
-VENC_CHN VeChn = 2;   //Venc Channel.
-VENC_CHN VeSunChn = 1; //sub Venc Channel.
-VENC_CHN VeTfChn = 4;
-VENC_CHN g_Venc_Chn_M_Cur = 0;  //current main stream VENC_CHN index.
-VENC_CHN g_Venc_Chn_S_Cur = 0;  //current sub stream VENC_CHN index.
+VENC_CHN g_s32sunvenchn = 1; //sub Venc Channel.
 
+VENC_CHN g_Venc_Chn_M_Cur = 0;  //current main stream VENC_CHN index.
+VENC_CHN g_Venc_Chn_S_Cur = 1;  //current sub stream VENC_CHN index.
+
+
+/*打开的标记*/
 int g_isH264Open = 0;   //main stream open flag.
 int g_isMjpegOpen = 0;  //sub stream open flag.
 int g_isTFOpen = 0;
-enum { videobuflen = 200*1024 }; //global stream buffer size.
 
-static char g_ReadVideobuf[videobuflen] = {0};
+/*读取码流相关*/
 static int g_ReadFlag_H264 = 1;   //main read flag.
-static int g_ReadTimes = 3;
-static int g_ReadSizes = 0;
-
-static char g_MjpegVideobuf[videobuflen] = {0};
 static int g_ReadFlag_Mjpeg = 1;  //sub read flag.
-static int g_ReadTimesMjpeg = 3;
-static int g_ReadSizesMjpeg = 0;
-
+static int g_ReadTimes = 3;
 
 /***************** Venc Fd ******************/
 HI_S32 g_VencFd_Main = 0;    //current main stream fd.
 HI_S32 g_VencFd_Sub = 0;     //current sub stream fd.
-//HI_S32 g_Resol_Cli_Main = 0; //main stream resolution index for client preview.
-//HI_S32 g_Resol_Cli_Sub = 0;  //sub stream resolution index for client preview.
 
-struct timeval TimeoutVal;
-HI_S32 g_maxFd = 0;
-HI_S32 s32ChnTotal = 1;
 
-bool g_bAlarmThread = false;
-
-static unsigned short garyGurps[6]={6,4,4,4,3,3};
-static unsigned short garyPicLevel[6]={5,4,3,2,1,0};
-
+/*设置当前帧率*/
 unsigned int g_CurStreamFrameRate = 20;
 
+/*图像质量相关*/
 #define VBR_MAXQP_33    33
 #define VBR_MAXQP_38    38
-
 unsigned int g_VbrMaxQq = VBR_MAXQP_33;
 unsigned int g_VbrMaxQq_Sub = VBR_MAXQP_33;
+
+/*码率计算相关*/
 static  unsigned int g_MainRataTime = 0;
 static  unsigned int g_MainVideoSize = 0;
 
-int COMM_Get_VencStream_FD(int s32venchn);
-void AlarmVideoRecord(bool bAlarm);
 
 #if ENABLE_P2P
 void OnCmdPtz( int ev )
@@ -211,6 +168,9 @@ void OnCmdPtz( int ev )
 }
 #endif
 
+/*
+获取主码流的码率
+*/
 static  unsigned short GetMainVideoRate( unsigned int nSize )
 {   
 	unsigned short nRate = 0;
@@ -327,7 +287,9 @@ int HISI_SetFrameRate(int iChnNo, int nFrameRate)
 	return HI_SUCCESS;
 }
 
-
+/*
+ *设置码率
+*/
 int HISI_SetBitRate(int iChnNo, int iBitRate)
 {
 	HI_S32 s32Ret;
@@ -851,66 +813,9 @@ int  HISI_SetAntiFog()
 	return TRUE;
 }
 
+#endif
 
 //////////Isp param init//////////////////////////////////////////////////////
-#if 0
-HI_S32 VISP_SetAE(int nExposureType, int nExposureValue, int nDigitalGain)
-{
-	int nRet = -1;
-	ISP_OP_TYPE_E enExpType = OP_TYPE_AUTO;
-	enExpType = (nExposureType == 0) ? OP_TYPE_AUTO : OP_TYPE_MANUAL;
-
-	nRet = HI_MPI_ISP_SetExposureType(enExpType);
-	if (nRet != HI_SUCCESS)
-	{
-		SAMPLE_PRT("HI_MPI_ISP_SetExposureType failed with %#x!\n", nRet);
-		return HI_FAILURE;
-	}
-
-	if (enExpType == OP_TYPE_MANUAL)
-	{
-		ISP_ME_ATTR_S stMEAttr;        
-		nRet = HI_MPI_ISP_GetMEAttr(&stMEAttr);
-		if (nRet != HI_SUCCESS)
-		{
-			SAMPLE_PRT("HI_MPI_ISP_GetMEAttr failed with %#x!\n", nRet);
-			return HI_FAILURE;
-		}
-
-		stMEAttr.u32ExpLine = nExposureValue;        
-		nRet = HI_MPI_ISP_SetMEAttr(&stMEAttr);
-		if (nRet != HI_SUCCESS)
-		{
-			SAMPLE_PRT("HI_MPI_ISP_SetMEAttr failed with %#x!\n", nRet);
-			return HI_FAILURE;
-		}
-	}
-
-	ISP_AE_ATTR_EX_S stAEAttrEx = {0};
-	nRet = HI_MPI_ISP_GetAEAttrEx(&stAEAttrEx);
-	if (nRet != HI_SUCCESS)
-	{
-		SAMPLE_PRT("HI_MPI_ISP_GetAEAttrEx failed with %#x!\n", nRet);
-		return HI_FAILURE;
-	}
-
-	stAEAttrEx.u32SystemGainMax = 1024*15;//1024*20;
-	stAEAttrEx.u32ExpTimeMax= 1644;
-	//stAEAttrEx.u8ExpCompensation = 200;  //add ????????
-	//stAEAttrEx.enAEMode = AE_MODE_LOW_NOISE;
-	stAEAttrEx.enAEMode = AE_MODE_FRAME_RATE;
-	stAEAttrEx.u8ExpStep = 80;
-	stAEAttrEx.enFrameEndUpdateMode = 2;
-	HI_MPI_ISP_SetAEAttrEx(&stAEAttrEx);
-	if (nRet != HI_SUCCESS)
-	{
-		SAMPLE_PRT("HI_MPI_ISP_SetAEAttrEx failed with %#x!\n", nRet);
-		return HI_FAILURE;
-	}    
-
-	return HI_SUCCESS;
-}
-#else
 HI_S32 VISP_SetAE(int nAEMode)
 {
 	int nRet = -1;
@@ -975,7 +880,7 @@ HI_S32 VISP_SetAE(int nAEMode)
 
 	return HI_SUCCESS;
 }
-#endif
+
 
 
 HI_S32 VISP_SetAI(HI_S32 bIRISEnable)
@@ -1370,68 +1275,8 @@ int ISP_Params_Init()
 	return TRUE;
 }
 
-#if 0
-int HISI_InitConfig()
-{
-	HISI_SetSharpNess(40);	
-	HISI_SetAntiFog();
 
-	return TRUE;
-}
-
-int HISI_GetMainChanNum()
-{
-	return g_s32venchn;
-}
-
-int HISI_GetSubChanNum()
-{
-	return VeSunChn;
-}
-
-int HISI_GetM_CurChanNum()
-{
-	return g_Venc_Chn_M_Cur;
-}
-
-int HISI_SetM_CurChanNum(int chanNum)
-{
-	g_Venc_Chn_M_Cur = chanNum;
-	return g_Venc_Chn_M_Cur;
-}
-
-int HISI_GetM_VencFd()
-{
-	return g_VencFd_Main;
-}
-
-int HISI_SetM_VencFd(int fd)
-{
-	g_VencFd_Main = fd;
-	return g_VencFd_Main;
-}
-///////////////////////////////////////////////////
-
-static unsigned short Rate2Gurps( unsigned short nRate )
-{
-	unsigned short nInde = nRate/100;
-	if( nInde>4 ) nInde = 4;
-	return garyGurps[nInde]; 
-}
-
-static unsigned short Rate2PicLevel( unsigned short nRate )
-{
-	unsigned short nInde = nRate/200;
-	if( nInde>5 ) nInde = 5;
-	return garyPicLevel[nInde]; 
-}
-
-#endif
-#endif
 struct HKVProperty video_properties_;
-
-
-
 
 #define ALARMTIME 6000*3
 static int Getms()
@@ -1451,7 +1296,7 @@ static void raise_alarm(const char *res, int vfmt)
 	int len = sprintf(cont, HK_KEY_FROM"=%s;", getenv("USER"));
 	unsigned int nLevel = 1 << 8; //(vfmt==MPEG4 ? 2 : 3) << 8;
 	sprintf(prop, HK_KEY_EVENT"="HK_EVENT_ALARM";"HK_KEY_SUBRESOURCE"=%s;FD=%d;Flag=%u;", res, vfmt, nLevel);
-	ev_irq_( &video_inst_, prop, cont, len );
+	//ev_irq_( &video_inst_, prop, cont, len );
 
 	//hk_IOAlarm();
 }
@@ -1869,7 +1714,6 @@ int sccOnAlarm( int pDvrInst, int nAlarmType, int  nReserved )
 	if( nAlarmType == 100 )
 	{
 		printf("scc Dev Code.=%d.............\n", nReserved);
-		g_sccDevCode = nReserved;
 		return;
 	}
 	if ( nAlarmType != 0 )//move
@@ -1880,9 +1724,6 @@ int sccOnAlarm( int pDvrInst, int nAlarmType, int  nReserved )
 	}
 }
 
-
-//int sd_record_start();
-//void sd_record_stop();
 
 #define HK_MHDR_VERSION 2
 /*
@@ -2097,42 +1938,6 @@ int MainStreamConfigurate(void)
 		return -1;
 	}
 	//printf("..............22222222222................\n");
-
-#if 0 //no need to set PAL & NTSC.
-	/**Frequency**/
-	VIDEO_NORM_E s_enNorm;
-	if (0 == video_properties_.vv[HKV_FrequencyLevel]) //PAL(50Hz)
-	{
-		s_enNorm = VIDEO_ENCODING_MODE_PAL;
-		s32ret = HISI_SetLocalDisplay(s_enNorm);
-		if (s32ret)
-		{
-			HK_DEBUG_PRT("set video encoding mode failed !\n"); 
-			return -1;
-		}
-	}
-	else if (1 == video_properties_.vv[HKV_FrequencyLevel]) //NTSC(60Hz)
-	{
-		s_enNorm = VIDEO_ENCODING_MODE_NTSC;
-		s32ret = HISI_SetLocalDisplay(s_enNorm);
-		if (s32ret)
-		{
-			HK_DEBUG_PRT("set video encoding mode failed !\n"); 
-			return -1;
-		}
-	}
-	else
-	{
-		s_enNorm = VIDEO_ENCODING_MODE_AUTO; //AUTO
-		s32ret = HISI_SetLocalDisplay(s_enNorm);
-		if (s32ret)
-		{
-			HK_DEBUG_PRT("set video encoding mode failed !\n"); 
-			return -1;
-		}
-	}
-#endif
-
 	return 0;
 }
 
@@ -2152,7 +1957,7 @@ int SubStreamConfigurate(void)
 	int s_Contrast      = conf_get_int(HOME_DIR"/subipc.conf", "con");
 	int s_Brightness    = conf_get_int(HOME_DIR"/subipc.conf", "bri");
 	int s_Sharpness     = conf_get_int(HOME_DIR"/subipc.conf", "sha");
-	HK_DEBUG_PRT("...VeSunChn:%d, s_EncResolution:%d, s_BitRate:%d, s_FrameRate:%d, s_Smooth:%d, s_Saturation:%d, s_Contrast:%d, s_Brightness:%d, s_Sharpness:%d...\n", VeSunChn, s_EncResolution, s_BitRate, s_FrameRate, s_Smooth, s_Saturation, s_Contrast, s_Brightness, s_Sharpness);
+	HK_DEBUG_PRT("...g_s32sunvenchn:%d, s_EncResolution:%d, s_BitRate:%d, s_FrameRate:%d, s_Smooth:%d, s_Saturation:%d, s_Contrast:%d, s_Brightness:%d, s_Sharpness:%d...\n", g_s32sunvenchn, s_EncResolution, s_BitRate, s_FrameRate, s_Smooth, s_Saturation, s_Contrast, s_Brightness, s_Sharpness);
 
 	switch (s_EncResolution)
 	{
@@ -2167,7 +1972,7 @@ int SubStreamConfigurate(void)
 			break;
 	}
 
-	ret = HISI_SetBitRate(VeSunChn, s_BitRate);
+	ret = HISI_SetBitRate(g_s32sunvenchn, s_BitRate);
 	if (ret)
 	{
 		printf("[%s, %d] set bitrate failed !\n", __func__, __LINE__);
@@ -2178,7 +1983,7 @@ int SubStreamConfigurate(void)
 	{
 		s_FrameRate = 15;
 	}
-	ret = HISI_SetFrameRate(VeSunChn, s_FrameRate);
+	ret = HISI_SetFrameRate(g_s32sunvenchn, s_FrameRate);
 	if (ret)
 	{
 		printf("[%s, %d] set frame rate failed !\n", __func__, __LINE__);
@@ -2303,7 +2108,7 @@ int COMM_Get_VencStream_FD(int s32venchn)
 	int i = 0;
 	HI_S32 s32Ret = HI_FAILURE;
 	HI_S32 s_vencFd = HI_FAILURE; //venc fd.
-	VENC_CHN_ATTR_S stVencChnAttr;
+	//VENC_CHN_ATTR_S stVencChnAttr;
 
 	/*********************************************
 	  step 1:  check & prepare save-file & venc-fd
@@ -2313,7 +2118,7 @@ int COMM_Get_VencStream_FD(int s32venchn)
 		SAMPLE_PRT("Venc Channel is out of range !\n");
 		return HI_FAILURE;
 	}
-
+	#if 0
 	/***** check if the channel created *****/
 	//s32Ret = HI_MPI_VENC_GetChnAttr( s32venchn, &stVencChnAttr );
 	if (g_Chan == 0)
@@ -2334,7 +2139,7 @@ int COMM_Get_VencStream_FD(int s32venchn)
 		SAMPLE_PRT("HI_MPI_VENC_GetChnAttr chn[%d] failed with %#x!\n", s32venchn, s32Ret);
 		return HI_FAILURE;
 	}
-
+	#endif
 	/* Get Venc Fd. */
 	s_vencFd = HI_MPI_VENC_GetFd( s32venchn );
 	if ( s_vencFd < 0 )
@@ -2347,8 +2152,6 @@ int COMM_Get_VencStream_FD(int s32venchn)
 }
 
 
-int s_fd7725 = -1;
-int open_7725();
 /**************************************************************
  * configurate sub stream params for phone client settings.
  **************************************************************/
@@ -2386,7 +2189,7 @@ static int sccOpen(const char* name, const char* args, int* threq)
 			usleep(1000);
 			Video_EnableVencChn( g_s32venchn );
 
-			g_Chan = 0;
+			//g_Chan = 0;
 			g_VencFd_Main = COMM_Get_VencStream_FD( g_s32venchn );
 			if ( HI_FAILURE == g_VencFd_Main )
 			{
@@ -2415,12 +2218,12 @@ static int sccOpen(const char* name, const char* args, int* threq)
 			else
 				printf("[%s, %d] configurate sub stream success !\n", __func__, __LINE__); 
 
-			Video_DisableVencChn( VeSunChn );
+			Video_DisableVencChn( g_s32sunvenchn );
 			usleep(1000);
-			Video_EnableVencChn( VeSunChn );
+			Video_EnableVencChn( g_s32sunvenchn );
 
-			g_Chan = 1;
-			g_VencFd_Sub = COMM_Get_VencStream_FD( VeSunChn ); //get sub stream fd.
+			//g_Chan = 1;
+			g_VencFd_Sub = COMM_Get_VencStream_FD( g_s32sunvenchn ); //get sub stream fd.
 			if (HI_FAILURE == g_VencFd_Sub)
 			{
 				printf("Get Venc Stream FD failed: %s, %d\n", __func__, __LINE__); 
@@ -2430,7 +2233,7 @@ static int sccOpen(const char* name, const char* args, int* threq)
 			//g_isMjpegOpen    = 1;
 			g_ReadFlag_Mjpeg = 1;
 			*threq           = 1;
-			g_Venc_Chn_S_Cur = VeSunChn; //current VENC channel.
+			g_Venc_Chn_S_Cur = g_s32sunvenchn; //current VENC channel.
 			HK_DEBUG_PRT("Open:%s, g_sunCifOrD1:%d, g_Venc_Chn_S_Cur:%d, g_VencFd_Sub:%d.\n", name, g_sunCifOrD1, g_Venc_Chn_S_Cur, g_VencFd_Sub);
 		}
 		return M_JPEG;
@@ -2439,7 +2242,6 @@ static int sccOpen(const char* name, const char* args, int* threq)
 }
 
 
-int g_Video_Thread=0;
 
 #if ENABLE_QQ
 static int s_gopIndex = 0;
@@ -2451,6 +2253,7 @@ unsigned long _GetTickCount()
 }
 #endif
 
+int g_Video_Thread=0;
 int sccGetVideoThread()
 {
 	int threq = 0;
@@ -2466,6 +2269,10 @@ int sccGetVideoThread()
 	fd_set read_fds;
 	VENC_STREAM_S stStream;    //captured stream data struct.	
 	VENC_CHN_STAT_S stStat;
+#ifdef RECORD
+	RECORDSDK_CMD_PARAM cmdParam;
+#endif
+
 
 	s_vencFd = g_VencFd_Main;
 	s_maxFd = s_vencFd + 1;    //for select.
@@ -2570,6 +2377,17 @@ int sccGetVideoThread()
 #if ENABLE_QQ
 				tx_set_video_data(videobuf, iLen, iFrame, _GetTickCount(), s_gopIndex, s_nFrameIndex, s_dwTotalFrameIndex++, 40);
 #endif
+
+#if RECORD
+				cmdParam.nChannel = s_vencChn;
+				cmdParam.nOpt = RSDKCMD_SEND_FRAME;
+				cmdParam.param.frameBuffer = NULL;
+				if (1)	// Change the code by lvjh, 2009-05-27
+				{
+					//cmdParam.param.frameBuffer = g_av_buffer[nChannel][0];
+					RECORDSDK_Operate(&cmdParam, NULL, NULL);
+				}
+#endif 
 
 				s32Ret = HI_MPI_VENC_ReleaseStream(s_vencChn, &stStream);
 				if (HI_SUCCESS != s32Ret)
@@ -2784,13 +2602,13 @@ int sccGetSubVideoThread()
 						int nRate = GetMainVideoRate( iLen );
 						if ( (nRate > 40) && (g_VbrMaxQq_Sub == VBR_MAXQP_33) )
 						{
-							Set_VBR_Image_QP( VeSunChn, VBR_MAXQP_38 );
+							Set_VBR_Image_QP( g_s32sunvenchn, VBR_MAXQP_38 );
 							g_VbrMaxQq_Sub = VBR_MAXQP_38;
 							printf( "fxb ------------- sub change, nRate: %d, g_VbrMaxQq: %d \n", nRate, g_VbrMaxQq );
 						}
 						else if ( (nRate < 10) && (nRate > 0) && (g_VbrMaxQq_Sub == VBR_MAXQP_38) )
 						{
-							Set_VBR_Image_QP( VeSunChn, VBR_MAXQP_33 );
+							Set_VBR_Image_QP( g_s32sunvenchn, VBR_MAXQP_33 );
 							g_VbrMaxQq_Sub = VBR_MAXQP_33;
 							printf( "fxb --------------- sub low, nRate: %d, g_VbrMaxQq:%d \n", nRate, g_VbrMaxQq );
 						}
@@ -2904,3 +2722,45 @@ static void GetInitAlarmParam(HKFrameHead *pFrameHead)
 		}
 	}
 }
+
+
+
+
+void video_RSLoadObjects() 
+{
+    /**video resolution**/
+    g_iCifOrD1   = conf_get_int(HOME_DIR"/hkipc.conf", "CifOrD1");//main stream.
+    g_sunCifOrD1 = conf_get_int(HOME_DIR"/subipc.conf", "enc");   //sub stream.
+
+    HK_DEBUG_PRT("......hk platform: hi3518E, g_iCifOrD1:%d, g_sunCifOrD1:%d......\n", g_iCifOrD1, g_sunCifOrD1);
+    /**main stream**/
+    if ((0 == g_iCifOrD1) || (g_iCifOrD1 > 5))
+    {
+        g_s32venchn = 0; //chn: 0.
+        g_iCifOrD1 = ENUM_720P; //9: 1280*720.
+    }
+    
+    /**sub stream**/
+    //if (g_sunCifOrD1 >= 4) //5 ==> VGA:640*480.
+    {
+        g_s32sunvenchn = 1;   //Venc Channel 1: VGA (640*480)
+        g_sunCifOrD1 = ENUM_VGA ; //5
+    }
+
+    /**config main stream params**/
+    if ( MainStreamConfigurate() )
+        printf("[%s, %d] configurate main stream failed !\n", __func__, __LINE__); 
+    else
+        printf("[%s, %d] configurate main stream success !\n", __func__, __LINE__); 
+    
+    /**motion detect**/
+    //HK_DEBUG_PRT("motionsensitivity: %d, g_bAlarmThread: %d\n", video_properties_.vv[HKV_MotionSensitivity], g_bAlarmThread);
+    g_MotionDetectSensitivity = video_properties_.vv[HKV_MotionSensitivity];
+	
+    if ( VDA_MotionDetect_Start() ) //enable motion detect.
+    {
+        HK_DEBUG_PRT("start motion detect failed !\n"); 
+    }
+
+}
+

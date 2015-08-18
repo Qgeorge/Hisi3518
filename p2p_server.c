@@ -1,4 +1,6 @@
 #include "P2Pserver.h"
+#include "hi_comm_aio.h"
+#include "hi_type.h"
 
 #define  MAX_SIZE  (512*1024)
 #define ENABLE_P2P
@@ -153,51 +155,6 @@ loop:
 }
 
 
-
-/*
-   接受对讲数据的线程
-   当收到客户端对讲请求的时候创建
-   注意对P2PNetServerGetTalkData返回值的判断
-   P2PNetServerGetTalkData 返回值小于0时说明连接由于某种原因已经断开
- */
-#ifdef _WIN32
-DWORD WINAPI TskRcvTalkData(LPVOID pArgs) 
-#else
-void *TskRcvTalkData(void *pArgs) 
-#endif
-{
-	CHAR cTalkData[32*1024];
-	INT32 nLen = 0;
-	INT32 nRet =0;
-	dbgmsg("##########TskRcvTalkData############\n");  
-	while(g_iTalkStat)
-	{   
-#if 1
-		nRet = P2PNetServerGetTalkData(g_TalkPeer,cTalkData,&nLen,1);
-		if(0==nRet)
-		{
-			dbgmsg("Rcv talk data  :%d \n",nLen);  
-		}
-		//对讲连接中断清楚对讲信息
-		else if(-1==nRet)
-		{
-			g_iTalkStat = 0;
-			g_TalkPeer = NULL;
-		}
-#else
-		XSleep(1, 0);
-#endif
-	}
-	//退出对讲的一些操作比如释放资源等可以在此处处理
-#ifdef _WIN32
-	return 0;
-#else
-	return NULL;
-#endif
-}
-
-
-
 //收到客户端回调登陆时的回调函数
 static INT32 NetLogin(PEER_INFO* pPeerInfo,CHAR* _u8Buf,INT32 _iBufLength)
 {
@@ -287,6 +244,57 @@ static INT32 NetPtzControl(void * pThis,CHAR* _u8Buf,INT32 _iBufLength)
 	dbgmsg("##########  rcv %s  message \n", __FUNCTION__);
 	OnCmdPtz(pReq->mPtzData.iAction);
 	return 0;
+}
+
+/*
+   接受对讲数据的线程
+   当收到客户端对讲请求的时候创建
+   注意对P2PNetServerGetTalkData返回值的判断
+   P2PNetServerGetTalkData 返回值小于0时说明连接由于某种原因已经断开
+ */
+#ifdef _WIN32
+DWORD WINAPI TskRcvTalkData(LPVOID pArgs) 
+#else
+void *TskRcvTalkData(void *pArgs) 
+#endif
+{
+	CHAR cTalkData[32*1024];
+	INT32 nLen = 0;
+	INT32 nRet =0;
+	AUDIO_STREAM_S stAudioStream;
+	INT32 s32AdecChn;
+
+	int threq = 0;
+	scc_AudioOpen("audio.vbAudio.In", NULL, &threq);
+	dbgmsg("##########TskRcvTalkData############\n");  
+	while(g_iTalkStat)
+	{   
+#if 1
+		nRet = P2PNetServerGetTalkData(g_TalkPeer,cTalkData,&nLen,1);
+		if(0==nRet)
+		{
+			printf("########################################getdata#######################\n");
+			dbgmsg("Rcv talk data  :%d \n",nLen);
+			//add by biaobiao
+			P2P_Write(cTalkData, nLen, NULL);
+		}
+		//对讲连接中断清楚对讲信息
+		else if(-1==nRet)
+		{
+			g_iTalkStat = 0;
+			g_TalkPeer = NULL;
+		}
+#else
+		XSleep(1, 0);
+#endif
+	}
+	//退出对讲的一些操作比如释放资源等可以在此处处理
+#ifdef _WIN32
+	return 0;
+#else
+	Audio_Close(2);
+	return NULL;
+#endif
 }
 
 //收到客户端请求对讲 的回调函数
@@ -400,7 +408,6 @@ INT32 NetReadCallback(PEER_INFO* pPeerInfo, CHAR* _u8Buf, INT32 length)
 	return nRet;
 }
 
-
 //INT32 p2p_server(INT32 argc, char **argv)
 INT32 p2p_server_f()
 {
@@ -431,10 +438,9 @@ INT32 p2p_server_f()
 	strcpy(g_cP2PIP,argv[2]);
 	strcpy(cServerID, argv[3]);
 	printf("cRole is %s g_cP2PIP is %s cServerID is %s \n", cRole, g_cP2PIP, cServerID);
-	printf("The Test has started  if have anything  Please contact  QQ:175255761\n"); 
+	printf("The Test has started  if have anything  Please contact \n"); 
 	//初始化SDK 
 	P2PNetServerSdkInit(cServerID,gLPort,g_cP2PIP,NetReadCallback,256,256);
 	while(1);
 	return 0;
 }
-

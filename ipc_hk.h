@@ -181,7 +181,7 @@ typedef struct TAlarmSet
 #define CIF_WIDTH_PAL            320
 #define CIF_HEIGHT_PAL           240
 
-enum enumVGAMode
+typedef enum enumVGAMode
 {
     ENUM_NONE   = 0,  
     ENUM_QQ720P = 1,    /* 320*180 */
@@ -195,7 +195,7 @@ enum enumVGAMode
     ENUM_720P   = 9,    /* 1280*720 */      
     ENUM_960P   = 10,   /* 1280*960 */
     ENUM_RESOLUTION_ALL,  
-};
+} enumVGAMode;
 
 
 typedef enum
