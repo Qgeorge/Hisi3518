@@ -41,6 +41,7 @@
 #include "P2Pserver.h"
 #include "BaseType.h"
 #include "recordSDK.h"
+#include "wifi_conf.h"
 extern INT32 p2p_server_f(); 
 #endif
 
@@ -1483,8 +1484,12 @@ int main(int argc, char* argv[])
 {  
 	int IRCutBoardType = 0;
 	char cSensorType[32]={0};
-	hk_load_sd(); //mount sd card.
+	char usrid[32];
 
+/*add by biaobiao*/
+	network_config(usrid);
+
+	hk_load_sd(); //mount sd card.
 	CheckNetDevCfg();
 	init_conf(); 
 	hk_set_system_time(); 

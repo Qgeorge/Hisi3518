@@ -440,7 +440,8 @@ INT32 p2p_server_f()
 	printf("cRole is %s g_cP2PIP is %s cServerID is %s \n", cRole, g_cP2PIP, cServerID);
 	printf("The Test has started  if have anything  Please contact \n"); 
 	//≥ı ºªØSDK 
-	P2PNetServerSdkInit(cServerID,gLPort,g_cP2PIP,NetReadCallback,256,256);
+//	P2PNetServerSdkInit(cServerID,gLPort,g_cP2PIP,NetReadCallback,256,256);
+	P2PNetServerSdkInit(cServerID,gLPort,g_cP2PIP,0,NetReadCallback,256,256);
 	while(1);
 	return 0;
 }
