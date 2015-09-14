@@ -25,12 +25,11 @@
 #include "ptz.h"
 #include "HISI_VDA.h"
 #include "sample_comm.h"
-#include "TXAudioVideo.h"
 #include "ipc_vbAudio.h"
 //#include "scc_video.h"
 #include "utils_biaobiao.h"
 //add by biaobiao
-#define RECORD 1
+#define RECORD 0
  
 #if RECORD
 #include "recordStruct.h"
@@ -40,6 +39,10 @@
 
 #if ENABLE_ONVIF
 #include "IPCAM_Export.h"
+#endif
+
+#if ENABLE_QQ
+#include "TXAudioVideo.h"
 #endif
 
 #define MPEG4           1
@@ -2252,7 +2255,7 @@ unsigned long _GetTickCount()
         return (current.tv_sec*1000 + current.tv_usec/1000);                           
 }
 #endif
-
+/*获取主码流视频的主线程 */
 int g_Video_Thread=0;
 int sccGetVideoThread()
 {
@@ -2269,7 +2272,7 @@ int sccGetVideoThread()
 	fd_set read_fds;
 	VENC_STREAM_S stStream;    //captured stream data struct.	
 	VENC_CHN_STAT_S stStat;
-#ifdef RECORD
+#if  RECORD
 	RECORDSDK_CMD_PARAM cmdParam;
 #endif
 
@@ -2407,7 +2410,7 @@ int sccGetVideoThread()
 	}
 	return 1;
 }
-
+/*创建主码流视频的主线程*/
 int CreateVideoThread(void)
 {
 	if (0 == g_Video_Thread)
@@ -2426,9 +2429,8 @@ int CreateVideoThread(void)
 	}
 	return 1;
 }
-
+/*子码流线程 */
 static int g_SubVideo_Thread=0;
-
 int sccGetSubVideoThread()
 {
 	int threq = 0;
@@ -2638,7 +2640,7 @@ int sccGetSubVideoThread()
 	return 1;
 }
 
-
+/* 创建子码流线程 */
 int CreateSubVideoThread() //create Get SubVideo Thread
 {
 	if (g_SubVideo_Thread == 0)
@@ -2657,8 +2659,7 @@ int CreateSubVideoThread() //create Get SubVideo Thread
 	}
 	return 1;
 }
-
-//start video thread
+/* 创建媒体线程 */
 int sccStartVideoThread()
 {
 	CreateVideoThread();
@@ -2723,9 +2724,6 @@ static void GetInitAlarmParam(HKFrameHead *pFrameHead)
 	}
 }
 
-
-
-
 void video_RSLoadObjects() 
 {
     /**video resolution**/
@@ -2754,7 +2752,6 @@ void video_RSLoadObjects()
         printf("[%s, %d] configurate main stream success !\n", __func__, __LINE__); 
     
     /**motion detect**/
-    //HK_DEBUG_PRT("motionsensitivity: %d, g_bAlarmThread: %d\n", video_properties_.vv[HKV_MotionSensitivity], g_bAlarmThread);
     g_MotionDetectSensitivity = video_properties_.vv[HKV_MotionSensitivity];
 	
     if ( VDA_MotionDetect_Start() ) //enable motion detect.

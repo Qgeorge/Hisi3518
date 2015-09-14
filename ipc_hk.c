@@ -40,7 +40,7 @@
 #if ENABLE_P2P
 #include "P2Pserver.h"
 #include "BaseType.h"
-#include "recordSDK.h"
+//#include "recordSDK.h"
 #include "wifi_conf.h"
 extern INT32 p2p_server_f(); 
 #include "net_http.h"

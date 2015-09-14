@@ -33,14 +33,14 @@
 
 #if ENABLE_QQ
 #include "TXAudioVideo.h"
+extern int PCM2AMR(char *pStream, int len, char *outbuf);
 #endif
 
 #if ENABLE_ONVIF
 #include "IPCAM_Export.h"
 #endif
-extern int PCM2AMR(char *pStream, int len, char *outbuf);
 
-//zqjun.
+
 /************************ AUDIO params **************************/
 
 //macro for debug:
@@ -63,7 +63,7 @@ static HI_BOOL gs_bMicIn = HI_FALSE;  //LINEIN.
 
 static HI_BOOL gs_bAiAnr = HI_FALSE;
 
-
+/*重采样 */
 static HI_BOOL gs_bAioReSample = HI_FALSE;
 static HI_BOOL gs_bUserGetMode = HI_FALSE; //HI_TRUE;
 
@@ -472,8 +472,6 @@ AUDIO_STREAM_S stAudioStream;
 AUDIO_FRAME_INFO_S stAudioFrameInfo;
 AO_CHN_STATE_S pstStatus;
 
-static char aryVoiceBuf[1280] = {0};
-static char aryHeard[4] = {0,1,160,0}; //hisi audio header.
 
 int P2P_Write(const char* buf, unsigned int bufsiz, long flags)
 {
@@ -489,6 +487,9 @@ int P2P_Write(const char* buf, unsigned int bufsiz, long flags)
 		return 0;
 	}
 }
+
+static char aryVoiceBuf[1280] = {0};
+static char aryHeard[4] = {0,1,160,0}; //hisi audio header "hi3518的音频编码有特殊的头" add by biaobiao
 /***********************************************************
  * func: receive audio from client,then decode and paly.
  **********************************************************/
