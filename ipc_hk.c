@@ -58,7 +58,8 @@ extern INT32 p2p_server_f();
 #define VOCHNID     0
 #define VENCCHNID   0
 #define SNAPCHN     1
-
+/*用户ID*/
+char g_userid[50] = {0};
 VIDEO_NORM_E gs_enNorm = VIDEO_ENCODING_MODE_NTSC;
 extern struct HKVProperty video_properties_;
 
@@ -89,9 +90,9 @@ unsigned int g_RUN_bit      = 3; //RUN light:5_3.
 #endif
 
 /***************** Key Reset ******************/
-unsigned int g_KeyResetCount = 0;
-unsigned int g_KeyReset_grp = 5;
-unsigned int g_KeyReset_bit = 2; //GPIO:5_2 ==> reset key.
+//unsigned int g_KeyResetCount = 0;
+//unsigned int g_KeyReset_grp = 5;
+//unsigned int g_KeyReset_bit = 2; //GPIO:5_2 ==> reset key.
 
 
 /***************** SD Card ******************/
@@ -1274,6 +1275,7 @@ static void CheckIOAlarm()
  *      1: default state with no pressed key.
  *      0: reset key pressed.
  ******************************************/
+#if 0
 int HK_Check_KeyReset(void)
 {
 	unsigned int val_read = 1;
@@ -1309,7 +1311,7 @@ int HK_Check_KeyReset(void)
 
 	return 0;
 }
-
+#endif
 void hk_set_system_time()
 {
 	int tz = conf_get_int(HOME_DIR"/time.conf", "zone");
@@ -1485,9 +1487,16 @@ int main(int argc, char* argv[])
 	int IRCutBoardType = 0;
 	char cSensorType[32]={0};
 	char usrid[32];
+	char device_id[500];
+
 
 /*add by biaobiao*/
-	network_config(usrid);
+	int f_wifi_connenct = 0;
+	get_device_id(device_id);
+	net_create_device(device_id);
+#if HTTP_DEBUG
+	printf("Create the device id*********************");
+#endif
 
 	hk_load_sd(); //mount sd card.
 	CheckNetDevCfg();
@@ -1615,19 +1624,42 @@ int main(int argc, char* argv[])
 #endif //end by yy
 
 	HK_WtdInit(60*2); //watchdog.
-	g_KeyResetCount = 0;
+	//g_KeyResetCount = 0;
 
 	unsigned int groupnum = 0, bitnum = 0, val_set = 0;
 	unsigned int valSetRun = 0;
 	for ( ; !quit_; counter++)
 	{
+		PlaySound("/root/test/file_5.pcm");
 	//	if (1 != HI3518_WDTFeed())
 	//	{
 	//		printf("Feed Dog Failed!\n");
 	//	}
 		ISP_Ctrl_Sharpness();
 
-		if ( b_hkSaveSd )
+/*add by biaobiao 检测按键 若按键长按进入smartconfig模式，短按则重启*/
+		if(key_scan() == 1)
+		{
+			smart_config( g_userid );
+			f_wifi_connenct = 1;
+			//net_bind_device();
+			printf("*********smart config comlete******************\n");
+		}else if(key_scan() == 0)
+		{
+			wrap_sys_restart();
+
+		}
+		/*smart_config结束，则连接wifi*/
+		if(f_wifi_connenct)
+		{
+			if(connect_the_ap() == 0)
+			{
+				f_wifi_connenct = 0;
+				printf("*********connect the ap******************\n");
+			};
+		}
+
+		if (b_hkSaveSd)
 		{
 			printf("[%s, %d] scc stop sd....\n", __func__, __LINE__);
 			b_OpenSd = true;
@@ -1661,7 +1693,7 @@ int main(int argc, char* argv[])
 		hk_IrcutCtrl( IRCutBoardType );//check & control Ircut mode.
 
 #if (HK_PLATFORM_HI3518E | DEV_INFRARED)
-		HK_Check_KeyReset(); //system restart or reset to factory settings.
+		//HK_Check_KeyReset(); //system restart or reset to factory settings.
 #endif
 		if (gbStartTime)
 		{

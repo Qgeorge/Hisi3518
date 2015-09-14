@@ -8,6 +8,7 @@
 #define SMT_GET_INFO "cat /proc/smart_connection  | awk \'{if ($1 == \"SSID\"){print \"SSID=\"$3;}else if($1 == \"PASSWORD\"){print \"PASSWORD=\"$3}else if($1 == \"AUTHMODE\"){print \"AUTHMODE=\"$3}else if($1 == \"TLV_HEX\"){print \"TLV_HEX=\"$3}}\'"
 #define WIFI_CONFIG "/mnt/sif/wifi_info"
 
+
 int start_smart_conf()
 {
 	system(SMT_CONF_START);

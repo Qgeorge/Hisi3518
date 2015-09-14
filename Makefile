@@ -16,6 +16,7 @@ TARGETPATH  = /tftpboot/3518e
 INCPATH     = -I . -I $(PRO_DIR)/IPCAM_LIB/system/include 		  \
 			  -I ../../include 								  \
 			  -I ../p2p_server/include 				  \
+			  -I ../libghttp/include 				  \
 			  -I ../qq_server/include 				\
 			  -I ./recordsdk/ 				  \
 			  -I ./wifi_conf/ 				  \
@@ -30,13 +31,14 @@ INCPATH     = -I . -I $(PRO_DIR)/IPCAM_LIB/system/include 		  \
 LIBPATH     = -L ../lib_so  -lutils \
 			  -L ../p2p_server/lib/arm-hisiv100nptl-linux-gcc -lp2p -lpthread -lm \
 			  -L ../amr-lib/lib  \
-			  -L ./libs_HI3511 -lrecordSDK -lSampleComm -lwificonfig\
+			  -L ./libs_HI3511 -lrecordSDK -lSampleComm -lwificonfig -lnethttp\
+			  -L ../libghttp/lib -lghttp \
 			  -L ../qq_server/lib/  -lpthread -ldl -lssl -lcrypto -lstdc++ \
 			  -L ../../lib -lpthread -lm -lmpi -lVoiceEngine -laec -lresampler -lanr -lisp -lsns_ov9712 \
 			  -L $(PRO_DIR)/IPCAM_LIB/openssl_3518/lib_openssl/lib -lssl -lcrypto \
 			  -L $(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/LibSo -lrtsp -lOnvif
 			
-MODULES = 	$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/MOD_NetSvRtsp.a \
+#MODULES = 	$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/MOD_NetSvRtsp.a \
 			$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/MOD_NetServer.a	\
 			$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/Mod_NetConfig.a	\
 			$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/MOD_NetWebCallBack.a \

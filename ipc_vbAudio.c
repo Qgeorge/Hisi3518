@@ -485,7 +485,7 @@ int P2P_Write(const char* buf, unsigned int bufsiz, long flags)
 	s32ret = HI_MPI_ADEC_SendStream(s_AdecChn, &stAudioStream, HI_FALSE);
 	if (s32ret)
 	{
-		printf("error: HI_MPI_ADEC_SendStream failed with:%#x\n", s32ret);
+		printf("%s: HI_MPI_ADEC_SendStream(%d) failed with %#x!\n",__FUNCTION__, s_AdecChn, s32ret);
 		return 0;
 	}
 }
@@ -754,4 +754,35 @@ void Audio_Close(int obj)
 	{
 		exit(1);
 	}
+}
+
+int PlaySound(char *soundfile)
+{
+	FILE *pfd = NULL;
+	char *pu8AudioStream = NULL;
+	int u32Len = 640;
+	int u32ReadLen = 640;
+
+	int threq = 0;
+	scc_AudioOpen("audio.vbAudio.In", NULL, &threq);
+
+	pfd = fopen(soundfile, "r");
+	pu8AudioStream = (char*)malloc(sizeof(char)*MAX_AUDIO_STREAM_LEN);
+	while(1)
+	{
+		if(u32ReadLen <= 0)
+		{
+			fseek(pfd, 0, SEEK_SET);/* read file again*/
+			continue;
+		}
+		u32ReadLen = fread(pu8AudioStream, 1, u32Len, pfd);
+		printf("read the lenth is %d\n", u32ReadLen);
+		//if(u32ReadLen == 640)
+		P2P_Write(pu8AudioStream, u32ReadLen, NULL);
+		
+	}
+	getchar();
+	free(pu8AudioStream);
+	fclose(pfd);
+	Audio_Close(2);
 }

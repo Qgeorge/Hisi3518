@@ -17,7 +17,6 @@ int connect_open_ap(char *ssid)
 /*
  *连接加密的wifi
  */
-
 int connect_enc_ap(char *encmod, char *ssid, char * password)
 {
 	char cmd_str[500];
@@ -36,7 +35,7 @@ int connect_enc_ap(char *encmod, char *ssid, char * password)
 /*
  *设置为adhoc模式
  */
-int set__adhoc_mode()
+int set_adhoc_mode()
 {
 	char cmd_str[500];
 	sprintf(cmd_str, "iwpriv ra0 set NetworkType=Adhoc;\
