@@ -482,7 +482,7 @@ int P2P_Write(const char* buf, unsigned int bufsiz, long flags)
 	stAudioStream.pStream = buf;
 	stAudioStream.u32Len = bufsiz; 
 
-	s32ret = HI_MPI_ADEC_SendStream(s_AdecChn, &stAudioStream, HI_FALSE);
+	s32ret = HI_MPI_ADEC_SendStream(s_AdecChn, &stAudioStream, HI_TRUE);
 	if (s32ret)
 	{
 		printf("%s: HI_MPI_ADEC_SendStream(%d) failed with %#x!\n",__FUNCTION__, s_AdecChn, s32ret);
@@ -755,7 +755,9 @@ void Audio_Close(int obj)
 		exit(1);
 	}
 }
-
+/*
+ *播发一个音频文件 
+ */
 int PlaySound(char *soundfile)
 {
 	FILE *pfd = NULL;
@@ -767,21 +769,32 @@ int PlaySound(char *soundfile)
 	scc_AudioOpen("audio.vbAudio.In", NULL, &threq);
 
 	pfd = fopen(soundfile, "r");
-	pu8AudioStream = (char*)malloc(sizeof(char)*MAX_AUDIO_STREAM_LEN);
-	while(1)
+	if(pfd == NULL)
 	{
+		printf("Audio open file is error %s %d\n", __FILE__, __LINE__);
+		return 0;
+	}
+	pu8AudioStream = (char*)malloc(sizeof(char)*MAX_AUDIO_STREAM_LEN);
+	if(pu8AudioStream == NULL)
+	{
+		printf("Audio malloc is error %s %d\n", __FILE__, __LINE__);
+	}
+	while(u32ReadLen > 0)
+	{
+		u32ReadLen = fread(pu8AudioStream, 1, u32Len, pfd);
+		#if 0
 		if(u32ReadLen <= 0)
 		{
 			fseek(pfd, 0, SEEK_SET);/* read file again*/
 			continue;
 		}
-		u32ReadLen = fread(pu8AudioStream, 1, u32Len, pfd);
+		#endif	
 		printf("read the lenth is %d\n", u32ReadLen);
 		//if(u32ReadLen == 640)
 		P2P_Write(pu8AudioStream, u32ReadLen, NULL);
 		
 	}
-	getchar();
+	sleep(2);
 	free(pu8AudioStream);
 	fclose(pfd);
 	Audio_Close(2);

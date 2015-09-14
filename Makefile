@@ -19,6 +19,7 @@ INCPATH     = -I . -I $(PRO_DIR)/IPCAM_LIB/system/include 		  \
 			  -I ../libghttp/include 				  \
 			  -I ../qq_server/include 				\
 			  -I ./recordsdk/ 				  \
+			  -I ./netsdk/include/ 				  \
 			  -I ./wifi_conf/ 				  \
 			  -I ./sample_comm 				  \
 			  -I ../amr-lib/include/opencore-amrnb/ 		\

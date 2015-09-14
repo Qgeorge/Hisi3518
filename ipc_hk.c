@@ -43,6 +43,7 @@
 #include "recordSDK.h"
 #include "wifi_conf.h"
 extern INT32 p2p_server_f(); 
+#include "net_http.h"
 #endif
 
 #if ENABLE_QQ
@@ -684,7 +685,9 @@ static void GetAlarmEmailInfo()
 	InitEmailInfo(isOpen, smtpServer, sendEmail, recvEmail, smtpUser, smtpPswd, iPort, iCount, secType);
 }
 
-
+/*
+ *获取SD卡的参数信息
+ */
 void GetSdAlarmParam()
 {
 	hkSdParam.moveRec      = conf_get_int( HOME_DIR"/sdvideo.conf", SD_REC_MOVE );
@@ -701,8 +704,9 @@ void GetSdAlarmParam()
 
 	HK_DEBUG_PRT("---> moveRec:%d, outMoveRec:%d, autoRec:%d, loopWrite:%d, splite:%d, audio:%d, sdrecqc:%d, sdIoOpen:%d, sdError:%d, sdMoveOpen:%d <---\n", hkSdParam.moveRec, hkSdParam.outMoveRec, hkSdParam.autoRec, hkSdParam.loopWrite, hkSdParam.splite, hkSdParam.audio, hkSdParam.sdrecqc, hkSdParam.sdIoOpen, hkSdParam.sdError, hkSdParam.sdMoveOpen);
 }
-
-//check MMC module.
+/* 
+ *检查SD卡的状态
+ */
 static int CheckSDStatus()
 {
 	struct stat st;
@@ -991,6 +995,7 @@ static void initGPIO()
  *******************************************************/
 static int hk_WirelessCard_Reset(void)
 { 
+#if 0
 	unsigned int groupnum = 0;
 	unsigned int bitnum   = 0;
 	unsigned int val_set = 0;
@@ -1018,7 +1023,7 @@ static int hk_WirelessCard_Reset(void)
 	nRet = Hi_SetGpio_SetBit( groupnum, bitnum, val_set );
 	if (nRet)   return -1;
 	HK_DEBUG_PRT("....Set GPIO %d_%d  set Value: %d....\n\n", groupnum, bitnum, val_set);
-
+#endif
 	return 0;
 }
 
