@@ -46,6 +46,9 @@ extern INT32 p2p_server_f();
 #include "net_http.h"
 #endif
 
+//存储的锁 add by biaobiao
+pthread_mutex_t record_mutex ;
+
 #if ENABLE_QQ
 #include "qq_server.h"
 #endif
@@ -1333,6 +1336,7 @@ void hk_set_system_time()
 	}
 }
 
+/*设置网络类型*/
 static void CheckNetDevCfg()
 {
 	//printf("...zzzzzzzzzzzzzzzzzzzzzzz reboot 333333 zzzzzzzzzzzzzzzzzzzzzz...\n");
@@ -1437,10 +1441,8 @@ static void hk_load_sd()
 	{
 		printf("...........Check SD Upgrade & Device License............\n");
 		HK_Check_SD_Upgrade(g_sdIsOnline); //system upgrade.
-
 		HK_Check_SD_License(g_sdIsOnline); //conf device lincense and upgrade url, and so on.
 	}
-
 	//SD_RSLoadObjects( &SysRegisterDev );
 }
 
@@ -1465,7 +1467,7 @@ void HK_Onvif_Init(void)
 	CreateVideoThread(); 
 	CreateSubVideoThread(); 
 
-	//ONVIFЭ??????
+	//ONVIF
 	EnableOnvif = conf_get_int("/mnt/sif/web.conf","bOnvifEnable");
 	if(EnableOnvif)
 	{	    	
@@ -1482,16 +1484,20 @@ void HK_Onvif_Init(void)
 void IPC_Video_Audio_Thread_Init(void)
 {
 	CreateAudioThread();
-        CreateVideoThread();
-        CreateSubVideoThread();
+    CreateVideoThread();
+    CreateSubVideoThread();
 }
 #endif
 
 
 int main(int argc, char* argv[])
-{  
+{
+	/*IRCUT的类型,调节IRCUT的灵敏度*/
 	int IRCutBoardType = 0;
+
+	/*Sensor的类型*/
 	char cSensorType[32]={0};
+
 	char usrid[32];
 	char device_id[500];
 
@@ -1501,6 +1507,7 @@ int main(int argc, char* argv[])
 	int f_wifi_connenct = 0;
 	get_device_id(device_id);
 	//net_create_device(device_id);
+
 #if HTTP_DEBUG
 	printf("Create the device id*********************");
 #endif
@@ -1508,7 +1515,9 @@ int main(int argc, char* argv[])
 	hk_load_sd(); //mount sd card.
 	CheckNetDevCfg();
 	init_conf(); 
-	hk_set_system_time(); 
+	hk_set_system_time();
+	//add by biaobiao
+	pthread_mutex_init(&record_mutex,NULL);
 
 	int counter = 0;
 	if (argc >= 3)
@@ -1527,7 +1536,8 @@ int main(int argc, char* argv[])
 	}
 	Daemonize();
 	init_sighandler();
-
+	
+	/*配置sensor的类型*/
 	conf_get( HOME_DIR"/sensor.conf", "sensortype", cSensorType, 32 );
 	if (strcmp(cSensorType, "ar0130") == 0)
 	{
@@ -1573,7 +1583,6 @@ int main(int argc, char* argv[])
 
 	GetAlarmEmailInfo(); //get email configuration info
 	GetSdAlarmParam(); //get sd card configuration info.
-
 
 #if (HK_PLATFORM_HI3518E)
 	/*****neck Cruise*****/
@@ -1630,6 +1639,7 @@ int main(int argc, char* argv[])
 	}
 #endif //end by yy
 
+	//初始化看门狗
 	HK_WtdInit(60*2); //watchdog.
 	//g_KeyResetCount = 0;
 
@@ -1642,9 +1652,9 @@ int main(int argc, char* argv[])
 	//	{
 	//		printf("Feed Dog Failed!\n");
 	//	}
+		/*ISP控制*/
 		ISP_Ctrl_Sharpness();
-
-/*add by biaobiao 检测按键 若按键长按进入smartconfig模式，短按则重启*/
+		/*add by biaobiao 检测按键 若按键长按进入smartconfig模式，短按则重启*/
 		if(key_scan() == 1)
 		{
 			smart_config( g_userid );
@@ -1655,7 +1665,6 @@ int main(int argc, char* argv[])
 		}else if(key_scan() == 0)
 		{
 			//wrap_sys_restart();
-
 		}
 		/*smart_config结束，则连接wifi*/
 		if(f_wifi_connenct)
@@ -1666,7 +1675,6 @@ int main(int argc, char* argv[])
 				printf("*********connect the ap******************\n");
 			};
 		}
-
 		if (b_hkSaveSd)
 		{
 			printf("[%s, %d] scc stop sd....\n", __func__, __LINE__);
@@ -1741,20 +1749,8 @@ int main(int argc, char* argv[])
 			//printf("...startcheckalarm=%d.....\n",g_startCheckAlarm);
 			//g_startCheckAlarm++;
 		}
-		//#ifdef ENABLE_P2P
-		#if 0
-		RECORDSDK_CMD_PARAM cmdParam;
-		char buffer[100];
-		int ret;
-		cmdParam.nChannel = 0;
-		cmdParam.nOpt = RSDKCMD_SEND_FRAME;
-		cmdParam.param.frameBuffer = buffer;
-		ret = RECORDSDK_Operate(&cmdParam, NULL, NULL);
-		if(ret == -1)
-		{
-			printf("RECORDSDK_Operate ERROR\n");
-		}
-		#endif
+		/*挂载sd卡*/
+		hk_load_sd();
 	}
 
 	sd_record_stop();
@@ -1762,7 +1758,6 @@ int main(int argc, char* argv[])
 	gbStartTime = 1;
 	if (quit_ != Excode_Stop)
 		exiting_progress();
-
 	printf("\n [%s]: %d ", __FUNCTION__, __LINE__);
 	exit (0);
 }

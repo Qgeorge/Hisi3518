@@ -30,6 +30,7 @@
 #if ENABLE_P2P
 #include "P2Pserver.h"
 #endif
+extern pthread_mutex_t record_mutex; 
 
 #if ENABLE_QQ
 #include "TXAudioVideo.h"
@@ -584,7 +585,7 @@ void AudioThread(void)
 
 	unsigned int bufsiz = 320*5;
 	char buf[320*5]={0};
-	char *p = buf;
+	//char *p = buf;
 	int i = 0;
 	int left = 0, loop = 4; //build packet size:2560. 
 	int buf_len = 0;        //valid audio size.
@@ -598,7 +599,7 @@ void AudioThread(void)
 #if 0
 	char g711a_buf[320*5]={0};
 #endif
-	char amr_buf[32*8];
+//	char amr_buf[32*8];
 	int ret;
 
 #if ENABLE_QQ
@@ -661,6 +662,21 @@ void AudioThread(void)
 				P2PNetServerChannelDataSndToLink( 0, 0, stStream.pStream, stStream.u32Len, 1, DATA_AUDIO);
 				P2PNetServerChannelDataSndToLink( 0, 1, stStream.pStream, stStream.u32Len, 1, DATA_AUDIO);
 #endif
+
+#if 1
+				struct timeval tv;
+				gettimeofday(&tv, NULL);
+				int64_t time_ms = tv.tv_sec * 1000LL + tv.tv_usec / 1000LL;
+				//time_ms = time(NULL)*1000;
+				G711A_Len = PCM2G711a(stStream.pStream, buf, stStream.u32Len, 0);
+				printf("ecode before is %d\n", stStream.u32Len);
+				printf("ecode after is %d\n", G711A_Len);
+				pthread_mutex_lock(&record_mutex);
+				av_record_write(1, buf, G711A_Len, time_ms, 0);
+				pthread_mutex_unlock(&record_mutex);
+				printf("###########################recordi audio##########\n");
+#endif
+
 
 #if ENABLE_QQ
 				//printf("the lenth is %d\n", stStream.u32Len);

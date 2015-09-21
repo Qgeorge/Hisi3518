@@ -32,7 +32,7 @@
 #define RECORD 0
 #define NEW_RECORD 1
 #include "record.h"
- 
+extern pthread_mutex_t record_mutex; 
 #if RECORD
 #include "recordStruct.h"
 #include "recordSDK.h"
@@ -2384,7 +2384,7 @@ int sccGetVideoThread()
 				/*****OSD END*****/
 
 #if ENABLE_P2P
-//                                P2PNetServerChannelDataSndToLink(0,0,videobuf,iLen,iFrame,0);
+//				P2PNetServerChannelDataSndToLink(0,0,videobuf,iLen,iFrame,0);
 #endif
 
 #if ENABLE_QQ
@@ -2406,7 +2406,9 @@ int sccGetVideoThread()
 				gettimeofday(&tv, NULL);
 				int64_t time_ms = tv.tv_sec * 1000LL + tv.tv_usec / 1000LL;
 				//time_ms = time(NULL)*1000;
+				pthread_mutex_lock(&record_mutex);
 				av_record_write(0, videobuf, iLen, time_ms, sFrame);
+				pthread_mutex_unlock(&record_mutex);
 //				printf("###########################record##########\n");
 #endif
 		
