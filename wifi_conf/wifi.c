@@ -7,7 +7,7 @@
  */
 int connect_open_ap(char *ssid)
 {
-	char cmd_str[500];
+	char cmd_str[500] = {0};
 	sprintf(cmd_str, "iwpriv ra0 set NetworkType=Infra;\
 		iwpriv ra0 set AuthMode=WPAPSK;\
 		iwpriv ra0 set EncrypType=OPEN;\
@@ -19,7 +19,7 @@ int connect_open_ap(char *ssid)
  */
 int connect_enc_ap(char *encmod, char *ssid, char * password)
 {
-	char cmd_str[500];
+	char cmd_str[500] = {0};
 	sprintf(cmd_str, "iwpriv ra0 set NetworkType=Infra;\
 		iwpriv ra0 set AuthMode=WPAPSK;\
 		iwpriv ra0 set EncrypType=%s;\
@@ -37,7 +37,7 @@ int connect_enc_ap(char *encmod, char *ssid, char * password)
  */
 int set_adhoc_mode()
 {
-	char cmd_str[500];
+	char cmd_str[500] = {0};
 	sprintf(cmd_str, "iwpriv ra0 set NetworkType=Adhoc;\
 		iwpriv ra0 set AuthMode=OPEN;\
 		iwpriv ra0 set EncrypType=NULL;\

@@ -54,24 +54,31 @@ int get_smt_info(char (*info)[50])
 int save_wifi_info(char (*info)[50])
 {
 	FILE *fp = NULL;
-	fp = fopen(WIFI_CONFIG, 'w');
+	fp = fopen(WIFI_CONFIG, "w");
 	int i = 0;
 	for(i = 0; i < 4; i++)
 	{
 		fputs(info[i], fp);
+		fputc('\n', fp);
 	}
 	fclose(fp);
 }
 int get_wifi_info(char (*info)[50])
 {
 	FILE *fp = NULL;
-	fp = fopen(WIFI_CONFIG, 'r');
+	fp = fopen(WIFI_CONFIG, "r");
+	if(fp == NULL)
+	{
+		printf("open the wifi error\n");
+		return -1;
+	}
 	int i;
 	for(i = 0; i < 4 ;i++)
 	{
 		fgets(info[i],sizeof(info[i]),fp);
 	}
-	fclose(fp);	
+	fclose(fp);
+	return 0;
 }
 int tlv_hex_str(char *buffer, char *usrid)
 {
@@ -102,14 +109,44 @@ int connect_the_ap()
 	char authmode[50] = {0};
 	char tlv_hex[50] ={0};
 	int auth;
-	get_smt_info(smt_info);
-	sscanf(smt_info[0], "SSID=%s", ssid);
-	sscanf(smt_info[1], "PASSWORD=%s", password);
-	sscanf(smt_info[2], "AUTHMODE=%s", authmode);
-	sscanf(smt_info[3], "TLV_HEX=%s", tlv_hex);
+	int ret;
+	//get_smt_info(smt_info);
+	printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
+	ret = get_wifi_info(smt_info);
+	printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
+	if(ret == -1)
+	{
+		printf("connect the ap is eeror\n");
+		return -1;
+	}
+	ret = sscanf(smt_info[0], "SSID=%s", ssid);
+	if(ret == EOF)
+	{
+		printf("sscanf is eeror\n");
+		return -1;
+	}
+	ret = sscanf(smt_info[1], "PASSWORD=%s", password);
+	if(ret == EOF)
+	{
+		printf("sscanf is eeror\n");
+		return -1;
+	}
+	ret = sscanf(smt_info[2], "AUTHMODE=%s", authmode);
+	if(ret == EOF)
+	{
+		printf("sscanf is eeror\n");
+		return -1;
+	}
+	ret = sscanf(smt_info[3], "TLV_HEX=%s", tlv_hex);
+	if(ret == EOF)
+	{
+		printf("sscanf is eeror\n");
+		return -1;
+	}
+	printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
 	auth = (int)authmode[0] - 48;		
 	connect_ap(auth, ssid, password);
-
+	system("/sbin/udhcpc -i ra0 -s /mnt/sif/udhcpc.script");
 	if(test_network("www.baidu.com") == 0)
 	{
 		printf("connect success\n");
@@ -161,6 +198,7 @@ int smart_config(char *userid)
 			strcpy(tlv_hex, userid);
 			//connect_ap(auth, ssid, password);
 			save_wifi_info(smt_info);
+			return 0;
 #if 0
 			if(test_network("www.baidu.com") == 0)
 			{

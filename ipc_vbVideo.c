@@ -30,6 +30,8 @@
 #include "utils_biaobiao.h"
 //add by biaobiao
 #define RECORD 0
+#define NEW_RECORD 1
+#include "record.h"
  
 #if RECORD
 #include "recordStruct.h"
@@ -2255,10 +2257,14 @@ unsigned long _GetTickCount()
         return (current.tv_sec*1000 + current.tv_usec/1000);                           
 }
 #endif
+
 /*获取主码流视频的主线程 */
 int g_Video_Thread=0;
 int sccGetVideoThread()
 {
+#if NEW_RECORD
+	av_record_init("/nfsroot/record");
+#endif
 	int threq = 0;
 	sccOpen("video.vbVideo.MPEG4", NULL, &threq);
 
@@ -2285,7 +2291,10 @@ int sccGetVideoThread()
 
 	struct sched_param param;
 	struct timeval TimeoutVal;
-	VENC_PACK_S *pstPack = NULL;	
+	VENC_PACK_S *pstPack = NULL;
+
+	//time_t time_ms;
+	int sFrame = 0;
 
 	pstPack = (VENC_PACK_S *)malloc(sizeof(VENC_PACK_S) * 128);
 	if (NULL == pstPack)
@@ -2345,22 +2354,23 @@ int sccGetVideoThread()
 						memcpy( videobuf+iLen, stStream.pstPack[j].pu8Addr[1], stStream.pstPack[j].u32Len[1] );
 						iLen += stStream.pstPack[j].u32Len[1];
 					}
-
 					switch (stStream.pstPack[j].DataType.enH264EType)
 					{
 						case H264E_NALU_PSLICE:
 							iFrame = 1; //HK_BOAT_PFREAM; //P frame
+							sFrame = 0;
 #if ENABLE_QQ
 							s_nFrameIndex++;
 #endif
 							break;
 						case H264E_NALU_BUTT:
 							HI_MPI_VENC_ReleaseStream(s_vencChn, &stStream);
-							stStream.pstPack = NULL;
+							//stStream.pstPack = NULL;
 							continue;
 							break;
 						default:
 							iFrame = 0; //HK_BOAT_IFREAM; //I frame
+							sFrame = 1;
 #if ENABLE_QQ
 							s_gopIndex++;
 #endif
@@ -2374,7 +2384,7 @@ int sccGetVideoThread()
 				/*****OSD END*****/
 
 #if ENABLE_P2P
-                                P2PNetServerChannelDataSndToLink(0,0,videobuf,iLen,iFrame,0);
+//                                P2PNetServerChannelDataSndToLink(0,0,videobuf,iLen,iFrame,0);
 #endif
 
 #if ENABLE_QQ
@@ -2391,7 +2401,15 @@ int sccGetVideoThread()
 					RECORDSDK_Operate(&cmdParam, NULL, NULL);
 				}
 #endif 
-
+#if NEW_RECORD
+				struct timeval tv;
+				gettimeofday(&tv, NULL);
+				int64_t time_ms = tv.tv_sec * 1000LL + tv.tv_usec / 1000LL;
+				//time_ms = time(NULL)*1000;
+				av_record_write(0, videobuf, iLen, time_ms, sFrame);
+//				printf("###########################record##########\n");
+#endif
+		
 				s32Ret = HI_MPI_VENC_ReleaseStream(s_vencChn, &stStream);
 				if (HI_SUCCESS != s32Ret)
 				{
@@ -2403,6 +2421,9 @@ int sccGetVideoThread()
 			}
 		}
 	}//end while
+#if NEW_RECORD
+	av_record_quit();
+#endif
 	HK_DEBUG_PRT("......video thread quit......\n");
 	if(pstPack)
 	{
@@ -2565,7 +2586,7 @@ int sccGetSubVideoThread()
 				OSD_Overlay_RGN_Display_Time(RgnHandle,s_vencChn); 
 				/*****OSD END*****/
 #if ENABLE_P2P
-                                P2PNetServerChannelDataSndToLink(0,1,videobuf,iLen,iFrame,0);
+//                                P2PNetServerChannelDataSndToLink(0,1,videobuf,iLen,iFrame,0);
 #endif
 
 
@@ -2616,7 +2637,7 @@ int sccGetSubVideoThread()
 						}
 					}
 				}
-
+				//是否进行录像
 				if (0 == hkSdParam.sdrecqc)
 				{
 					sccPushTfData( PSTREAMTWO, videobuf, iLen, iFrame, g_iCifOrD1, H264 );

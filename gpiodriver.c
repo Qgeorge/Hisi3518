@@ -47,7 +47,7 @@ typedef struct {
 
 
 static signed int fd = -1;
-static unsigned char* gpio_dev_name="/dev/hi_gpio";  //hi3518c.
+const  char* gpio_dev_name="/dev/hi_gpio";  //hi3518c.
 
 int HI_SetGpio_Open(void)
 {

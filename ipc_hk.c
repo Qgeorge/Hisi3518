@@ -150,6 +150,7 @@ static time_t  gSysTime = 0;
 static short   gbStartTime = 0;
 
 volatile int quit_ = 0;
+
 extern void OnRestorationParam();
 static const char* getEnv(const char* x, const char* defs) { return ((x = getenv(x)) ? x : defs); }
 static int hk_WirelessCard_Reset(void);
@@ -1496,9 +1497,10 @@ int main(int argc, char* argv[])
 
 
 /*add by biaobiao*/
+//	connect_the_ap();
 	int f_wifi_connenct = 0;
 	get_device_id(device_id);
-	net_create_device(device_id);
+	//net_create_device(device_id);
 #if HTTP_DEBUG
 	printf("Create the device id*********************");
 #endif
@@ -1593,7 +1595,7 @@ int main(int argc, char* argv[])
 
 /*add by biaobiao*/
 #if ENABLE_P2P
-        create_my_detached_thread(p2p_server_f);
+    create_my_detached_thread(p2p_server_f);
 #endif
 
 /*add by biaobiao*/
@@ -1603,7 +1605,7 @@ int main(int argc, char* argv[])
 
 /*add by biaobiao*/
 #if ENABLE_P2P
-	RECORDSDK_Start();
+	//RECORDSDK_Start();
 #endif
 
 #if ENABLE_ONVIF
@@ -1631,11 +1633,11 @@ int main(int argc, char* argv[])
 	HK_WtdInit(60*2); //watchdog.
 	//g_KeyResetCount = 0;
 
+	play_minute();
 	unsigned int groupnum = 0, bitnum = 0, val_set = 0;
 	unsigned int valSetRun = 0;
 	for ( ; !quit_; counter++)
 	{
-		PlaySound("/root/test/file_5.pcm");
 	//	if (1 != HI3518_WDTFeed())
 	//	{
 	//		printf("Feed Dog Failed!\n");
@@ -1647,11 +1649,12 @@ int main(int argc, char* argv[])
 		{
 			smart_config( g_userid );
 			f_wifi_connenct = 1;
+			PlaySound("/root/test/file_5.pcm");
 			//net_bind_device();
 			printf("*********smart config comlete******************\n");
 		}else if(key_scan() == 0)
 		{
-			wrap_sys_restart();
+			//wrap_sys_restart();
 
 		}
 		/*smart_config结束，则连接wifi*/

@@ -16,6 +16,7 @@ TARGETPATH  = /tftpboot/3518e
 INCPATH     = -I . -I $(PRO_DIR)/IPCAM_LIB/system/include 		  \
 			  -I ../../include 								  \
 			  -I ../p2p_server/include 				  \
+			  -I ../record/include 				  \
 			  -I ../libghttp/include 				  \
 			  -I ./netsdk/include/ 				  \
 			  -I ./wifi_conf/ 				  \
@@ -29,8 +30,9 @@ INCPATH     = -I . -I $(PRO_DIR)/IPCAM_LIB/system/include 		  \
 #LIBPATH     = -L ../lib_so -lsystem -lchinalink -lnetfactory -lutils 
 LIBPATH     = -L ../lib_so  -lutils \
 			  -L ../p2p_server/lib/arm-hisiv100nptl-linux-gcc -lp2p -lpthread -lm \
-			  -L ../amr-lib/lib  \
-			  -L ./libs_HI3511 -lrecordSDK -lSampleComm -lwificonfig -lnethttp\
+			  -L ../amr-lib/lib \
+			  -L ../record/lib  -lrecord \
+			  -L ./libs_HI3511  -lSampleComm -lwificonfig -lnethttp \
 			  -L ../libghttp/lib -lghttp \
 			  -L ../../lib -lpthread -lm -lmpi -lVoiceEngine -laec -lresampler -lanr -lisp -lsns_ov9712 \
 			  -L $(PRO_DIR)/IPCAM_LIB/openssl_3518/lib_openssl/lib -lssl -lcrypto \
@@ -59,8 +61,6 @@ CXX         = arm-hisiv100nptl-linux-gcc
 all:$(TARGET)
 
 $(TARGET):$(OBJS)
-	cd ./recordsdk; $(MAKE) -f Makefile.HI3511
-	cd ..
 	cd ./sample_comm; $(MAKE) -f Makefile.HI3511
 	cd ..
 	cd ./wifi_conf; $(MAKE) -f Makefile.HI3511
