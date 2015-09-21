@@ -26,14 +26,14 @@
 #include "m433.h"
 #include "osd_region.h"
 #include "ptz.h"
-#include "ipc_file_sd.h"
+//#include "ipc_file_sd.h"
 #include "osd_region.h"
 #include "ipc_vbVideo.h"
 #include "ipc_vbAudio.h"
 #include "gpiodriver.h"
-#include "ipc_email.h"
-#include "ipc_sd_upgrade.h"
-#include "ipc_sd_license.h"
+//#include "ipc_email.h"
+//#include "ipc_sd_upgrade.h"
+//#include "ipc_sd_license.h"
 #include "Wdt_hi3518.h"
 
 /*add by biaobiao*/
@@ -182,7 +182,7 @@ void wrap_sys_restart( )
 	g_sdIsOnline=0;
 	//be_present(0);
 	//system( "ifconfig ra0 down" );
-	sd_record_stop();
+	//sd_record_stop();
 	sleep(1);
 	system("umount /mnt/mmc/");
 	//usleep(50*1000);
@@ -1440,8 +1440,8 @@ static void hk_load_sd()
 	if (1 == g_sdIsOnline)
 	{
 		printf("...........Check SD Upgrade & Device License............\n");
-		HK_Check_SD_Upgrade(g_sdIsOnline); //system upgrade.
-		HK_Check_SD_License(g_sdIsOnline); //conf device lincense and upgrade url, and so on.
+		//HK_Check_SD_Upgrade(g_sdIsOnline); //system upgrade.
+		//HK_Check_SD_License(g_sdIsOnline); //conf device lincense and upgrade url, and so on.
 	}
 	//SD_RSLoadObjects( &SysRegisterDev );
 }
@@ -1679,7 +1679,7 @@ int main(int argc, char* argv[])
 		{
 			printf("[%s, %d] scc stop sd....\n", __func__, __LINE__);
 			b_OpenSd = true;
-			sd_record_stop();
+			//sd_record_stop();
 			GetSdAlarmParam();
 			b_hkSaveSd = false;
 		}
@@ -1692,7 +1692,7 @@ int main(int argc, char* argv[])
 				g_OpenSd = 0;
 				b_OpenSd = false;
 
-				if (sd_record_start() < 0)  
+				//if (sd_record_start() < 0)  
 				{
 					printf("start sd record failed !\n");
 				}
@@ -1753,7 +1753,7 @@ int main(int argc, char* argv[])
 		hk_load_sd();
 	}
 
-	sd_record_stop();
+	//sd_record_stop();
 	gSysTime = time(0);
 	gbStartTime = 1;
 	if (quit_ != Excode_Stop)

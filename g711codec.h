@@ -5,7 +5,6 @@
 #ifndef	__G711CODEC_H__
 #define	__G711CODEC_H__
 
-
 int PCM2G711a( char *InAudioData, char *OutAudioData, int DataLen, int reserve );
 int PCM2G711u( char *InAudioData, char *OutAudioData, int DataLen, int reserve );
 

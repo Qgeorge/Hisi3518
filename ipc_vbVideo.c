@@ -21,7 +21,7 @@
 #include "osd_region.h"
 #include "ipc_hk.h"
 #include "ipc_email.h"
-#include "ipc_file_sd.h"
+//#include "ipc_file_sd.h"
 #include "ptz.h"
 #include "HISI_VDA.h"
 #include "sample_comm.h"
@@ -247,7 +247,7 @@ static int Set_VBR_Image_QP(int iChnNo, int nQP)
 ///////////////wangshaoshu add/////////////////////
 #if 1
 /*************************************
- *fun:   set video frame rate
+ *fun: 设置帧率
  *author: wangshaoshu
  **************************************/
 int HISI_SetFrameRate(int iChnNo, int nFrameRate)
@@ -2057,7 +2057,7 @@ void AlarmVideoRecord(bool bAlarm)
 			if ( (1 == g_sdIsOnline) && (1 != hkSdParam.autoRec) && (! bsMonut) )
 			{
 				bsMonut = true;
-				sd_record_start();
+				//sd_record_start();
 			}
 		}
 	}
@@ -2069,7 +2069,7 @@ void AlarmVideoRecord(bool bAlarm)
 			if ( iSdRecord <= 0 )
 			{
 				bsMonut = false;
-				sd_record_stop();
+			//	sd_record_stop();
 			}
 		}
 	}
@@ -2278,9 +2278,6 @@ int sccGetVideoThread()
 	fd_set read_fds;
 	VENC_STREAM_S stStream;    //captured stream data struct.	
 	VENC_CHN_STAT_S stStat;
-#if  RECORD
-	RECORDSDK_CMD_PARAM cmdParam;
-#endif
 
 
 	s_vencFd = g_VencFd_Main;
@@ -2311,6 +2308,7 @@ int sccGetVideoThread()
 		static int s_nFrameIndex = -1;
 		static int s_dwTotalFrameIndex = 0;
 
+		//等待获取码流
 		TimeoutVal.tv_sec  = 2;
 		TimeoutVal.tv_usec = 0;
 		s32Ret = select( s_maxFd, &read_fds, NULL, NULL, &TimeoutVal );
@@ -2642,7 +2640,7 @@ int sccGetSubVideoThread()
 				//是否进行录像
 				if (0 == hkSdParam.sdrecqc)
 				{
-					sccPushTfData( PSTREAMTWO, videobuf, iLen, iFrame, g_iCifOrD1, H264 );
+					//sccPushTfData( PSTREAMTWO, videobuf, iLen, iFrame, g_iCifOrD1, H264 );
 				}
 			}		
 		}// end while

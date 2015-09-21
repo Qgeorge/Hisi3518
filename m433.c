@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
-#include "ipc_file_sd.h"
+//#include "ipc_file_sd.h"
 #include "ipc_vbVideo.h"
 #include "utils_biaobiao.h"
 
@@ -347,7 +347,7 @@ void sig_handler(int signo)
 	{
 		printf("...zzzzzzzzzzzzzzzzz segment fault and will reboot zzzzzzzzzzzzzzzzzzzzzz...\n");
 		system("sync");
-		sd_record_stop();
+		//sd_record_stop();
 		system("umount /mnt/mmc");
 		system("reboot");
 	}

@@ -1,4 +1,3 @@
-
 #ifndef __PTZ_H__
 #define __PTZ_H__
 

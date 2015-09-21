@@ -20,6 +20,7 @@ INCPATH     = -I . -I $(PRO_DIR)/IPCAM_LIB/system/include 		  \
 			  -I ../libghttp/include 				  \
 			  -I ./netsdk/include/ 				  \
 			  -I ./wifi_conf/ 				  \
+			  -I ./eamil/ 				  \
 			  -I ./sample_comm 				  \
 			  -I ../amr-lib/include/opencore-amrnb/ 		\
 			  -I $(PRO_DIR)/Hi3518_SDK_V1.0.8.1/mpp/extdrv/tw2865 \
@@ -32,11 +33,11 @@ LIBPATH     = -L ../lib_so  -lutils \
 			  -L ../p2p_server/lib/arm-hisiv100nptl-linux-gcc -lp2p -lpthread -lm \
 			  -L ../amr-lib/lib \
 			  -L ../record/lib  -lrecord \
-			  -L ./libs_HI3511  -lSampleComm -lwificonfig -lnethttp \
+			  -L ./libs_HI3511  -lSampleComm -lwificonfig -lnethttp -lemail \
 			  -L ../libghttp/lib -lghttp \
 			  -L ../../lib -lpthread -lm -lmpi -lVoiceEngine -laec -lresampler -lanr -lisp -lsns_ov9712 \
-			  -L $(PRO_DIR)/IPCAM_LIB/openssl_3518/lib_openssl/lib -lssl -lcrypto \
-			  -L $(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/LibSo -lrtsp -lOnvif
+			  -L $(PRO_DIR)/IPCAM_LIB/openssl_3518/lib_openssl/lib -lssl -lcrypto 
+#			  -L $(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/LibSo -lrtsp -lOnvif
 			
 #MODULES = 	$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/MOD_NetSvRtsp.a \
 			$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/MOD_NetServer.a	\
@@ -64,6 +65,10 @@ $(TARGET):$(OBJS)
 	cd ./sample_comm; $(MAKE) -f Makefile.HI3511
 	cd ..
 	cd ./wifi_conf; $(MAKE) -f Makefile.HI3511
+	cd ..
+	cd ./eamil; $(MAKE) -f Makefile.HI3511
+	cd ..
+	cd ./netsdk; $(MAKE) -f Makefile.HI3511
 	cd ..
 	#$(CXX) $(LINKFLAGS) $(FULLOBJS) -o $(TARGET) $(LIBPATH) $(MODULES)
 	$(CXX) $(LINKFLAGS) $(FULLOBJS) -o $(TARGET) $(LIBPATH)

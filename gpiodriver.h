@@ -7,7 +7,6 @@
 #define GPIO_READ  0
 #define GPIO_WRITE 1
 
-
 int  HI_SetGpio_Open(void);
 int  Hi_SetGpio_Close(void);
 

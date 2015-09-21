@@ -11,7 +11,6 @@ char* conf_get(const char* cf, const char* nm, char val[], size_t len);
 
 void conf_set_space(const char* cf, const char* nm, const char *val);
 
-
 char * EncodeStr( char *codeStr);
 char * DecodeStr( char *codeStr);
 
