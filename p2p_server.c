@@ -354,8 +354,20 @@ static INT32 NetTalkClose(void * pThis)
 //客户端调用SndMsgToServer接口发送的数据在此处处理
 static INT32 NetMsgProc(void * pThis,CHAR* _u8Buf,INT32 _iBufLength)
 {
-
+#if 0
 	dbgmsg("%s :%s \n", __FUNCTION__,_u8Buf);
+	int cmd;
+	cmd = int*(_u8Buf);
+	switch(cmd)
+	{
+		case 1:
+			upgrade();
+			break;
+		default:
+			printf("the protocal is no sense\n");
+	}
+#endif
+	net_get_upgrade();
 	return 0;
 }
 

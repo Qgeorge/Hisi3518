@@ -52,8 +52,17 @@ typedef struct request_st
 \"errorCode\":%d\
 }"
 
+#define Upgrade_Firware_Str "{ \
+\"token\":\"token\",\
+\"client_type\":\"device\",\
+\"obj\":\"\" \
+}"
+
 #define GET_KEY_URI  "http://120.25.216.218:8080/UUSmartHome/device/Device!GetP2PKey.action"
 #define BIND_DEV_URI  "http:// 120.25.216.218:8080/UUSmartHome/device/Device!BindDevice.action"
 #define CREATE_DEV_URI  "http://120.25.216.218:8080/UUSmartHome/device/Device!Create.action"
+#define UPGRADE_FIRWARE_URI  "http://120.25.216.218:8080/UUSmartHome/device/Device!GetLatestVersion.action"
+#define DOWNLOAD_FIRWARE_URI  "http://120.25.216.218:8080/UUSmartHome/Upload/"
+#define UPGRADE_IMAGE "app.tar.gz"
 
 #endif

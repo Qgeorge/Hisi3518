@@ -34,6 +34,9 @@ extern int net_create_device (char *DeviceId);
 extern int net_get_key (char *DeviceId, int *key);
 
 extern int get_device_id(char *DeviceId);
+
+extern int net_get_upgrade();
+#if 0
 /* 
  * ===  FUNCTION  ======================================================================
  *  Name:  main
@@ -57,4 +60,12 @@ int main ( int argc, char *argv[] )
 	return 0;
 }
 /* ----------  end of function main  ---------- */
+#endif
+int main()
+{
+	while(1)
+	{
+		net_get_upgrade();
+	}
+}
 
