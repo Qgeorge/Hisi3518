@@ -1499,20 +1499,21 @@ int main(int argc, char* argv[])
 	char cSensorType[32]={0};
 
 	char usrid[32];
-	char device_id[500];
+	char device_id[50];
 
 
 /*add by biaobiao*/
 //	connect_the_ap();
 	int f_wifi_connenct = 0;
+/*获取设备ID*/
 	get_device_id(device_id);
-	//net_create_device(device_id);
+/*设为ap模式*/
 
 #if HTTP_DEBUG
 	printf("Create the device id*********************");
 #endif
 
-	hk_load_sd(); //mount sd card.
+	//hk_load_sd(); //mount sd card.
 	CheckNetDevCfg();
 	init_conf(); 
 	hk_set_system_time();
@@ -1562,7 +1563,7 @@ int main(int argc, char* argv[])
 	IRCutBoardType     = conf_get_int(HOME_DIR"/hkipc.conf", "IRCutBoardType");
 
 	/**** init video Sub System. ****/
-	if ( HI_SUCCESS != Video_SubSystem_Init() )
+	if( HI_SUCCESS != Video_SubSystem_Init() )
 	{
 		printf("[%s, %d] video sub system init failed !\n", __func__, __LINE__); 
 	}
@@ -1573,7 +1574,7 @@ int main(int argc, char* argv[])
 	initGPIO();
 
 	setpidfile(getenv("PIDFILE"), getpid());
-	if (getenv("wppid"))
+	if ( getenv("wppid") )
 	{
 		watcher_pid_ = atoi(getenv("wppid"));
 	}
@@ -1643,7 +1644,7 @@ int main(int argc, char* argv[])
 	HK_WtdInit(60*2); //watchdog.
 	//g_KeyResetCount = 0;
 
-	play_minute();
+//	play_minute();
 	unsigned int groupnum = 0, bitnum = 0, val_set = 0;
 	unsigned int valSetRun = 0;
 	for ( ; !quit_; counter++)
@@ -1657,10 +1658,15 @@ int main(int argc, char* argv[])
 		/*add by biaobiao 检测按键 若按键长按进入smartconfig模式，短按则重启*/
 		if(key_scan() == 1)
 		{
-			smart_config( g_userid );
-			f_wifi_connenct = 1;
-			PlaySound("/root/test/file_5.pcm");
-			//net_bind_device();
+			if(smart_config( g_userid ) ==);
+			{	
+				f_wifi_connenct = 1;
+				PlaySound("/root/test/file_5.pcm");
+			}
+			//创建设备
+			net_create_device(device_id);
+			//设别绑定
+			net_bind_device();
 			printf("*********smart config comlete******************\n");
 		}else if(key_scan() == 0)
 		{

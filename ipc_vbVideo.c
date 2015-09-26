@@ -30,7 +30,7 @@
 #include "utils_biaobiao.h"
 //add by biaobiao
 #define RECORD 0
-#define NEW_RECORD 1
+#define NEW_RECORD 0
 #include "record.h"
 extern pthread_mutex_t record_mutex; 
 #if RECORD
@@ -2382,7 +2382,7 @@ int sccGetVideoThread()
 				/*****OSD END*****/
 
 #if ENABLE_P2P
-//				P2PNetServerChannelDataSndToLink(0,0,videobuf,iLen,iFrame,0);
+				P2PNetServerChannelDataSndToLink(0,0,videobuf,iLen,iFrame,0);
 #endif
 
 #if ENABLE_QQ
@@ -2586,7 +2586,7 @@ int sccGetSubVideoThread()
 				OSD_Overlay_RGN_Display_Time(RgnHandle,s_vencChn); 
 				/*****OSD END*****/
 #if ENABLE_P2P
-//                                P2PNetServerChannelDataSndToLink(0,1,videobuf,iLen,iFrame,0);
+				P2PNetServerChannelDataSndToLink(0,1,videobuf,iLen,iFrame,0);
 #endif
 
 

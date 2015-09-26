@@ -663,7 +663,7 @@ void AudioThread(void)
 				P2PNetServerChannelDataSndToLink( 0, 1, stStream.pStream, stStream.u32Len, 1, DATA_AUDIO);
 #endif
 
-#if 1
+#if 0
 				struct timeval tv;
 				gettimeofday(&tv, NULL);
 				int64_t time_ms = tv.tv_sec * 1000LL + tv.tv_usec / 1000LL;

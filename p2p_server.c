@@ -164,6 +164,11 @@ static INT32 NetLogin(PEER_INFO* pPeerInfo,CHAR* _u8Buf,INT32 _iBufLength)
 	PCMDHEADP2P pNetCmd = (PCMDHEADP2P)cSndBuf;
 	LogInRsp *pLogInRsp = (LogInRsp *)(cSndBuf+sizeof(CMDHEADP2P));
 	dbgmsg("Receive  logon message \n");
+	//biaobiao
+	int version[2];
+	version[0] = 1;
+	version[0] = 100;
+	P2PNetServerSndMsgToLink(pPeerInfo,(char *)version, sizeof(version));
 	if ((strcmp(pLogInReq->szUserName,"admin") == 0) && (strcmp(pLogInReq->szPassword,"admin") == 0))
 	{
 		result = 0; //模拟为用户名admin 密码1234 才是唯一可登录的用户
@@ -354,20 +359,20 @@ static INT32 NetTalkClose(void * pThis)
 //客户端调用SndMsgToServer接口发送的数据在此处处理
 static INT32 NetMsgProc(void * pThis,CHAR* _u8Buf,INT32 _iBufLength)
 {
-#if 0
+#if 1
 	dbgmsg("%s :%s \n", __FUNCTION__,_u8Buf);
 	int cmd;
-	cmd = int*(_u8Buf);
+	cmd = (int)(*_u8Buf);
+	printf("*************************the cmd is %d\n", cmd);
 	switch(cmd)
 	{
 		case 1:
-			upgrade();
+			net_get_upgrade();
 			break;
 		default:
 			printf("the protocal is no sense\n");
 	}
 #endif
-	net_get_upgrade();
 	return 0;
 }
 

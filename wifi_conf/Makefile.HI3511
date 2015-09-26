@@ -37,6 +37,7 @@ all:
 	$(CC)   $(CFLAGS) -c connect.c -o $(OBJSPATH)/connect.o $(LDFLAGS)
 	$(CC)   $(CFLAGS) -c ping_net.c -o $(OBJSPATH)/ping_net.o $(LDFLAGS)
 	$(CC)   $(CFLAGS) -c wifi.c -o $(OBJSPATH)/wifi.o $(LDFLAGS)
+	$(CC)   $(CFLAGS) -c wifi_ap.c -o $(OBJSPATH)/wifi_ap.o $(LDFLAGS)
 
 	$(AR) -rcs $(OBJSPATH)/libwificonfig.a $(OBJS) $(LDFLAGS)
 	
