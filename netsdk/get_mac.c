@@ -29,7 +29,6 @@ int get_device_id(char *DeviceId)
                         (unsigned char)ifreq.ifr_hwaddr.sa_data[3],
                         (unsigned char)ifreq.ifr_hwaddr.sa_data[4],
                         (unsigned char)ifreq.ifr_hwaddr.sa_data[5]);
-		#endif	
 
 		sprintf(DeviceId, "%02x:%02x:%02x:%02x:%02x:%02x",	
 				(unsigned char)ifreq.ifr_hwaddr.sa_data[0],
@@ -38,8 +37,21 @@ int get_device_id(char *DeviceId)
 				(unsigned char)ifreq.ifr_hwaddr.sa_data[3],
 				(unsigned char)ifreq.ifr_hwaddr.sa_data[4],
 				(unsigned char)ifreq.ifr_hwaddr.sa_data[5]);
+		#endif	
+		sprintf(DeviceId, "%02x%02x%02x",	
+				(unsigned char)ifreq.ifr_hwaddr.sa_data[3],
+				(unsigned char)ifreq.ifr_hwaddr.sa_data[4],
+				(unsigned char)ifreq.ifr_hwaddr.sa_data[5]);
 
 		printf("%s\n", DeviceId);
 		
         return 0;
 }
+#if 0
+int main()
+{
+	char buf[100] = {0};
+	get_device_id(buf);
+
+}
+#endif

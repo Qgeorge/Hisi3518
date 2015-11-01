@@ -336,6 +336,7 @@ int HISI_SetBitRate(int iChnNo, int iBitRate)
 		stVencChnAttr.stRcAttr.stAttrH264Vbr.u32MinQp          = 10; //24;
 		stVencChnAttr.stRcAttr.stAttrH264Vbr.u32MaxQp          = 33; //32;
 
+		stVencChnAttr.stRcAttr.stAttrH264Vbr.u32MaxBitRate     = iBitRate; //512; /* average bit rate */
 		if (g_iCifOrD1 >= 9)
 			stVencChnAttr.stRcAttr.stAttrH264Vbr.u32MaxBitRate     = 200; //512; /* average bit rate */
 		else
@@ -1819,6 +1820,7 @@ static void video_property_builtins(struct HKVProperty* vp)
 /**************************************************************************
  * func: initialize main stream params according to 
  *       subipc.conf for phone preview, (zqj).
+ *       主码流设置参数
  **************************************************************************/
 int MainStreamConfigurate(void)
 {
@@ -1833,7 +1835,7 @@ int MainStreamConfigurate(void)
 	video_properties_.vv[HKV_Yuntai]             = conf_get_int(HOME_DIR"/hkipc.conf", "ptzspeed");
 	video_properties_.vv[HKV_FrequencyLevel]     = conf_get_int(HOME_DIR"/hkipc.conf", "FrequencyLevel");
 	video_properties_.vv[HKV_Cbr]                = conf_get_int(HOME_DIR"/hkipc.conf", "Cbr");
-	video_properties_.vv[HKV_MotionSensitivity]  = conf_get_int(HOME_DIR"/hkipc.conf", "MotionSensitivity");;
+	video_properties_.vv[HKV_MotionSensitivity]  = conf_get_int(HOME_DIR"/hkipc.conf", "MotionSensitivity");
 	HK_DEBUG_PRT("BitRate:%d, Saturat:%d, Sharp:%d, Bright:%d, Contrast:%d, Hue:%d, Yuntai:%d, Freq:%d, Cbr:%d, MotionSens:%d\n",\
 			video_properties_.vv[HKV_VinFormat], video_properties_.vv[HKV_CamSaturationLevel], \
 			video_properties_.vv[HKV_SharpnessLevel], video_properties_.vv[HKV_BrightnessLevel], \
@@ -2263,7 +2265,7 @@ int g_Video_Thread=0;
 int sccGetVideoThread()
 {
 #if NEW_RECORD
-	av_record_init("/nfsroot/record");
+	av_record_init("/mnt/mmc");
 #endif
 	int threq = 0;
 	sccOpen("video.vbVideo.MPEG4", NULL, &threq);
@@ -2377,8 +2379,8 @@ int sccGetVideoThread()
 				} //end for()
 
 				/*****OSD: TIME*****/
-				RgnHandle = 3 + s_vencChn;
-				OSD_Overlay_RGN_Display_Time(RgnHandle, s_vencChn); 
+				//RgnHandle = 3 + s_vencChn;
+				//OSD_Overlay_RGN_Display_Time(RgnHandle, s_vencChn); 
 				/*****OSD END*****/
 
 #if ENABLE_P2P
@@ -2389,16 +2391,6 @@ int sccGetVideoThread()
 				tx_set_video_data(videobuf, iLen, iFrame, _GetTickCount(), s_gopIndex, s_nFrameIndex, s_dwTotalFrameIndex++, 40);
 #endif
 
-#if RECORD
-				cmdParam.nChannel = s_vencChn;
-				cmdParam.nOpt = RSDKCMD_SEND_FRAME;
-				cmdParam.param.frameBuffer = NULL;
-				if (1)	// Change the code by lvjh, 2009-05-27
-				{
-					//cmdParam.param.frameBuffer = g_av_buffer[nChannel][0];
-					RECORDSDK_Operate(&cmdParam, NULL, NULL);
-				}
-#endif 
 #if NEW_RECORD
 				struct timeval tv;
 				gettimeofday(&tv, NULL);
@@ -2451,7 +2443,7 @@ int CreateVideoThread(void)
 	return 1;
 }
 /*子码流线程 */
-static int g_SubVideo_Thread=0;
+int g_SubVideo_Thread=0;
 int sccGetSubVideoThread()
 {
 	int threq = 0;
@@ -2764,6 +2756,7 @@ void video_RSLoadObjects()
     {
         g_s32sunvenchn = 1;   //Venc Channel 1: VGA (640*480)
         g_sunCifOrD1 = ENUM_VGA ; //5
+        //g_sunCifOrD1 = ENUM_CIF ; //5
     }
 
     /**config main stream params**/

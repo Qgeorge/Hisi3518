@@ -5,8 +5,8 @@
 #define  K    P0_7                 //独立按键
 #define  ON    0                   //按键按下的电平值
 #define  OFF   1
-#define JSQ_L  5                  //消除抖动计数器门限下限
-#define JSQ_H 30                  //消除抖动计数器门限上限
+#define JSQ_L  2                  //消除抖动计数器门限下限
+#define JSQ_H 40                  //消除抖动计数器门限上限
 #define  KEY_SHORT  0X20          //自定义短按标志
 #define  KEY_LOG     0X22         //自定义长按标志
 #define  DLEPY   f()              //f()是系统中实时性要求较高的函数，在这里插入充当消抖可以兼顾实时性方面的要求
@@ -58,24 +58,26 @@ int  key_scan()
 	{
 		timer++;
 		usleep(1000*100);
-		if(timer > JSQ_H)
-		{
-			return 1;
-		}
-	}
 
+
+		if( timer> JSQ_L  && timer< JSQ_H )
+		{
+			printf("blink**************\n");
+			Hi_SetGpio_SetDir( 7, 5, GPIO_WRITE );
+			Hi_SetGpio_SetBit( 7, 5, timer%2); //pull up.
+		}
+		if(timer > JSQ_H)
+		break;
+	}
+	if(timer > JSQ_H)
+	{
+		return 1;
+	}
 	if( timer> JSQ_L  && timer< JSQ_H )
 	{
 		timer = 0; 
 		printf("short\n");
 		return 0;
-	}
-
-	if( timer >JSQ_H )
-	{
-		timer = 0;
-		printf("long\n");
-		return 1;
 	}
 	return 2;
 

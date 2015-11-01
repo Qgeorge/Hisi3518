@@ -15,13 +15,31 @@ typedef struct request_st
 \"device_id\":\"%s\",\
 \"device_type\":%d,\
 \"sub_type\":%d,\
-\"device_verison\":\"%s\",\
-\"device_version_num\":\"%s\",\
-\"device_produce_num\":\"%s\"\
+\"device_version\":\"%s\",\
+\"device_version_num\":\"%d\",\
+\"device_produce_num\":\"%d\"\
 }\
 }"
 
 #define  Rsp_Creat_Str "{ \
+\"obj\":\"%d\",\
+\"errorCode\":%d\
+}"
+
+#define Modify_Str "{\
+\"token\":\"token\",\
+\"client_type\":\"device\",\
+\"obj\":{\
+\"device_id\":\"%s\",\
+\"device_type\":%d,\
+\"sub_type\":%d,\
+\"device_version\":\"%s\",\
+\"device_version_num\":\"%d\",\
+\"device_produce_num\":\"%d\"\
+}\
+}"
+
+#define  Rsp_Modify_Str "{ \
 \"obj\":\"%d\",\
 \"errorCode\":%d\
 }"
@@ -58,11 +76,13 @@ typedef struct request_st
 \"obj\":\"\" \
 }"
 
-#define GET_KEY_URI  "http://120.25.216.218:8080/UUSmartHome/device/Device!GetP2PKey.action"
-#define BIND_DEV_URI  "http:// 120.25.216.218:8080/UUSmartHome/device/Device!BindDevice.action"
-#define CREATE_DEV_URI  "http://120.25.216.218:8080/UUSmartHome/device/Device!Create.action"
-#define UPGRADE_FIRWARE_URI  "http://120.25.216.218:8080/UUSmartHome/device/Device!GetLatestVersion.action"
-#define DOWNLOAD_FIRWARE_URI  "http://120.25.216.218:8080/UUSmartHome/Upload/"
+#define GET_KEY_URI  "http://s1.uuioe.net:8080/UUSmartHome/device/Device!GetP2PKey.action"
+#define BIND_DEV_URI  "http://s1.uuioe.net:8080/UUSmartHome/device/Device!BindDevice.action"
+#define CREATE_DEV_URI  "http://s1.uuioe.net:8080/UUSmartHome/device/Device!Create.action"
+#define MODIFY_DEV_URI  "http://s1.uuioe.net:8080/UUSmartHome/device/Device!Modify.action"
+#define UPGRADE_FIRWARE_URI  "http://s1.uuioe.net:8080/UUSmartHome/device/Device!GetLatestVersion.action"
+#define DOWNLOAD_FIRWARE_URI  "http://s1.uuioe.net:8080/UUSmartHome/Upload/"
 #define UPGRADE_IMAGE "app.tar.gz"
+#define UPGRADE_IMAGE_DIR "/opt/"
 
 #endif

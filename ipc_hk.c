@@ -101,6 +101,7 @@ unsigned int g_RUN_bit      = 3; //RUN light:5_3.
 
 /***************** SD Card ******************/
 short g_sdIsOnline = 0;
+short g_sdIsOnline_f = 0;
 bool b_hkSaveSd = false;
 short g_nFtpIsOpen = 0;
 HK_SD_PARAM_ hkSdParam;
@@ -189,7 +190,7 @@ void wrap_sys_restart( )
 	hk_WirelessCard_Reset();
 	quit_ = 1;
 	system("sync");
-	system("reboot");
+	system("reboot -f");
 }
 
 static void* insert0(const char* fn, const char* line)
@@ -1086,7 +1087,7 @@ static int hk_IrcutCtrl(int nboardtype)
 		if (0 == nboardtype) //ircut light board type: level 0.
 		{
 			/**change ircut mode**/
-			if (0 == val_read) //day mode.
+			if (1 == val_read) //day mode.
 			{
 				g_IRCutStateNightCnt = 0;
 				g_IRCutStateDayCnt++;
@@ -1122,7 +1123,7 @@ static int hk_IrcutCtrl(int nboardtype)
 				}
 			}
 
-			if (1 == val_read) //night mode.
+			if (0 == val_read) //night mode.
 			{
 				g_IRCutStateDayCnt = 0;
 				g_IRCutStateNightCnt++;
@@ -1161,7 +1162,7 @@ static int hk_IrcutCtrl(int nboardtype)
 		else if (1 == nboardtype) //ircut light board type: level 1.
 		{
 			/**change ircut mode**/
-			if (1 == val_read) //day mode.
+			if (0 == val_read) //day mode.
 			{
 				g_IRCutStateNightCnt = 0;
 				g_IRCutStateDayCnt++;
@@ -1197,7 +1198,7 @@ static int hk_IrcutCtrl(int nboardtype)
 				}
 			}
 
-			if (0 == val_read) //night mode.
+			if (1 == val_read) //night mode.
 			{
 				g_IRCutStateDayCnt = 0;
 				g_IRCutStateNightCnt++;
@@ -1323,6 +1324,7 @@ int HK_Check_KeyReset(void)
 #endif
 void hk_set_system_time()
 {
+	int st = 0;
 	int tz = conf_get_int(HOME_DIR"/time.conf", "zone");
 	unsigned int t = conf_get_int(HOME_DIR"/time.conf", "time_");
 	if (t > 0)
@@ -1333,6 +1335,12 @@ void hk_set_system_time()
 		ts.tv_sec = seconds;
 		ts.tv_nsec = 0;
 		clock_settime(CLOCK_REALTIME, &ts);
+	}
+	system("/bin/ntpdate cn.pool.ntp.org");
+	st = time(NULL);
+	if(st != NULL)
+	{
+		conf_set_int(HOME_DIR"/time.conf", "time_",st-tz);
 	}
 }
 
@@ -1415,12 +1423,24 @@ int GetStorageInfo()
 static void hk_load_sd()
 {
 	g_sdIsOnline = CheckSDStatus();
+	#if 0
+	if (0 == access("/mnt/mmc", F_OK | R_OK | W_OK))
+	{
+		if(g_sdIsOnline == 1)
+			return;
+	}
+	#endif
 	if (g_sdIsOnline == 1) //index sd card inserted.
 	{
+		if(g_sdIsOnline_f == 1)
+		{
+			return;
+		}
 		mkdir("/mnt/mmc", 0755);
 		system("umount /mnt/mmc/");
 		usleep(1000);
 		system("mount -t vfat /dev/mmcblk0p1 /mnt/mmc/"); //mount SD.
+		g_sdIsOnline_f = 1;
 
 		GetStorageInfo();
 
@@ -1432,18 +1452,14 @@ static void hk_load_sd()
 	}
 	else if(g_sdIsOnline == 2)
 	{
+		g_sdIsOnline_f = 0;
 		GetStorageInfo();
 		hkSdParam.allSize = 14;
-	}
-	HK_DEBUG_PRT("......SD info: g_sdIsOnline:%d, totalsize=%ld...freesize=%ld...usedsize=%ld......\n", g_sdIsOnline, hkSdParam.allSize, hkSdParam.leftSize, hkSdParam.haveUse);
-
-	if (1 == g_sdIsOnline)
+	}else
 	{
-		printf("...........Check SD Upgrade & Device License............\n");
-		//HK_Check_SD_Upgrade(g_sdIsOnline); //system upgrade.
-		//HK_Check_SD_License(g_sdIsOnline); //conf device lincense and upgrade url, and so on.
+		g_sdIsOnline_f = 0;
 	}
-	//SD_RSLoadObjects( &SysRegisterDev );
+	//HK_DEBUG_PRT("......SD info: g_sdIsOnline:%d, totalsize=%ld...freesize=%ld...usedsize=%ld......\n", g_sdIsOnline, hkSdParam.allSize, hkSdParam.leftSize, hkSdParam.haveUse);
 }
 
 
@@ -1490,6 +1506,7 @@ void IPC_Video_Audio_Thread_Init(void)
 #endif
 
 
+int g_wifimod = 1;
 int main(int argc, char* argv[])
 {
 	/*IRCUT的类型,调节IRCUT的灵敏度*/
@@ -1498,8 +1515,8 @@ int main(int argc, char* argv[])
 	/*Sensor的类型*/
 	char cSensorType[32]={0};
 
-	char usrid[32];
-	char device_id[50];
+	char usrid[32] = {0};
+	char device_id[12] = {0};
 
 
 /*add by biaobiao*/
@@ -1507,7 +1524,6 @@ int main(int argc, char* argv[])
 	int f_wifi_connenct = 0;
 /*获取设备ID*/
 	get_device_id(device_id);
-/*设为ap模式*/
 
 #if HTTP_DEBUG
 	printf("Create the device id*********************");
@@ -1516,7 +1532,6 @@ int main(int argc, char* argv[])
 	//hk_load_sd(); //mount sd card.
 	CheckNetDevCfg();
 	init_conf(); 
-	hk_set_system_time();
 	//add by biaobiao
 	pthread_mutex_init(&record_mutex,NULL);
 
@@ -1559,9 +1574,24 @@ int main(int argc, char* argv[])
 	g_DevIndex         = conf_get_int(HOME_DIR"/hkclient.conf", "IndexID"); 
 	g_irOpen           = conf_get_int(HOME_DIR"/hkipc.conf", "iropen");
 	g_onePtz           = conf_get_int(HOME_DIR"/hkipc.conf", "oneptz");
-	g_DevPTZ           = conf_get_int(HOME_DIR"/ptz.conf", "HKDEVPTZ");
+	g_DevPTZ           = conf_get_int("/etc/device/ptz.conf", "HKDEVPTZ");
 	IRCutBoardType     = conf_get_int(HOME_DIR"/hkipc.conf", "IRCutBoardType");
+	g_wifimod		   = conf_get_int(HOME_DIR"/hkipc.conf", "WIFIMODE");
 
+	if(g_wifimod == 0)
+	{
+		/*设为ap模式*/
+		set_ap_mode();
+	}
+	else if(g_wifimod == 1)
+	{	
+		/*设为sta模式*/
+		set_sta_mode();
+		connect_the_ap();
+		net_modify_device(device_id);
+	}
+	hk_set_system_time();
+	video_RSLoadObjects();
 	/**** init video Sub System. ****/
 	if( HI_SUCCESS != Video_SubSystem_Init() )
 	{
@@ -1605,7 +1635,8 @@ int main(int argc, char* argv[])
 
 /*add by biaobiao*/
 #if ENABLE_P2P
-    create_my_detached_thread(p2p_server_f);
+	printf("############################p2p###################\n");
+    create_detached_thread(p2p_server_f, (void *)device_id);
 #endif
 
 /*add by biaobiao*/
@@ -1645,8 +1676,11 @@ int main(int argc, char* argv[])
 	//g_KeyResetCount = 0;
 
 //	play_minute();
+
+	//PlaySound("/root/test/file_5.pcm");
 	unsigned int groupnum = 0, bitnum = 0, val_set = 0;
 	unsigned int valSetRun = 0;
+	int ret = 0;
 	for ( ; !quit_; counter++)
 	{
 	//	if (1 != HI3518_WDTFeed())
@@ -1655,28 +1689,40 @@ int main(int argc, char* argv[])
 	//	}
 		/*ISP控制*/
 		ISP_Ctrl_Sharpness();
+		ret = key_scan();
 		/*add by biaobiao 检测按键 若按键长按进入smartconfig模式，短按则重启*/
-		if(key_scan() == 1)
+		if(ret == 0)
 		{
-			if(smart_config( g_userid ) ==);
+			printf("*********smart config begin******************\n");
+			#if 1
+			PlaySound("/mnt/sif/audio/wait.pcm");
+			set_sta_mode();
+			if(smart_config( g_userid ) == 0)
 			{	
+				//设置为sta模式
+				conf_set_int(HOME_DIR"/hkipc.conf", "WIFIMODE", 1);
 				f_wifi_connenct = 1;
-				PlaySound("/root/test/file_5.pcm");
+				PlaySound("/mnt/sif/audio/success.pcm");
 			}
-			//创建设备
-			net_create_device(device_id);
-			//设别绑定
-			net_bind_device();
 			printf("*********smart config comlete******************\n");
-		}else if(key_scan() == 0)
+			#endif
+		}else if(ret == 1)
 		{
-			//wrap_sys_restart();
+			
+			conf_set_int(HOME_DIR"/hkipc.conf", "WIFIMODE", 0);
+			printf("*********recovery******************\n");
+			wrap_sys_restart();
 		}
 		/*smart_config结束，则连接wifi*/
 		if(f_wifi_connenct)
 		{
 			if(connect_the_ap() == 0)
 			{
+				//创建设备
+				printf("the deviceid is %s\n", device_id);
+				net_create_device(device_id);
+				//设别绑定
+				net_bind_device( g_userid, device_id );
 				f_wifi_connenct = 0;
 				printf("*********connect the ap******************\n");
 			};

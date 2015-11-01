@@ -5,6 +5,7 @@
 #define  MAX_SIZE  (512*1024)
 #define ENABLE_P2P
 extern void OnCmdPtz(int ev);
+extern int g_wifimod;
 
 static CHAR g_cSubFilebuf[MAX_SIZE]; 
 static INT32  g_nSubCurfilebufsize = 0;
@@ -168,7 +169,7 @@ static INT32 NetLogin(PEER_INFO* pPeerInfo,CHAR* _u8Buf,INT32 _iBufLength)
 	int version[2];
 	version[0] = 1;
 	version[0] = 100;
-	P2PNetServerSndMsgToLink(pPeerInfo,(char *)version, sizeof(version));
+//	P2PNetServerSndMsgToLink(pPeerInfo,(char *)version, sizeof(version));
 	if ((strcmp(pLogInReq->szUserName,"admin") == 0) && (strcmp(pLogInReq->szPassword,"admin") == 0))
 	{
 		result = 0; //模拟为用户名admin 密码1234 才是唯一可登录的用户
@@ -183,19 +184,19 @@ static INT32 NetLogin(PEER_INFO* pPeerInfo,CHAR* _u8Buf,INT32 _iBufLength)
 		pLogInRsp->m_Capabilities.m_iChannel= htons(1);
 		pLogInRsp->m_Capabilities.m_iStream= htons(2);
 		pLogInRsp->m_Capabilities.m_iAlarmNum= htons(1);
-		pLogInRsp->m_ChannelIfor[0][0].Width = htonl(1920);
-		pLogInRsp->m_ChannelIfor[0][0].Height = htonl(1080);
+		pLogInRsp->m_ChannelIfor[0][0].Width = htonl(1080);
+		pLogInRsp->m_ChannelIfor[0][0].Height = htonl(720);
 		pLogInRsp->m_ChannelIfor[0][0].BitRat = htonl(4096);
-		pLogInRsp->m_ChannelIfor[0][0].FrameRate = htonl(25);
+		pLogInRsp->m_ChannelIfor[0][0].FrameRate = htonl(15);
 		pLogInRsp->m_ChannelIfor[0][0].IFrameRate = htonl(100);
 		pLogInRsp->m_ChannelIfor[0][0].Quity = htonl(80);
 		pLogInRsp->m_ChannelIfor[0][0].AudioType = htonl(AUDIO_PCM);//PCM
 		pLogInRsp->m_ChannelIfor[0][0].VideoType = htonl(VIDEO_H264);//H264
 
-		pLogInRsp->m_ChannelIfor[0][1].Width = htonl(720);
-		pLogInRsp->m_ChannelIfor[0][1].Height = htonl(576);
+		pLogInRsp->m_ChannelIfor[0][1].Width = htonl(640);
+		pLogInRsp->m_ChannelIfor[0][1].Height = htonl(480);
 		pLogInRsp->m_ChannelIfor[0][1].BitRat = htonl(1024);
-		pLogInRsp->m_ChannelIfor[0][1].FrameRate = htonl(25);
+		pLogInRsp->m_ChannelIfor[0][1].FrameRate = htonl(15);
 		pLogInRsp->m_ChannelIfor[0][1].IFrameRate = htonl(100);
 		pLogInRsp->m_ChannelIfor[0][1].Quity = htonl(80);
 		pLogInRsp->m_ChannelIfor[0][1].AudioType = htonl(0x05);//PCM
@@ -247,6 +248,7 @@ static INT32 NetPtzControl(void * pThis,CHAR* _u8Buf,INT32 _iBufLength)
 {
 	PtzControlReq *pReq = (PtzControlReq *)_u8Buf;
 	dbgmsg("##########  rcv %s  message \n", __FUNCTION__);
+	printf("########## the cmd is %d\n", pReq->mPtzData.iAction);
 	OnCmdPtz(pReq->mPtzData.iAction);
 	return 0;
 }
@@ -412,6 +414,8 @@ INT32 NetReadCallback(PEER_INFO* pPeerInfo, CHAR* _u8Buf, INT32 length)
 		case REQ_PLAYSTREAM :
 			//ChannelDataSndToLink(0,0,g_SubFrameBuf,SubLen,0,0);
 			//   ChannelDataSndToLink(0,1,g_SubFrameBuf,SubLen,0,0);
+			HI_MPI_VENC_RequestIDRInst(0);
+			HI_MPI_VENC_RequestIDRInst(1);
 			break; 
 
 			//客户端透明传输的数据，用于自己扩展协议
@@ -426,10 +430,12 @@ INT32 NetReadCallback(PEER_INFO* pPeerInfo, CHAR* _u8Buf, INT32 length)
 }
 
 //INT32 p2p_server(INT32 argc, char **argv)
-INT32 p2p_server_f()
+INT32 p2p_server_f(void *args)
 {
-	
-        char argv[4][100] ={"4","server","115.28.168.140","HM-003"};
+	char device_id[12] = {0};
+	get_device_id(device_id);
+	//char *device_id = (char *)args;
+    char argv[4][100] ={"4","server","s1.uuioe.net","local"};
 	int argc = atoi(argv[0]);
 	CHAR cServerID[MAX_ID_LEN+1] = {0};
 	CHAR cRole[16] = {0};
@@ -454,11 +460,18 @@ INT32 p2p_server_f()
 	strcpy(cRole, argv[1]);
 	strcpy(g_cP2PIP,argv[2]);
 	strcpy(cServerID, argv[3]);
+	if(g_wifimod == 1)
+	{
+		strcpy(cServerID, device_id);
+	}
 	printf("cRole is %s g_cP2PIP is %s cServerID is %s \n", cRole, g_cP2PIP, cServerID);
 	printf("The Test has started  if have anything  Please contact \n"); 
 	//初始化SDK 
 //	P2PNetServerSdkInit(cServerID,gLPort,g_cP2PIP,NetReadCallback,256,256);
 	P2PNetServerSdkInit(cServerID,gLPort,g_cP2PIP,0,NetReadCallback,256,256);
-	while(1);
+	while(1)
+	{
+		sleep(10);
+	}
 	return 0;
 }

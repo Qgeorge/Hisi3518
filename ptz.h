@@ -12,7 +12,7 @@
 extern int g_RotateSpeed;		//rotate speed
 extern int g_UD_StepCount;		//calculate the UP down current position.
 extern int g_LR_StepCount;		//calculate the left rightcurrent position.
-extern int g_PtzRotateEnable;		//ptz rotate flag, 1:enable rotate, 0:ptz stop
+extern int g_PtzRotateEnable;	//ptz rotate flag, 1:enable rotate, 0:ptz stop
 extern int g_PtzRotateType;		//type ==> 1:leftright; 2:updown; 3:all direction auto rotate.
 extern int g_PtzStepType;		//ptz step, 1:left, 2:right, 3:up, 4:down.
 extern int g_PtzPresetPos;		//preset position: 1 ~ 8.	

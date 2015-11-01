@@ -29,8 +29,8 @@ int connect_enc_ap(char *encmod, char *ssid, char * password)
 
 	printf("str is %s\n", cmd_str);
 	system(cmd_str);
-	sleep(3);
-	system(cmd_str);
+	sleep(5);
+	//system(cmd_str);
 }
 /*
  *设置为adhoc模式

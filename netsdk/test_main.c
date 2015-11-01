@@ -27,7 +27,7 @@ static void sig_handle()
 
 #include "protocol_josn.h"
 
-extern int net_bind_device (char *UserId);
+extern int net_bind_device (char *UserId, char *DeviceId);
 
 extern int net_create_device (char *DeviceId);
 
@@ -63,9 +63,9 @@ int main ( int argc, char *argv[] )
 #endif
 int main()
 {
-	while(1)
-	{
-		net_get_upgrade();
-	}
+	char UserId[20] = "17727532515";
+	char DeviceId[20] = "1da099";
+	net_create_device(DeviceId);
+	net_bind_device(UserId, DeviceId);
 }
 

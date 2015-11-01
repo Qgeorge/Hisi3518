@@ -20,11 +20,8 @@
 #include "cJSON.h"
 #include "protocol_josn.h"
 
-#define DEVICE_TYPE 1
-#define SUB_TYPE 1
-#define DEVICE_VERSION "V1.0"
-#define DEVICE_VERSION_NUM "00220150908"
-#define DEVICE_PRODUCE_NUM "1111334455"
+#define DEVICE_TYPE 2
+#define HOME_DIR "/mnt/sif"
 
 extern int get_device_id(char *DeviceId);
 extern int http_request(request_st *RequeSt);
@@ -35,9 +32,8 @@ extern int http_request(request_st *RequeSt);
  *  Description:	用户设备绑定  
  * =====================================================================================
  */
-int net_bind_device (char *UserId)
+int net_bind_device (char *UserId, char *DeviceId)
 {
-	char DeviceId[50];
 	get_device_id(DeviceId);
 	char BindDevice_Str_tmp[200];
 	sprintf(BindDevice_Str_tmp, BindDevice_Str, DeviceId, UserId);
@@ -48,6 +44,11 @@ int net_bind_device (char *UserId)
 	return 0;
 }
 /* -----  end of function net_bind_device  ----- */
+void int2str(int n, char *str)
+{
+	sprintf(str, "v%d.%d.%d",n/100, (n-(n/100*100))/10, n%10);
+	printf("the v is %s\n", str);
+}
 /* 
  * ===  FUNCTION  ======================================================================
  *  Name:  net_create_device
@@ -57,14 +58,55 @@ int net_bind_device (char *UserId)
 int net_create_device (char *DeviceId)
 {
 	char Create_str_tmp[500]={0};
+	int device_version_num;
+	int  device_produce_num;
+	char device_version[12] = {0};
+	int devicetype;
+	int sub_type;
+
+	get_device_id(DeviceId);
+	device_version_num = conf_get_int(HOME_DIR"/hkipc.conf", "DEVICE_VERSION");
+	device_produce_num = conf_get_int("etc/devtype.conf", "DEVICE_PRODUCE_NUM");
+	devicetype = conf_get_int("etc/devtype.conf", "DEVICE_TYPE");
+	sub_type = conf_get_int(HOME_DIR"/hkipc.conf", "SUB_TYPE");
+	int2str(device_version_num, device_version);
 	//sprintf(Create_str_tmp, GetP2PKey_Str, DeviceId);
-	sprintf(Create_str_tmp, Creat_Str,DeviceId, DEVICE_TYPE, SUB_TYPE, DEVICE_VERSION, DEVICE_VERSION_NUM, DEVICE_PRODUCE_NUM);
+	sprintf(Create_str_tmp, Creat_Str,DeviceId, devicetype, sub_type, device_version, device_version_num, device_produce_num);
 	printf("%s\n", Create_str_tmp);
 	request_st stCreatDev = {CREATE_DEV_URI, Create_str_tmp, Rsp_Creat_Str};
 	http_request(&stCreatDev);
 	printf("net_create_device is finaly\n");
 	return 0;
 }
+/* -----  end of function net_create_device  ----- */
+/* 
+ * ===  FUNCTION  ======================================================================
+ *  Name:  net_create_device
+ *  Description:   设备修改
+ * =====================================================================================
+ */
+int net_modify_device (char *DeviceId)
+{
+	char Modify_str_tmp[500]={0};
+	int device_version_num;
+	int  device_produce_num;
+	char device_version[12] = {0};
+	int sub_type;
+
+	get_device_id(DeviceId);
+	device_version_num = conf_get_int(HOME_DIR"/hkipc.conf", "DEVICE_VERSION");
+	device_produce_num = conf_get_int(HOME_DIR"/hkipc.conf", "DEVICE_PRODUCE_NUM");
+	sub_type = conf_get_int(HOME_DIR"/hkipc.conf", "SUB_TYPE");
+	int2str(device_version_num, device_version);
+	//sprintf(Create_str_tmp, GetP2PKey_Str, DeviceId);
+	sprintf(Modify_str_tmp, Modify_Str,DeviceId, DEVICE_TYPE, sub_type, device_version, device_version_num, device_produce_num);
+	printf("%s\n", Modify_str_tmp);
+	request_st stCreatDev = {MODIFY_DEV_URI, Modify_str_tmp, Rsp_Modify_Str};
+	http_request(&stCreatDev);
+	printf("net_create_device is finaly\n");
+	return 0;
+}
+/* -----  end of function net_create_device  ----- */
 /* -----  end of function net_create_device  ----- */
 /* 
  * ===  FUNCTION  ======================================================================
@@ -100,6 +142,9 @@ int net_get_update_uri ()
 }
 /* -----  end of function net_get_update_uri  ----- */
 #endif
+extern int g_Video_Thread;
+extern int g_SubVideo_Thread;
+extern int g_Audio_Thread;
 /* 
  * ===  FUNCTION  ======================================================================
  *  Name:  net_get_upgrade
@@ -114,6 +159,10 @@ int net_get_upgrade()
 	int errorCode;
 	char *url;
 	int ret;
+
+	g_Video_Thread = 0;
+	g_SubVideo_Thread = 0;
+	g_Audio_Thread = 0;
 
 	ret = http_comm_request(UPGRADE_FIRWARE_URI,Upgrade_Firware_Str, buf);
 	if(ret < 0)
@@ -134,10 +183,16 @@ int net_get_upgrade()
 		obj = cJSON_GetObjectItem(root, "obj");
 		url = cJSON_GetObjectItem(obj,"apk_url")->valuestring;
 		//down the imge ....
+		system("cd /opt/");
 		sprintf(cmd, "/usr/bin/wget %s%s -O %s", DOWNLOAD_FIRWARE_URI, url, UPGRADE_IMAGE);
 		printf("cmd is ****%s\n", cmd);
 		system(cmd);
+		system("sync");
+		memset(cmd,0,sizeof(cmd));
+		sprintf(cmd, "/bin/tar xvf %s%s -C %s", UPGRADE_IMAGE_DIR, UPGRADE_IMAGE, "/tmpfs/");
+		system(cmd);
 		printf("the url is %s\n", url);
+		exit(0);
 	}
 	return 0;
 }

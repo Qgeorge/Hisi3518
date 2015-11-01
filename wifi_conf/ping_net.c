@@ -97,8 +97,10 @@ void send_packet()
 }
 /*接收所有ICMP报文*/
 void recv_packet()
-{       int n,fromlen;
+{   
+	int n,fromlen;
 	extern int errno;
+	int i=0;
 	signal(SIGALRM,statistics);
 	fromlen=sizeof(from);
 	while( nreceived<nsend)
@@ -107,6 +109,11 @@ void recv_packet()
 						(struct sockaddr *)&from,&fromlen)) <0)
 		{       if(errno==EINTR)continue;
 			perror("recvfrom error");
+			i++;
+			if(i == 20)
+			{
+				break;
+			}
 			continue;
 		}
 		gettimeofday(&tvrecv,NULL);  /*记录接收时间*/
@@ -171,9 +178,10 @@ int test_network(char *argv)
 	inaddr = inet_addr(argv);
 	if( inaddr == INADDR_NONE)
 	{       if((host=gethostbyname(argv) )==NULL) /*是主机名*/
-		{       perror("gethostbyname error");
-			exit(1);
-		}
+			{
+				perror("gethostbyname error");
+				return -1;
+			}
 		memcpy( (char *)&dest_addr.sin_addr,host->h_addr,host->h_length);
 	}
 	else    /*是ip地址*/

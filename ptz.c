@@ -36,7 +36,7 @@
       	}while(0)
 
 
-#define PTZ_CONF  "/mnt/sif/ptz.conf"
+#define PTZ_CONF  "/etc/device/ptz.conf"
 #define PRESETNUM 9 	//8 preset level: 1~8.
 
 #define CLOCKWISE 1

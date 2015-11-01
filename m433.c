@@ -349,7 +349,7 @@ void sig_handler(int signo)
 		system("sync");
 		//sd_record_stop();
 		system("umount /mnt/mmc");
-		system("reboot");
+		system("reboot -f");
 	}
 }
 
