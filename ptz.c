@@ -59,8 +59,8 @@ int g_LR_StepCount = 0; //calculate the current position.
 int s_UDStepLength = 0; //the step number from up to down.
 int s_LRStepLength = 0; //the step number from left to right.
 
-int s_LR_LimitFlag = 0; //0: with limit switch; 1: without limit switch.
-int s_UD_LimitFlag = 0; //0: with limit switch; 1: without limit switch.
+int s_LR_LimitFlag = 1; //0: with limit switch; 1: without limit switch.
+int s_UD_LimitFlag = 1; //0: with limit switch; 1: without limit switch.
 
 int s_RotateRunning = 0;    //quit auto rotate.
 
@@ -1052,8 +1052,8 @@ static int PTZ_Rotate_Init(void)
     g_PtzStepType = 0;
     g_PtzPresetPos = 0;
 
-    s_LR_LimitFlag = 0; //default with limit switch.
-    s_UD_LimitFlag = 0;
+    s_LR_LimitFlag = 1; //default with limit switch.
+    s_UD_LimitFlag = 1;
 
     s_RotateRunning = 0;
     s_LR_AutoRotateCount = 0;
