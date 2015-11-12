@@ -33,7 +33,7 @@ LIBPATH     = -L ../lib_so  -lutils \
 			  -L ../p2p_server/lib/arm-hisiv100nptl-linux-gcc -lp2p -lpthread -lm \
 			  -L ../amr-lib/lib \
 			  -L ../record/lib  -lrecord \
-			  -L ./libs_HI3511  -lSampleComm -lwificonfig -lnethttp -lemail \
+			  -L ./libs_HI3511  -lSampleComm -lwificonfig -lnethttp \
 			  -L ../libghttp/lib -lghttp \
 			  -L ../../lib -lpthread -lm -lmpi -lVoiceEngine -laec -lresampler -lanr -lisp -lsns_ov9712 \
 			  -L $(PRO_DIR)/IPCAM_LIB/openssl_3518/lib_openssl/lib -lssl -lcrypto 
@@ -66,8 +66,8 @@ $(TARGET):$(OBJS)
 	cd ..
 	cd ./wifi_conf; $(MAKE) -f Makefile.HI3511
 	cd ..
-	cd ./eamil; $(MAKE) -f Makefile.HI3511
-	cd ..
+#	cd ./eamil; $(MAKE) -f Makefile.HI3511
+#	cd ..
 	cd ./netsdk; $(MAKE) -f Makefile.HI3511
 	cd ..
 	#$(CXX) $(LINKFLAGS) $(FULLOBJS) -o $(TARGET) $(LIBPATH) $(MODULES)

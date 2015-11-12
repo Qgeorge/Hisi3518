@@ -368,9 +368,305 @@ static INT32 NetMsgProc(void * pThis,CHAR* _u8Buf,INT32 _iBufLength)
 	printf("*************************the cmd is %d\n", cmd);
 	switch(cmd)
 	{
+		//升级命令
 		case 1:
 			net_get_upgrade();
 			break;
+		//校时设置
+		case 2:
+			break;
+		//SD卡大小检测
+		case 3:
+			break;
+		//SD卡检测
+		case 4:
+			break;
+		//开关录像命令
+		case 5:
+			break;
+		//获取录像列表
+		case 6:
+			break;
+		//定位视频
+		case 7:
+			break;
+		//报警开关
+		case 8:
+			break;
+		//报警时间设置
+		case 9:
+			break;
+		//报警区域设置
+		case 10:
+			break;
+
+		default:
+			printf("the protocal is no sense\n");
+	}
+#endif
+	return 0;
+}
+
+//INT32 p2p_server(INT32 argc, char **argv)
+INT32 p2p_server_f(void *args)
+{
+	char device_id[12] = {0};
+	get_device_id(device_id);
+	//char *device_id = (char *)args;
+    char argv[4][100] ={"4","server","s1.uuioe.net","local"};
+	int argc = atoi(argv[0]);
+	CHAR cServerID[MAX_ID_LEN+1] = {0};
+	CHAR cRole[16] = {0};
+#ifdef _WIN32
+	WSADATA Wsadata;
+	WSAStartup(MAKEWORD(2,2), &Wsadata);
+#endif
+
+	if (argc < 3)
+	{
+		dbgmsg("For Sample server-\n");
+		dbgmsg("Use: Sample server <P2PIP> <Server ID>\n");
+		dbgmsg("Example: Sample server 221.176.34.55 MyIPCServer\n");
+		return -1;
+	}
+	if (strcmp(argv[1], "server") != 0) 
+	{
+		dbgmsg("Please check the parameter 1. It must be server!\n");
+		return -1;
+	}
+	gLPort =7234;
+	strcpy(cRole, argv[1]);
+	strcpy(g_cP2PIP,argv[2]);
+	strcpy(cServerID, argv[3]);
+	if(g_wifimod == 1)
+	{
+		strcpy(cServerID, device_id);
+	}
+	printf("cRole is %s g_cP2PIP is %s cServerID is %s \n", cRole, g_cP2PIP, cServerID);
+	printf("The Test has started  if have anything  Please contact \n"); 
+	//初始化SDK 
+//	P2PNetServerSdkInit(cServerID,gLPort,g_cP2PIP,NetReadCallback,256,256);
+	P2PNetServerSdkInit(cServerID,gLPort,g_cP2PIP,0,NetReadCallback,256,256);
+	while(1)
+	{
+		sleep(10);
+	}
+	return 0;
+}
+
+
+		default:
+			printf("the protocal is no sense\n");
+	}
+#endif
+	return 0;
+}
+
+
+//收到客户端命令时的回调函数
+INT32 NetReadCallback(PEER_INFO* pPeerInfo, CHAR* _u8Buf, INT32 length)
+{
+	INT32 nRet = 0;
+	CMDHEADP2P NetCmd;      
+	memcpy(&NetCmd,_u8Buf,sizeof(CMDHEADP2P));
+	switch(ntohl(NetCmd.m_iMsgType))
+	{
+		case REQ_LOGIN:
+			nRet = NetLogin(pPeerInfo,_u8Buf+sizeof(CMDHEADP2P),length-sizeof(CMDHEADP2P));
+			printf("***************login is %d\n", nRet);
+			break;         
+		case REQ_LOGOUT:
+			nRet = NetLogOut(pPeerInfo);
+			break;         
+		case REQ_SETCHANNELINFOR:
+			nRet = NetSetChannelInfor(pPeerInfo,_u8Buf+sizeof(CMDHEADP2P),length-sizeof(CMDHEADP2P));
+			break;   
+		case REQ_SETVIDEOPARA:
+			nRet =NetSetVideoPara(pPeerInfo,_u8Buf+sizeof(CMDHEADP2P),length-sizeof(CMDHEADP2P));
+			break;  
+		case REQ_PTZCONTRIL:
+			nRet =NetPtzControl(pPeerInfo,_u8Buf+sizeof(CMDHEADP2P),length-sizeof(CMDHEADP2P));
+			break;
+
+		case REQ_TALK:
+			nRet =NetTalkReq(pPeerInfo);
+			break;        
+		case REQ_TALKCLOSE:
+			nRet =NetTalkClose(pPeerInfo);
+			break;
+
+		case REQ_PLAYSTREAM :
+			//ChannelDataSndToLink(0,0,g_SubFrameBuf,SubLen,0,0);
+			//   ChannelDataSndToLink(0,1,g_SubFrameBuf,SubLen,0,0);
+			HI_MPI_VENC_RequestIDRInst(0);
+			HI_MPI_VENC_RequestIDRInst(1);
+			break; 
+
+			//客户端透明传输的数据，用于自己扩展协议
+		case MSG_TRANS:
+			NetMsgProc(pPeerInfo,_u8Buf+sizeof(CMDHEADP2P),length-sizeof(CMDHEADP2P)); 
+			break; 
+
+		default:    
+			break;
+	}
+	return nRet;
+}
+
+//INT32 p2p_server(INT32 argc, char **argv)
+INT32 p2p_server_f(void *args)
+{
+	char device_id[12] = {0};
+	get_device_id(device_id);
+	//char *device_id = (char *)args;
+    char argv[4][100] ={"4","server","s1.uuioe.net","local"};
+	int argc = atoi(argv[0]);
+	CHAR cServerID[MAX_ID_LEN+1] = {0};
+	CHAR cRole[16] = {0};
+#ifdef _WIN32
+	WSADATA Wsadata;
+	WSAStartup(MAKEWORD(2,2), &Wsadata);
+#endif
+
+	if (argc < 3)
+	{
+		dbgmsg("For Sample server-\n");
+		dbgmsg("Use: Sample server <P2PIP> <Server ID>\n");
+		dbgmsg("Example: Sample server 221.176.34.55 MyIPCServer\n");
+		return -1;
+	}
+	if (strcmp(argv[1], "server") != 0) 
+	{
+		dbgmsg("Please check the parameter 1. It must be server!\n");
+		return -1;
+	}
+	gLPort =7234;
+	strcpy(cRole, argv[1]);
+	strcpy(g_cP2PIP,argv[2]);
+	strcpy(cServerID, argv[3]);
+	if(g_wifimod == 1)
+	{
+		strcpy(cServerID, device_id);
+	}
+	printf("cRole is %s g_cP2PIP is %s cServerID is %s \n", cRole, g_cP2PIP, cServerID);
+	printf("The Test has started  if have anything  Please contact \n"); 
+	//初始化SDK 
+//	P2PNetServerSdkInit(cServerID,gLPort,g_cP2PIP,NetReadCallback,256,256);
+	P2PNetServerSdkInit(cServerID,gLPort,g_cP2PIP,0,NetReadCallback,256,256);
+	while(1)
+	{
+		sleep(10);
+	}
+	return 0;
+}
+
+
+		default:
+			printf("the protocal is no sense\n");
+	}
+#endif
+	return 0;
+}
+
+
+//收到客户端命令时的回调函数
+INT32 NetReadCallback(PEER_INFO* pPeerInfo, CHAR* _u8Buf, INT32 length)
+{
+	INT32 nRet = 0;
+	CMDHEADP2P NetCmd;      
+	memcpy(&NetCmd,_u8Buf,sizeof(CMDHEADP2P));
+	switch(ntohl(NetCmd.m_iMsgType))
+	{
+		case REQ_LOGIN:
+			nRet = NetLogin(pPeerInfo,_u8Buf+sizeof(CMDHEADP2P),length-sizeof(CMDHEADP2P));
+			printf("***************login is %d\n", nRet);
+			break;         
+		case REQ_LOGOUT:
+			nRet = NetLogOut(pPeerInfo);
+			break;         
+		case REQ_SETCHANNELINFOR:
+			nRet = NetSetChannelInfor(pPeerInfo,_u8Buf+sizeof(CMDHEADP2P),length-sizeof(CMDHEADP2P));
+			break;   
+		case REQ_SETVIDEOPARA:
+			nRet =NetSetVideoPara(pPeerInfo,_u8Buf+sizeof(CMDHEADP2P),length-sizeof(CMDHEADP2P));
+			break;  
+		case REQ_PTZCONTRIL:
+			nRet =NetPtzControl(pPeerInfo,_u8Buf+sizeof(CMDHEADP2P),length-sizeof(CMDHEADP2P));
+			break;
+
+		case REQ_TALK:
+			nRet =NetTalkReq(pPeerInfo);
+			break;        
+		case REQ_TALKCLOSE:
+			nRet =NetTalkClose(pPeerInfo);
+			break;
+
+		case REQ_PLAYSTREAM :
+			//ChannelDataSndToLink(0,0,g_SubFrameBuf,SubLen,0,0);
+			//   ChannelDataSndToLink(0,1,g_SubFrameBuf,SubLen,0,0);
+			HI_MPI_VENC_RequestIDRInst(0);
+			HI_MPI_VENC_RequestIDRInst(1);
+			break; 
+
+			//客户端透明传输的数据，用于自己扩展协议
+		case MSG_TRANS:
+			NetMsgProc(pPeerInfo,_u8Buf+sizeof(CMDHEADP2P),length-sizeof(CMDHEADP2P)); 
+			break; 
+
+		default:    
+			break;
+	}
+	return nRet;
+}
+
+//INT32 p2p_server(INT32 argc, char **argv)
+INT32 p2p_server_f(void *args)
+{
+	char device_id[12] = {0};
+	get_device_id(device_id);
+	//char *device_id = (char *)args;
+    char argv[4][100] ={"4","server","s1.uuioe.net","local"};
+	int argc = atoi(argv[0]);
+	CHAR cServerID[MAX_ID_LEN+1] = {0};
+	CHAR cRole[16] = {0};
+#ifdef _WIN32
+	WSADATA Wsadata;
+	WSAStartup(MAKEWORD(2,2), &Wsadata);
+#endif
+
+	if (argc < 3)
+	{
+		dbgmsg("For Sample server-\n");
+		dbgmsg("Use: Sample server <P2PIP> <Server ID>\n");
+		dbgmsg("Example: Sample server 221.176.34.55 MyIPCServer\n");
+		return -1;
+	}
+	if (strcmp(argv[1], "server") != 0) 
+	{
+		dbgmsg("Please check the parameter 1. It must be server!\n");
+		return -1;
+	}
+	gLPort =7234;
+	strcpy(cRole, argv[1]);
+	strcpy(g_cP2PIP,argv[2]);
+	strcpy(cServerID, argv[3]);
+	if(g_wifimod == 1)
+	{
+		strcpy(cServerID, device_id);
+	}
+	printf("cRole is %s g_cP2PIP is %s cServerID is %s \n", cRole, g_cP2PIP, cServerID);
+	printf("The Test has started  if have anything  Please contact \n"); 
+	//初始化SDK 
+//	P2PNetServerSdkInit(cServerID,gLPort,g_cP2PIP,NetReadCallback,256,256);
+	P2PNetServerSdkInit(cServerID,gLPort,g_cP2PIP,0,NetReadCallback,256,256);
+	while(1)
+	{
+		sleep(10);
+	}
+	return 0;
+}
+
+
 		default:
 			printf("the protocal is no sense\n");
 	}

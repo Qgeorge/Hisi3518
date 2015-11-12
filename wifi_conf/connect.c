@@ -2,12 +2,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#define SMT_CONF_START "echo 'start' > /proc/smart_connection"
-#define SMT_CONF_STOP "echo 'stop' > /proc/smart_connection"
-#define SMT_CONF_CLEAR "echo 'clear' > /proc/smart_connection"
-#define SMT_GET_INFO "cat /proc/smart_connection  | awk \'{if ($1 == \"SSID\"){print \"SSID=\"$3;}else if($1 == \"PASSWORD\"){print \"PASSWORD=\"$3}else if($1 == \"AUTHMODE\"){print \"AUTHMODE=\"$3}else if($1 == \"TLV_HEX\"){print \"TLV_HEX=\"$3}}\'"
-#define WIFI_CONFIG "/etc/wifiConf/wifi_info"
+#include <errno.h>
 
+#define SMT_CONF_START "echo 'start' > /proc/elian"
+#define SMT_CONF_STOP "echo 'stop' > /proc/elian"
+#define SMT_CONF_CLEAR "echo 'clear' > /proc/elian"
+#define SMT_GET_INFO "iwpriv ra0 elian result"
+#define WIFI_CONFIG "/etc/wifi/wifiConf/wpa_supplicant.conf"
 
 int start_smart_conf()
 {
@@ -29,7 +30,9 @@ int clear_smart_conf()
 int get_smt_info(char (*info)[100]) 
 {
 	int i = 0;
-	printf("get smt info *****************\n");
+	char slip[10] = ", ";
+	char tmp[1000]; //设置一个合适的长度，以存储每一行输出
+
 	FILE *pp = popen(SMT_GET_INFO, "r"); //建立管道
 	if (!pp) 
 	{
@@ -37,34 +40,67 @@ int get_smt_info(char (*info)[100])
 		return -1;
 	}
 	printf("get smt info *****************\n");
-	char tmp[100]; //设置一个合适的长度，以存储每一行输出
-	while (fgets(tmp, sizeof(tmp), pp) != NULL)
+	fgets(tmp, sizeof(tmp), pp);
+	if (tmp[strlen(tmp) - 1] == '\n')
 	{
-		if (tmp[strlen(tmp) - 1] == '\n')
-		{
-			tmp[strlen(tmp) - 1] = '\0'; //去除换行符
-		}
-		printf("*************tmp is %s\n", tmp);
-		strcpy(info[i],tmp);
-		i++;
+		tmp[strlen(tmp) - 1] = '\0'; //去除换行符
 	}
+	printf("*************tmp is %s\n", tmp);
+
+	printf("the info 0 is %s\n", strtok(tmp,slip));
+	strtok(NULL,slip);
+	strcpy(info[0],strtok(NULL,slip));
+	strcpy(info[1],strtok(NULL,slip));
+	strtok(NULL,slip);
+	strcpy(info[2],strtok(NULL,slip));
+	strcpy(info[3],strtok(NULL,slip));
+	printf("get smt info *****************\n");
+	printf("the info is %s\n", info[0]);
+	printf("the info is %s\n", info[1]);
+	printf("the info is %s\n", info[2]);
+	printf("the info is %s\n", info[3]);
 	pclose(pp); //关闭管道
 	return 0;
 }
 int save_wifi_info(char (*info)[100])
 {
 	FILE *fp = NULL;
-	fp = fopen(WIFI_CONFIG, "w");
-	int i = 0;
-	for(i = 0; i < 4; i++)
-	{
-		printf("::::::::::::::%s\n", info[i]);
-		fputs(info[i], fp);
-		fputc('\n', fp);
+	char ssid[100] = {0};
+	char pass[100] = {0};
+	char buffer[1000] = {0};
+
+	
+	sscanf(info[0], "ssid=%s", ssid);
+	sscanf(info[1], "pwd=%s", pass);
+
+	printf("ssid is %s\n", ssid);
+	printf("pwd is %s\n", pass);
+	if(strlen(pass) > 1)
+	{	
+		sprintf(buffer, "ctrl_interface=/var/run/wpa_supplicant\nnetwork={\nssid=\"%s\"\n\
+psk=\"%s\"\n\
+scan_ssid=1\n\
+key_mgmt=WPA-EAP WPA-PSK IEEE8021X NONE\n\
+pairwise=TKIP CCMP\n\
+group=CCMP TKIP WEP104 WEP40\n\
+eap=TTLS PEAP TLS\n\
+proto=WPA RSN\n\
+frequency=2414\n\
+scan_freq=2412\n\
+}\n", ssid,pass);
+	
+		fp = fopen(WIFI_CONFIG, "w");
+		if(fp != NULL)
+		{
+			fwrite(buffer, strlen(buffer), 1, fp);
+			fclose(fp);
+		}
+		system("sync");
+		return 0;
 	}
-	fclose(fp);
-	system("sync");
+	return 1;
 }
+
 int get_wifi_info(char (*info)[100])
 {
 	FILE *fp = NULL;
@@ -92,7 +128,7 @@ int tlv_hex_str(char *buffer, char *usrid)
 	for(i = 0; i <= strlen(buffer); i = i + 3)
 	{
 		strncpy(str[j], buffer+i, 2);
-//		if(j >= 2)
+		//		if(j >= 2)
 		{
 			temp = strtol(str[j], NULL, 16);
 			printf("%d\n", temp);
@@ -104,63 +140,80 @@ int tlv_hex_str(char *buffer, char *usrid)
 	strcpy(usrid, con_str);
 	printf("%s\n", con_str);
 }
+
+int Check_WPACLI_Status(int interval)
+{
+    int ConnectCnt = 0; //count for checking wifi connection status.
+    char cmdbuf[32] = {0};   //popen result buffer.
+    char wpaState_Key[16] = {0}; //wifi connection status: Key.
+    char wpaState_Value[32] = {0}; //wifi connection status: Value.
+    FILE *pfp = NULL;
+    
+    printf(".........check time interval: %d.........\n", interval);
+    for (ConnectCnt = 0; ConnectCnt < interval; ConnectCnt++)
+    {
+        printf(".........connect count: %d.........\n", ConnectCnt);
+        pfp = popen("wpa_cli status", "r");
+        if (NULL == pfp)
+        {
+            fprintf(stderr, "popen failed with: %d, %s\n", errno, strerror(errno));
+            return -1;
+        }
+        /*parse status result to find if remote wifi is usable*/
+        fgets(cmdbuf, sizeof(cmdbuf), pfp); //first line, invalid.
+        while (fgets(cmdbuf, sizeof(cmdbuf), pfp))
+        {
+            cmdbuf[strlen(cmdbuf) - 1] = '\0'; //skip '\n' at the end of line.
+            memset(wpaState_Key, '\0', strlen(wpaState_Key));
+            memset(wpaState_Value, '\0', strlen(wpaState_Value));
+            sscanf(cmdbuf, "%[^=]=%[^'\n']", wpaState_Key, wpaState_Value);
+            //fprintf(stderr, "===> cmdbuf:%s, wpaState_Key:%s, wpaState_Value:%s\n", cmdbuf, wpaState_Key, wpaState_Value);
+
+            if ( (!strcmp(wpaState_Key, "wpa_state")) && (!strcmp(wpaState_Value, "COMPLETED")) )
+            {
+                return 1; 
+            }
+        }
+        if (pfp)  
+        {
+            pclose(pfp);
+            pfp = NULL;
+        }
+
+        //sleep(3);
+    }
+    return 0;
+}
+
 int connect_the_ap()
 {
-	char smt_info[4][100] = {0};
-	char ssid[100] = {0};
-	char password[100] = {0};
-	char authmode[100] = {0};
-	char tlv_hex[100] ={0};
-	int auth;
-	int ret;
 	//get_smt_info(smt_info);
+	
+	system("/usr/bin/pkill wpa_supplicant");
+	system("ifconfig ra0 down");
+	system("ifconfig ra0 up");
+	sleep(1);
 	system("/usr/bin/pkill udhcpc");
-	printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
-	ret = get_wifi_info(smt_info);
-	printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
-	if(ret == -1)
+	system("wpa_supplicant -Dwext -ira0 -c/etc/wifiConf/wpa_supplicant.conf &");
+	sleep(4);
+	if(Check_WPACLI_Status(1) == 1)
 	{
-		printf("connect the ap is eeror\n");
-		return -1;
-	}
-	ret = sscanf(smt_info[0], "SSID=%s", ssid);
-	if(ret == EOF)
-	{
-		printf("sscanf is eeror\n");
-		return -1;
-	}
-	ret = sscanf(smt_info[1], "PASSWORD=%s", password);
-	if(ret == EOF)
-	{
-		printf("sscanf is eeror\n");
-		return -1;
-	}
-	ret = sscanf(smt_info[2], "AUTHMODE=%s", authmode);
-	if(ret == EOF)
-	{
-		printf("sscanf is eeror\n");
-		return -1;
-	}
-	ret = sscanf(smt_info[3], "TLV_HEX=%s", tlv_hex);
-	if(ret == EOF)
-	{
-		printf("sscanf is eeror\n");
-		return -1;
-	}
-	printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
-	auth = (int)authmode[0] - 48;		
-	connect_ap(auth, ssid, password);
-	system("/sbin/udhcpc -b -i ra0 -s /mnt/sif/udhcpc.script");
-	printf("udhcpc already runing\n");
-	sleep(3);
-	if(test_network("www.baidu.com") == 0)
-	{
-		printf("connect success\n");
-		return 0;
+		system("/sbin/udhcpc -b -i ra0 -s /mnt/sif/udhcpc.script");
+		printf("udhcpc already runing\n");
+		sleep(3);
+		if(test_network("www.baidu.com") == 0)
+		{
+			printf("connect success\n");
+			return 0;
+		}
+		else
+		{
+			printf("connect failed\n");
+			return -1;
+		}
 	}
 	else
 	{
-		printf("connect failed\n");
 		return -1;
 	}
 }
@@ -176,13 +229,10 @@ int smart_config(char *userid)
 	char smt_info[4][100] = {0};
 	char ssid[100] = {0};
 	char password[100] = {0};
-	char rpassword[100] = {0};
-	char authmode[100] = {0};
-	char tlv_hex[100] ={0};
-	char auth_usrid[100] = {0};
-	char *delim = "@@";
+	char cust_data_len[100] = {0};
+	char cust_data[100] = {0};
+	int len;
 
-	int num;
 	start_smart_conf();
 	while(1)
 	{
@@ -191,51 +241,31 @@ int smart_config(char *userid)
 		printf("smt_info 1 is %s\n", smt_info[1]);
 		printf("smt_info 2 is %s\n", smt_info[2]);
 		printf("smt_info 3 is %s\n", smt_info[3]);
-		sscanf(smt_info[0], "SSID=%s", ssid);
-		sscanf(smt_info[1], "PASSWORD=%s", password);
-		sscanf(smt_info[2], "AUTHMODE=%s", authmode);
-		sscanf(smt_info[3], "TLV_HEX=%s", tlv_hex);
+
+		sscanf(smt_info[0], "ssid=%s", ssid);
+		sscanf(smt_info[1], "pwd=%s", password);
+		sscanf(smt_info[2], "cust_data_len=%s", cust_data_len);
+		sscanf(smt_info[3], "cust_data=%s", cust_data);
+
 		printf("ssid is %s\n", ssid);
 		printf("password is %s\n", password);
-		if(strlen(ssid) > 1)
+		if(strlen(password) > 1)
 		{
 			stop_smart_conf();
-			strcpy(auth_usrid,strtok(password, delim));
-			strcpy(rpassword,strtok(NULL, delim));
-			printf("********ssid is %s\n", ssid);
-			printf("********password is %s\n", rpassword);
-			memset(smt_info[1], 0, sizeof(smt_info[1]));
-			memset(smt_info[2], 0, sizeof(smt_info[2]));
-			memset(smt_info[3], 0, sizeof(smt_info[3]));
-
-			sprintf(smt_info[1], "PASSWORD=%s", rpassword);
-			sprintf(smt_info[2], "AUTHMODE=%c", auth_usrid[0]);
-			sprintf(smt_info[3], "TLV_HEX=%s", auth_usrid+1);
-			
-			printf("smt_info 0 is %s\n", smt_info[0]);
-			printf("smt_info 1 is %s\n", smt_info[1]);
-			printf("smt_info 2 is %s\n", smt_info[2]);
-			printf("smt_info 3 is %s\n", smt_info[3]);
-
+			len = atoi(cust_data_len);
+			cust_data[len] = 0;
 			//获取用户ID
-			strcpy(userid,auth_usrid+1);
+			strcpy(userid,cust_data);
 			//保存配置
-			save_wifi_info(smt_info);
-			return 0;
-#if 0
-			if(test_network("www.baidu.com") == 0)
+			if(save_wifi_info(smt_info) == 0)
 			{
-				save_wifi_info(smt_info);
-				printf("*******************good good\n");
+				//有密码
 				return 0;
-			}
-			else
+			}else
 			{
-				stop_smart_conf();
-				clear_smart_conf();
-				start_smart_conf();
+				//无密码
+				return 1;
 			}
-#endif
 		}
 		sleep(1);
 	}

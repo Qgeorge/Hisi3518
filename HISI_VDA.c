@@ -182,6 +182,10 @@ static HI_S32 VDA_MdPrtAp(FILE *fp, VDA_DATA_S *pstVdaData)
         if (pstVdaData->unData.stMdData.u32AlarmPixCnt > s_MDAlarm_Pix_Cnt)
         {
             printf("...MD: %d...\n", pstVdaData->unData.stMdData.u32AlarmPixCnt);
+            printf("...MD: %d...left...\n", pstVdaData->unData.stMdData.stObjData.pstAddr->u16Left);
+            printf("...MD: %d...top...\n", pstVdaData->unData.stMdData.stObjData.pstAddr->u16Top);
+            printf("...MD: %d...right...\n", pstVdaData->unData.stMdData.stObjData.pstAddr->u16Right);
+            printf("...MD: %d...bottom...\n", pstVdaData->unData.stMdData.stObjData.pstAddr->u16Bottom);
         #if DEV_DOORBELL
             if ( 1 == HK_Check_PIR_State() )
             {
@@ -283,6 +287,7 @@ static HI_VOID *VDA_MdGetResult(HI_VOID *pdata)
 	struct timeval TimeoutVal;
 
 	pgs_stMdParam = (VDA_MD_PARAM_S *)pdata;
+	//printf("####################$$$$$$$$$$$$$$$$$$$$$$$$$###############################VDA VDA_MdGetResult\n");
 
 	VdaChn	 = pgs_stMdParam->VdaChn;
 
@@ -356,6 +361,7 @@ static HI_VOID *VDA_MdGetResult(HI_VOID *pdata)
 			}
 		}
 		usleep(100*1000);
+		//printf("####################$$$$$$$$$$$$$$$$$$$$$$$$$###############################VDA VDA_MdGetResult  end\n");
 	}
 
 	return HI_NULL;
@@ -367,10 +373,12 @@ static HI_VOID *VDA_MdGetResult(HI_VOID *pdata)
 ******************************************************************************/
 static HI_S32 VDA_MdStart(VDA_CHN VdaChn, VI_CHN ViChn, SIZE_S *pstSize)
 {
+
 	HI_S32 s32Ret = HI_SUCCESS;
 	VDA_CHN_ATTR_S stVdaChnAttr;
 	MPP_CHN_S stSrcChn, stDestChn;
 	
+	//printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
 	if (VDA_MAX_WIDTH < pstSize->u32Width || VDA_MAX_HEIGHT < pstSize->u32Height)
 	{
 		SAMPLE_PRT("Picture size invaild!\n");
@@ -427,6 +435,7 @@ static HI_S32 VDA_MdStart(VDA_CHN VdaChn, VI_CHN ViChn, SIZE_S *pstSize)
 	gs_stMdParam.bThreadStart = HI_TRUE;
 	gs_stMdParam.VdaChn   = VdaChn;
 
+	printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
 	pthread_create(&gs_VdaPid[VDA_MD_CHN], 0, VDA_MdGetResult, (HI_VOID *)&gs_stMdParam);
 
 	return HI_SUCCESS;
@@ -622,7 +631,8 @@ static HI_S32 VDA_OdStart(VDA_CHN VdaChn, VI_CHN ViChn, SIZE_S *pstSize)
 }
 
 
-int VDA_MotionDetect_Start(int md_level)
+//int VDA_MotionDetect_Start(int md_level)
+int VDA_MotionDetect_Start()
 {
 	HI_S32 s32Ret;
 	VI_CHN ViExtChn = 1;
@@ -635,10 +645,11 @@ int VDA_MotionDetect_Start(int md_level)
 	stViExtChnAttr.s32FrameRate 		= 25; //30;
 	stViExtChnAttr.enPixFormat			= SAMPLE_PIXEL_FORMAT;
 
+	printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
 	s32Ret = HI_MPI_VI_SetExtChnAttr(ViExtChn, &stViExtChnAttr);
 	if (HI_SUCCESS != s32Ret)
 	{
-		SAMPLE_PRT("set vi	SetExtChnAttr failed!\n");
+		SAMPLE_PRT("set vi	SetExtChnAttr failed 0x%x!\n",s32Ret);
 		return HI_FAILURE;
 	}		 
 

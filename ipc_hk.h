@@ -45,7 +45,7 @@
 #define ENABLE_P2P	1
 #define ENABLE_QQ	0
 
-#define JPEG_SNAP       0
+#define JPEG_SNAP       1
 
 /*sensor type*/
 #define HK_AR0130   1 //sensor: ar0130

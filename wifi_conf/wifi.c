@@ -21,7 +21,7 @@ int connect_enc_ap(char *encmod, char *ssid, char * password)
 {
 	char cmd_str[500] = {0};
 	sprintf(cmd_str, "iwpriv ra0 set NetworkType=Infra;\
-		iwpriv ra0 set AuthMode=WPAPSK;\
+		iwpriv ra0 set AuthMode=WPA2PSK;\
 		iwpriv ra0 set EncrypType=%s;\
 		iwpriv ra0 set SSID=%s;\
 		iwpriv ra0 set WPAPSK=%s;\
@@ -60,7 +60,7 @@ int connect_ap(int authmode, char *ssid, char * password)
 		case 1:
 		connect_enc_ap("AES", ssid, password);break;
 		case 2:
-		connect_enc_ap("AES", ssid, password);break;
+		connect_enc_ap("TKIP", ssid, password);break;
 		case 3:
 		connect_enc_ap("AES", ssid, password);break;
 		case 4:

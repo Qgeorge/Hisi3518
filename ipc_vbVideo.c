@@ -30,7 +30,7 @@
 #include "utils_biaobiao.h"
 //add by biaobiao
 #define RECORD 0
-#define NEW_RECORD 0
+#define NEW_RECORD 1
 #include "record.h"
 extern pthread_mutex_t record_mutex; 
 #if RECORD
@@ -74,9 +74,9 @@ int imgSize[MAXIMGNUM] = {0};
 char g_JpegBuffer[MAXIMGNUM][ALLIMGBUF] = {0}; //picture buffer.
 
 //enable picture snap for sending alarm email.
-static int g_OpenAlarmEmail = 0; //enable send alarm email.
+//static int g_OpenAlarmEmail = 0; //enable send alarm email.
 
-HKEMAIL_T hk_email; //email info struct.
+//HKEMAIL_T hk_email; //email info struct.
 
 /*移动侦测灵敏度*/
 int g_MotionDetectSensitivity = 0;
@@ -1283,7 +1283,6 @@ int ISP_Params_Init()
 
 
 struct HKVProperty video_properties_;
-
 #define ALARMTIME 6000*3
 static int Getms()
 {
@@ -1295,6 +1294,7 @@ static int Getms()
 	return ms;
 }
 
+#if 0
 static void raise_alarm(const char *res, int vfmt)
 {
 	char prop[256] = {0};
@@ -1339,7 +1339,7 @@ static void raise_alarm_server( int iType, int nReserved,char *cFtpData)
 	//NetSend( HK_KEY_MONSERVER, buf, iLen );
 	DictDestroy(DictPacket);
 }
-
+#endif
 
 /****************************************************************
  * func: save snapshot picture into SD card for test.
@@ -1354,10 +1354,14 @@ int SaveJPEGPicsOnSDCard(char *pJpegData, int JpegSize, int num)
 	HK_DEBUG_PRT("######## JPEG size = %d......num = %d #########\n", JpegSize, num);
 
 	FILE *pFile_Snap = NULL;
-	char acFile[32]  = {0};
-
+	char acFile[64]  = {0};
+	time_t rawtime;
+	struct tm * timeinfo;
+	time (&rawtime);
+	timeinfo = localtime (&rawtime);
 	//sprintf(acFile, "snap_%d.jpg", num);
-	sprintf(acFile, PATH_SNAP"/snap_%d.jpg", num);
+	strftime(acFile, sizeof(acFile),PATH_SNAP"/snap_%Y%m%d%H%M%S.jpg", timeinfo);
+	printf("the file name  is %s\n", acFile);
 
 	pFile_Snap = fopen(acFile, "wb");
 	if (NULL == pFile_Snap)
@@ -1412,6 +1416,7 @@ HI_S32 SampleSaveJpegStream(VENC_STREAM_S *pstStream, int iNum)
 	//HK_DEBUG_PRT("imgSize[%d] = %d\n", iNum, imgSize[iNum]);
 
 #if JPEG_SNAP
+	printf("........................................save the jpeg\n");
 	SaveJPEGPicsOnSDCard( g_JpegBuffer[iNum], imgSize[iNum], iNum );
 #endif
 
@@ -1489,10 +1494,10 @@ HI_S32 Video_JPEG_SnapShort(VENC_CHN SnapChn)
 					stStream.pstPack = NULL;
 					return HI_FAILURE;
 				}
-				//printf("......... aaaaaaa ........\n");
+				printf("......... aaaaaaa ........\n");
 				return HI_SUCCESS;
 			}
-			//printf("......... bbbbbbb ........\n");
+			printf("......... bbbbbbb ........\n");
 
 			VENC_PACK_S *pstData = NULL; //get snapshort pictures buffer start.
 			HI_U32 i = 0;
@@ -1503,11 +1508,8 @@ HI_S32 Video_JPEG_SnapShort(VENC_CHN SnapChn)
 				streamSize += pstData->u32Len[0];
 				streamSize += pstData->u32Len[1];
 			}
-
-
-
 			HK_DEBUG_PRT("SnapChn: %d, g_SavePic:%d, streamSize:%d, g_SnapCnt: %d\n", SnapChn, g_SavePic, streamSize, g_SnapCnt);
-			if ((streamSize <= (ALLIMGBUF-40*1024)) && (g_SnapCnt < 4))//snapshot 4 pictures.
+			if ((streamSize <= (ALLIMGBUF-40*1024)) && (g_SnapCnt < 1))//snapshot 4 pictures.
 			{
 				s32Ret = SampleSaveJpegStream(&stStream, g_SnapCnt);//save pic data into g_JpegBuffer.
 				if (HI_SUCCESS != s32Ret) 
@@ -1519,6 +1521,11 @@ HI_S32 Video_JPEG_SnapShort(VENC_CHN SnapChn)
 				}
 				g_SnapCnt++;//picture counter.
 			}
+			if(g_SnapCnt >= 1)
+			{
+				get_pic_flag = 0;
+			}
+
 
 			s32Ret = HI_MPI_VENC_ReleaseStream(SnapChn, &stStream);
 			if (s32Ret) 
@@ -1546,49 +1553,37 @@ HI_S32 getPicture(HI_VOID)
 	g_SnapCnt = 0;
 	g_bIsOpenPict = false;
 
-	printf("[%s, %d] get_pic_flag:%d, g_OpenAlarmEmail:%d, hk_email.mcount:%d....\n", __func__, __LINE__, get_pic_flag, g_OpenAlarmEmail, hk_email.mcount);
-
-#if ENABLE_ONVIF
-	IPCAM_setTskName("getPicture");  
-#endif
+	//printf("[%s, %d] get_pic_flag:%d, hk_email.mcount:%d....\n", __func__, __LINE__, get_pic_flag, hk_email.mcount);
 	pthread_detach(pthread_self()); 
-	while( get_pic_flag )
+	while(get_pic_flag)
 	{
-		if (g_OpenAlarmEmail == 0)//email service switched off.
+		if (g_bIsOpenPict == false)
 		{
-			sleep(2);
-			continue;
+			g_bIsOpenPict = true;
+			g_SnapCnt = 0;
+			//memset(g_JpegBuffer, 0, sizeof(g_JpegBuffer)); //picture buffer.
+
+			/*start JPEG venc channel for receiving pictures*/
+			Video_DisableVencChn(SnapChn);
+			usleep(1000);
+			s32Ret = Video_EnableVencChn(SnapChn);
+			if (s32Ret != HI_SUCCESS)  return -1;
+
+			g_vencSnapFd = COMM_Get_VencStream_FD( SnapChn );
+			if (g_vencSnapFd < 0)
+				return HI_FAILURE;
+
+			HK_DEBUG_PRT("snapshort, venc fd: %d, g_SnapCnt: %d\n", g_vencSnapFd, g_SnapCnt);
 		}
 
-		if ((1 == g_OpenAlarmEmail) && (hk_email.mcount > 0))//enable pictures snapshot.
+		s32Ret = Video_JPEG_SnapShort(SnapChn);
+		if (s32Ret != HI_SUCCESS)
 		{
-			if (g_bIsOpenPict == false)
-			{
-				g_bIsOpenPict = true;
-				g_SnapCnt = 0;
-				//memset(g_JpegBuffer, 0, sizeof(g_JpegBuffer)); //picture buffer.
-
-				/*start JPEG venc channel for receiving pictures*/
-				Video_DisableVencChn(SnapChn);
-				usleep(1000);
-				s32Ret = Video_EnableVencChn(SnapChn);
-				if (s32Ret != HI_SUCCESS)  return -1;
-
-				g_vencSnapFd = COMM_Get_VencStream_FD( SnapChn );
-				if (g_vencSnapFd < 0)
-					return HI_FAILURE;
-
-				HK_DEBUG_PRT("snapshort, venc fd: %d, g_SnapCnt: %d\n", g_vencSnapFd, g_SnapCnt);
-			}
-
-			s32Ret = Video_JPEG_SnapShort(SnapChn);
-			if (s32Ret != HI_SUCCESS)
-			{
-				HK_DEBUG("Video_JPEG_SnapShort err with: 0x%x\n",s32Ret);
-				break;
-			}
+			HK_DEBUG("Video_JPEG_SnapShort err with: 0x%x\n",s32Ret);
+			break;
 		}
-
+		//return 0;
+#if 0
 		printf("[%s, %d]...g_SnapCnt:%d, hk_email.mcount:%d...\n", __func__, __LINE__, g_SnapCnt, hk_email.mcount);
 		if (g_SnapCnt >= hk_email.mcount) //pictures snap success.
 		{
@@ -1632,6 +1627,7 @@ HI_S32 getPicture(HI_VOID)
 				printf("============> Email Send Success ! <============\n"); 
 			}
 		}
+#endif
 		usleep(40*1000);
 	}
 	get_pic_flag = false; //disable picture snaping.
@@ -1661,9 +1657,38 @@ static int CreatePICThread(void)
  * iType:
  *      1:moveAlarm, 2:ioAlarm, 3:sdError.
  **************************************************/
+extern short g_sdIsOnline_f;
 int CheckAlarm(int iChannel, int iType, int nReserved, char *cFtpData)
 {
-	//printf("........iType:%d, g_startCheckAlarm:%d........\n", iType, g_startCheckAlarm);
+	static unsigned int raise_time = 0;
+	unsigned int cur = Getms();
+
+	printf("........iType:%d, g_startCheckAlarm:%d........\n", iType, g_startCheckAlarm);
+
+	if( cur - raise_time > ALARMTIME )
+	{
+		raise_time = Getms();
+		printf("biaobiao-------$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
+		//return 0;
+		if((1 == iType) && (1 == hkSdParam.sdMoveOpen))
+		{
+			printf("%s %d",__FILE__,__LINE__);
+			get_pic_flag = 0;
+			if (!get_pic_flag)
+			{ 
+				printf("%s %d",__FILE__,__LINE__);
+				get_pic_flag = true;
+				//如果有sd卡，则进行拍照
+				if(g_sdIsOnline_f)
+				{
+					printf("%s %d",__FILE__,__LINE__);
+					CreatePICThread();
+				}
+			}
+		}
+	}
+
+#if 0
 	if (g_startCheckAlarm < 4)
 		return 0;
 
@@ -1671,43 +1696,16 @@ int CheckAlarm(int iChannel, int iType, int nReserved, char *cFtpData)
 		return 0;
 
 	AlarmVideoRecord( true );//check SD card for video recording.
-	static unsigned int raise_time = 0;
-	static unsigned int raise_email = 0;
-	unsigned int cur = Getms(); 
 
-	if ((iType == 4) || (iType == 6))// 4 i/o out dev alarm; 6 433 alarm.
+	if((1 == iType) && (1 == hkSdParam.sdMoveOpen))
 	{
-		//raise_alarm_server(iType,nReserved, cFtpData);
-		//raise_alarm("video.vbVideo.MPEG4", MPEG4);
-		//sccLocalAlarm(iChannel, iType, nReserved, cFtpData);
-	}
-	else if (cur - raise_time > ALARMTIME)
-	{
-		//raise_alarm_server(iType ,nReserved, cFtpData);
-		//sccLocalAlarm(iChannel, iType, nReserved, cFtpData);
-		//raise_alarm("video.vbVideo.MPEG4", MPEG4);
-
-		raise_time = Getms();
-	}
-
-	//sun
-	//if ( ((1 == iType) && (0 == hkSdParam.sdMoveOpen)) || ((2 == iType) && (1 == hkSdParam.sdIoOpen)) )
-	{
-		if( cur - raise_email > ((ALARMTIME)*3))
-		{
-			raise_email = Getms();
-			//g_OpenAlarmEmail = 1; //enable picture snap for sending alarm email.
-			if (1 == hk_email.isOpen)
-			{
-				if (!get_pic_flag)
-				{ 
-					g_OpenAlarmEmail = 1; //enable picture snap for sending alarm email.
-					get_pic_flag = true; 
-					CreatePICThread();
-				}
+			if (!get_pic_flag)
+			{ 
+				get_pic_flag = true; 
+				CreatePICThread();
 			}
-		}
 	}
+#endif
 	return 0;
 }
 
@@ -1741,7 +1739,7 @@ int sccOnAlarm( int pDvrInst, int nAlarmType, int  nReserved )
 #define HK_MHDR_SET_ENCODE_TYPE(hdr, val) ((hdr) |= (((val) << 6) & 0x07ff))
 #define HK_MHDR_SET_VERSION(hdr, val)     ((hdr) |= ((val) << 14))
 #define HK_MHDR_SET_MEDIA_TYPE(hdr, val)  ((hdr) |= (((val) << 11) & 0x3fff))
- */
+*/
 #define HK_MHDR_SET_VERSION(hdr, val)     ((hdr) |= ((val) << 14))
 #define HK_MHDR_GET_VERSION(hdr)     (((hdr) >> 14) & 0x0003)
 #if HK_MHDR_VERSION == 1
@@ -1778,7 +1776,7 @@ int sccOnAlarm( int pDvrInst, int nAlarmType, int  nReserved )
 //#define HK_MHDR_SET_FLIP(hdr, val) do{long msk=NTOHL(hdr) & ~0x3000; (hdr)=HTONL(msk|((!!(val)) << 12));}while(0)
 #define HK_MHDR_GET_FLIP(hdr)        ((NTOHL(hdr)>>12) & 0x03)
 #define HK_MHDR_SET_FLIP(hdr, val)  ((hdr) |= ((val) << 12))
- */
+*/
 #define HK_MHDR_SET_FLIPEX(hdr, val)  ((hdr) |= ((val) << 2))
 #define HK_MHDR_SET_FRAGX(hdr, val)  ((hdr) |= (val) )
 #endif
@@ -2071,7 +2069,7 @@ void AlarmVideoRecord(bool bAlarm)
 			if ( iSdRecord <= 0 )
 			{
 				bsMonut = false;
-			//	sd_record_stop();
+				//sd_record_stop();
 			}
 		}
 	}
@@ -2125,7 +2123,7 @@ int COMM_Get_VencStream_FD(int s32venchn)
 		SAMPLE_PRT("Venc Channel is out of range !\n");
 		return HI_FAILURE;
 	}
-	#if 0
+#if 0
 	/***** check if the channel created *****/
 	//s32Ret = HI_MPI_VENC_GetChnAttr( s32venchn, &stVencChnAttr );
 	if (g_Chan == 0)
@@ -2146,7 +2144,7 @@ int COMM_Get_VencStream_FD(int s32venchn)
 		SAMPLE_PRT("HI_MPI_VENC_GetChnAttr chn[%d] failed with %#x!\n", s32venchn, s32Ret);
 		return HI_FAILURE;
 	}
-	#endif
+#endif
 	/* Get Venc Fd. */
 	s_vencFd = HI_MPI_VENC_GetFd( s32venchn );
 	if ( s_vencFd < 0 )
@@ -2254,9 +2252,9 @@ static int sccOpen(const char* name, const char* args, int* threq)
 static int s_gopIndex = 0;
 unsigned long _GetTickCount()
 {        
-        struct timeval current = {0};  
-        gettimeofday(&current, NULL);  
-        return (current.tv_sec*1000 + current.tv_usec/1000);                           
+	struct timeval current = {0};  
+	gettimeofday(&current, NULL);  
+	return (current.tv_sec*1000 + current.tv_usec/1000);                           
 }
 #endif
 
@@ -2399,9 +2397,9 @@ int sccGetVideoThread()
 				pthread_mutex_lock(&record_mutex);
 				av_record_write(0, videobuf, iLen, time_ms, sFrame);
 				pthread_mutex_unlock(&record_mutex);
-//				printf("###########################record##########\n");
+				//				printf("###########################record##########\n");
 #endif
-		
+
 				s32Ret = HI_MPI_VENC_ReleaseStream(s_vencChn, &stStream);
 				if (HI_SUCCESS != s32Ret)
 				{
@@ -2767,11 +2765,6 @@ void video_RSLoadObjects()
     
     /**motion detect**/
     g_MotionDetectSensitivity = video_properties_.vv[HKV_MotionSensitivity];
-	
-    if ( VDA_MotionDetect_Start() ) //enable motion detect.
-    {
-        HK_DEBUG_PRT("start motion detect failed !\n"); 
-    }
 
 }
 

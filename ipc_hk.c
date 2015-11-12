@@ -179,7 +179,7 @@ void OnRestorationParam( )
 
 void wrap_sys_restart( )
 {
-	//printf("...zzzzzzzzzzzzzzzzzzzzzzz reboot 222222 zzzzzzzzzzzzzzzzzzzzzz...\n");
+	printf("...zzzzzzzzzzzzzzzzzzzzzzz reboot 222222 zzzzzzzzzzzzzzzzzzzzzz...\n");
 	g_sdIsOnline=0;
 	//be_present(0);
 	//system( "ifconfig ra0 down" );
@@ -663,6 +663,7 @@ static void exiting_progress()
 /*******************************************************
  * func: get configuration params & init HKEMAIL_T.
  ******************************************************/
+#if 0
 static void GetAlarmEmailInfo()
 {
 	char sendEmail[128] = {0};
@@ -689,7 +690,7 @@ static void GetAlarmEmailInfo()
 
 	InitEmailInfo(isOpen, smtpServer, sendEmail, recvEmail, smtpUser, smtpPswd, iPort, iCount, secType);
 }
-
+#endif
 /*
  *获取SD卡的参数信息
  */
@@ -705,7 +706,8 @@ void GetSdAlarmParam()
 
 	hkSdParam.sdIoOpen     = conf_get_int( HOME_DIR"/emalarm.conf", HK_KEY_IOIN );
 	hkSdParam.sdError      = conf_get_int( HOME_DIR"/emalarm.conf", HK_KEY_EMAIL_SD_ERROR );
-	hkSdParam.sdMoveOpen   = conf_get_int( HOME_DIR"/emalarm.conf", HK_KEY_EMAIL_MOVE_ALARM );
+	//hkSdParam.sdMoveOpen   = conf_get_int( HOME_DIR"/emalarm.conf", HK_KEY_EMAIL_MOVE_ALARM );
+	hkSdParam.sdMoveOpen   = 1;
 
 	HK_DEBUG_PRT("---> moveRec:%d, outMoveRec:%d, autoRec:%d, loopWrite:%d, splite:%d, audio:%d, sdrecqc:%d, sdIoOpen:%d, sdError:%d, sdMoveOpen:%d <---\n", hkSdParam.moveRec, hkSdParam.outMoveRec, hkSdParam.autoRec, hkSdParam.loopWrite, hkSdParam.splite, hkSdParam.audio, hkSdParam.sdrecqc, hkSdParam.sdIoOpen, hkSdParam.sdError, hkSdParam.sdMoveOpen);
 }
@@ -719,7 +721,7 @@ static int CheckSDStatus()
 	{
 		if (0 == stat("/dev/mmcblk0p1", &st))
 		{
-			printf("...load TF card success...\n");
+			//printf("...load TF card success...\n");
 			return 1;
 		}
 		else
@@ -1420,6 +1422,8 @@ int GetStorageInfo()
  *       SD data FTP backup;
  *       SD data operation for client.
  *********************************************/
+//g_sdIsOnline 检测是否有sd卡
+//g_sdIsOnline_f 检测是否已经挂载上了
 static void hk_load_sd()
 {
 	g_sdIsOnline = CheckSDStatus();
@@ -1439,7 +1443,7 @@ static void hk_load_sd()
 		mkdir("/mnt/mmc", 0755);
 		system("umount /mnt/mmc/");
 		usleep(1000);
-		system("mount -t vfat /dev/mmcblk0p1 /mnt/mmc/"); //mount SD.
+		system("mount /dev/mmcblk0p1 /mnt/mmc/"); //mount SD.
 		g_sdIsOnline_f = 1;
 
 		GetStorageInfo();
@@ -1455,15 +1459,18 @@ static void hk_load_sd()
 		g_sdIsOnline_f = 0;
 		GetStorageInfo();
 		hkSdParam.allSize = 14;
+		//system("umount /mnt/mmc/");
 	}else
 	{
 		g_sdIsOnline_f = 0;
+		//system("umount /mnt/mmc/");
 	}
 	//HK_DEBUG_PRT("......SD info: g_sdIsOnline:%d, totalsize=%ld...freesize=%ld...usedsize=%ld......\n", g_sdIsOnline, hkSdParam.allSize, hkSdParam.leftSize, hkSdParam.haveUse);
 }
 
 
-#if ENABLE_ONVIF
+//#if ENABLE_ONVIF
+#if 0
 extern VideoDataRecord *hostVideoDataP;//master starem //*mVideoDataBuffer;
 extern VideoDataRecord *slaveVideoDataP; //slave starem
 extern VideoDataRecord *slaveAudioDataP;
@@ -1597,6 +1604,11 @@ int main(int argc, char* argv[])
 	{
 		printf("[%s, %d] video sub system init failed !\n", __func__, __LINE__); 
 	}
+	/**** init video VDA ****/
+    if ( VDA_MotionDetect_Start() ) //enable motion detect.
+    {
+        HK_DEBUG_PRT("start motion detect failed !\n"); 
+    }
 	HK_DEBUG_PRT("video sub system init OK!\n");
 
 	/**GPIO init**/
@@ -1612,7 +1624,6 @@ int main(int argc, char* argv[])
 	atoi(getEnv("LogBackground","1")) ? LOG_Background() : LOG_Foreground();
 	LOG_SetLevel(atoi(getEnv("LogLevel", "0")));
 
-	GetAlarmEmailInfo(); //get email configuration info
 	GetSdAlarmParam(); //get sd card configuration info.
 
 #if (HK_PLATFORM_HI3518E)
@@ -1735,6 +1746,7 @@ int main(int argc, char* argv[])
 			GetSdAlarmParam();
 			b_hkSaveSd = false;
 		}
+#if 0 
 		if ((1 == hkSdParam.autoRec) && (b_OpenSd) && (1 == g_sdIsOnline))
 		{
 			g_OpenSd++;
@@ -1750,6 +1762,7 @@ int main(int argc, char* argv[])
 				}
 			}
 		}
+#endif
 
 #if (!DEV_KELIV)
 		if ( m433enable == 0 )

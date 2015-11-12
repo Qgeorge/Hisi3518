@@ -596,6 +596,8 @@ void AudioThread(void)
 	fd_set read_fds;
 	struct timeval TimeoutVal;
 	int G711U_Len = 0, G711A_Len = 0;
+	FILE *fd;
+	fd = fopen("/mnt/mmc/me.pcm", "wr");
 #if 0
 	char g711a_buf[320*5]={0};
 #endif
@@ -666,15 +668,18 @@ void AudioThread(void)
 #if 0
 				struct timeval tv;
 				gettimeofday(&tv, NULL);
+				int num = fwrite(stStream.pStream, stStream.u32Len, 1, fd);
+				printf("the num is %d\n", num);
+
 				int64_t time_ms = tv.tv_sec * 1000LL + tv.tv_usec / 1000LL;
 				//time_ms = time(NULL)*1000;
 				G711A_Len = PCM2G711a(stStream.pStream, buf, stStream.u32Len, 0);
-				printf("ecode before is %d\n", stStream.u32Len);
-				printf("ecode after is %d\n", G711A_Len);
+//				printf("ecode before is %d\n", stStream.u32Len);
+//				printf("ecode after is %d\n", G711A_Len);
 				pthread_mutex_lock(&record_mutex);
 				av_record_write(1, buf, G711A_Len, time_ms, 0);
 				pthread_mutex_unlock(&record_mutex);
-				printf("###########################recordi audio##########\n");
+//				printf("###########################recordi audio##########\n");
 #endif
 
 
