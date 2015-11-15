@@ -19,7 +19,7 @@
 #include <stdlib.h>
 #include "record.h"
 #include "P2Pserver.h"
-
+#if 0
 int record_search()
 {
 	record_info_t infos[20];
@@ -31,18 +31,18 @@ int record_search()
 		//printf("year is %d, month is %d, day is %d, hour is %d, minute is %d\n", info->year, info->month, info->hour, info->minute);
 	}
 }
+#endif
 int play_minute()
 {
 	av_record_t *play_handle;
 	av_frame_t av;
 	int ret;
-	av_record_init("/nfsroot/record");
 circle:
-	play_handle = av_record_open(2015, 6, 27, 23, 19);
+	play_handle = av_record_open(2014, 4, 11, 17, 4);
 	while(1)
 	{
 //		printf("ggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg\n");
-		record_search();
+//		record_search();
 		ret = av_record_read(play_handle, &av);
 		if(ret < 0)
 		{
@@ -59,8 +59,8 @@ circle:
 
 		if(av.codec == 0)
 		{
-			P2PNetServerChannelDataSndToLink(0, 0, av.data, av.size, av.keyframe, 0);
-			P2PNetServerChannelDataSndToLink(0, 1, av.data, av.size, av.keyframe, 0);
+			P2PNetServerChannelDataSndToLink(1, 0, av.data, av.size, av.keyframe, 0);
+//			P2PNetServerChannelDataSndToLink(1, 1, av.data, av.size, av.keyframe, 0);
 		}
 	}
 }

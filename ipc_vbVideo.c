@@ -2246,8 +2246,7 @@ static int sccOpen(const char* name, const char* args, int* threq)
 	return 0;
 }
 
-
-
+extern int g_start_video;
 #if ENABLE_QQ
 static int s_gopIndex = 0;
 unsigned long _GetTickCount()
@@ -2263,7 +2262,7 @@ int g_Video_Thread=0;
 int sccGetVideoThread()
 {
 #if NEW_RECORD
-	av_record_init("/mnt/mmc");
+	//av_record_init("/mnt/mmc");
 #endif
 	int threq = 0;
 	sccOpen("video.vbVideo.MPEG4", NULL, &threq);
@@ -2390,14 +2389,17 @@ int sccGetVideoThread()
 #endif
 
 #if NEW_RECORD
-				struct timeval tv;
-				gettimeofday(&tv, NULL);
-				int64_t time_ms = tv.tv_sec * 1000LL + tv.tv_usec / 1000LL;
-				//time_ms = time(NULL)*1000;
-				pthread_mutex_lock(&record_mutex);
-				av_record_write(0, videobuf, iLen, time_ms, sFrame);
-				pthread_mutex_unlock(&record_mutex);
-				//				printf("###########################record##########\n");
+				if(g_start_video)
+				{
+					struct timeval tv;
+					gettimeofday(&tv, NULL);
+					int64_t time_ms = tv.tv_sec * 1000LL + tv.tv_usec / 1000LL;
+					//time_ms = time(NULL)*1000;
+					pthread_mutex_lock(&record_mutex);
+					av_record_write(0, videobuf, iLen, time_ms, sFrame);
+					pthread_mutex_unlock(&record_mutex);
+				}
+				//printf("###########################record##########\n");
 #endif
 
 				s32Ret = HI_MPI_VENC_ReleaseStream(s_vencChn, &stStream);

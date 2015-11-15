@@ -1445,6 +1445,8 @@ static void hk_load_sd()
 		usleep(1000);
 		system("mount /dev/mmcblk0p1 /mnt/mmc/"); //mount SD.
 		g_sdIsOnline_f = 1;
+		//初始化存储路径
+		av_record_init("/mnt/mmc/uusmt");
 
 		GetStorageInfo();
 
