@@ -10,6 +10,29 @@
 #define SMT_GET_INFO "iwpriv ra0 elian result"
 #define WIFI_CONFIG "/etc/wifi/wifiConf/wpa_supplicant.conf"
 
+int detect_process(char * process_name)  
+{  
+        FILE *ptr;  
+        char buff[512];  
+        char ps[128];  
+        sprintf(ps,"ps | grep -c %s",process_name);  
+        strcpy(buff,"ABNORMAL");  
+        if((ptr=popen(ps, "r")) != NULL)  
+        {  
+                while (fgets(buff, 512, ptr) != NULL)  
+                {  
+                        if(atoi(buff) == 3)  
+                        {  
+                                pclose(ptr);  
+                                return 0;  
+                        }
+                }  
+        }  
+        if(strcmp(buff,"ABNORMAL")==0)  /*ps command error*/  
+         return -1;          
+        pclose(ptr);  
+        return -1;
+}
 int start_smart_conf()
 {
 	system(SMT_CONF_START);
@@ -140,7 +163,7 @@ int tlv_hex_str(char *buffer, char *usrid)
 	strcpy(usrid, con_str);
 	printf("%s\n", con_str);
 }
-
+/*判断wifi的连接状态*/
 int Check_WPACLI_Status(int interval)
 {
     int ConnectCnt = 0; //count for checking wifi connection status.
@@ -155,7 +178,8 @@ int Check_WPACLI_Status(int interval)
         printf(".........connect count: %d.........\n", ConnectCnt);
         pfp = popen("wpa_cli status", "r");
         if (NULL == pfp)
-        {
+		{
+
             fprintf(stderr, "popen failed with: %d, %s\n", errno, strerror(errno));
             return -1;
         }
@@ -179,29 +203,31 @@ int Check_WPACLI_Status(int interval)
             pclose(pfp);
             pfp = NULL;
         }
-
         //sleep(3);
     }
     return 0;
 }
-
+/*连接ap热点*/
 int connect_the_ap()
 {
 	//get_smt_info(smt_info);
 	
 	system("/usr/bin/pkill wpa_supplicant");
+	system("/usr/bin/pkill udhcpc");
 	system("ifconfig ra0 down");
 	system("ifconfig ra0 up");
 	sleep(1);
-	system("/usr/bin/pkill udhcpc");
 	system("wpa_supplicant -Dwext -ira0 -c/etc/wifiConf/wpa_supplicant.conf &");
-	sleep(4);
+	sleep(3);
 	if(Check_WPACLI_Status(1) == 1)
 	{
-		system("/sbin/udhcpc -b -i ra0 -s /mnt/sif/udhcpc.script");
-		printf("udhcpc already runing\n");
-		sleep(3);
-		if(test_network("www.baidu.com") == 0)
+		//if(detect_process("udhcpc") != 0)
+		{
+			system("/sbin/udhcpc -b -i ra0 -s /mnt/sif/udhcpc.script");
+			printf("udhcpc already runing\n");
+			sleep(3);
+		}
+		if(test_network("s1.uuioe.net") == 0)
 		{
 			printf("connect success\n");
 			return 0;
@@ -233,6 +259,11 @@ int smart_config(char *userid)
 	char cust_data[100] = {0};
 	int len;
 
+	system("/usr/bin/pkill wpa_supplicant");
+	system("/usr/bin/pkill udhcpc");
+	system("ifconfig ra0 down");
+	system("ifconfig ra0 up");
+	sleep(1);
 	start_smart_conf();
 	while(1)
 	{

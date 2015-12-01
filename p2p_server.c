@@ -182,7 +182,7 @@ static INT32 NetLogin(PEER_INFO* pPeerInfo,CHAR* _u8Buf,INT32 _iBufLength)
 	if(0==result)
 	{
 		pLogInRsp->m_iLogInRes = htonl(0);
-		pLogInRsp->m_Capabilities.m_iChannel= htons(1);
+		pLogInRsp->m_Capabilities.m_iChannel= htons(2);
 		pLogInRsp->m_Capabilities.m_iStream= htons(2);
 		pLogInRsp->m_Capabilities.m_iAlarmNum= htons(1);
 		pLogInRsp->m_ChannelIfor[0][0].Width = htonl(1080);
@@ -408,6 +408,22 @@ static INT32 NetMsgProc(void * pThis,CHAR* _u8Buf,INT32 _iBufLength)
 		//报警区域设置
 		case 10:
 			break;
+		//获取ipc状态
+		case 11:
+			get_ipc_status(pThis);
+			break;
+		//设置ipc图像位置
+		case 12:
+			get_ipc_direction(pThis, *(prev+1));
+			break;
+		//设置音量大小
+		case 13:
+			get_audio_volum(pThis, *(prev+1));
+			break;
+		//设置音频状态
+		case 14:
+			set_audio_stat(pThis, *(prev+1));
+			break;
 		default:
 			printf("the protocal is no sense\n");
 	}
@@ -473,6 +489,7 @@ INT32 p2p_server_f(void *args)
 	get_device_id(device_id);
 	//char *device_id = (char *)args;
     char argv[4][100] ={"4","server","s1.uuioe.net","local"};
+    //char argv[4][100] ={"4","server","115.28.168.140","local"};
 	int argc = atoi(argv[0]);
 	CHAR cServerID[MAX_ID_LEN+1] = {0};
 	CHAR cRole[16] = {0};
@@ -506,9 +523,10 @@ INT32 p2p_server_f(void *args)
 	//初始化SDK 
 //	P2PNetServerSdkInit(cServerID,gLPort,g_cP2PIP,NetReadCallback,256,256);
 	P2PNetServerSdkInit(cServerID,gLPort,g_cP2PIP,0,NetReadCallback,256,256);
+	/*
 	while(1)
 	{
 		sleep(10);
-	}
+	}*/
 	return 0;
 }

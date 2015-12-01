@@ -1514,6 +1514,17 @@ void IPC_Video_Audio_Thread_Init(void)
 }
 #endif
 
+int CheckWifi()
+{
+	//检查wifi的联通性
+	if(Check_WPACLI_Status(1) != 1)
+	{
+		system("/usr/bin/pkill wpa_supplicant");
+		system("/usr/bin/pkill udhcpc");
+		sleep(1);
+		system("wpa_supplicant -Dwext -ira0 -c/etc/wifiConf/wpa_supplicant.conf &");
+	}
+}
 
 int g_wifimod = 1;
 int main(int argc, char* argv[])
@@ -1649,7 +1660,8 @@ int main(int argc, char* argv[])
 /*add by biaobiao*/
 #if ENABLE_P2P
 	printf("############################p2p###################\n");
-    create_detached_thread(p2p_server_f, (void *)device_id);
+    //create_detached_thread(p2p_server_f, (void *)device_id);
+	p2p_server_f();
 #endif
 
 /*add by biaobiao*/
@@ -1694,6 +1706,7 @@ int main(int argc, char* argv[])
 	unsigned int groupnum = 0, bitnum = 0, val_set = 0;
 	unsigned int valSetRun = 0;
 	int ret = 0;
+	system("echo 3 > /proc/sys/vm/drop_caches");
 	for ( ; !quit_; counter++)
 	{
 	//	if (1 != HI3518_WDTFeed())
@@ -1716,6 +1729,7 @@ int main(int argc, char* argv[])
 				conf_set_int(HOME_DIR"/hkipc.conf", "WIFIMODE", 1);
 				f_wifi_connenct = 1;
 				PlaySound("/mnt/sif/audio/success.pcm");
+				system("echo 3 > /proc/sys/vm/drop_caches");
 			}
 			printf("*********smart config comlete******************\n");
 			#endif
@@ -1818,6 +1832,7 @@ int main(int argc, char* argv[])
 		}
 		/*挂载sd卡*/
 		hk_load_sd();
+		//CheckWifi();
 	}
 
 	//sd_record_stop();

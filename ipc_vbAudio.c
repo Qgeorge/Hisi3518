@@ -663,6 +663,7 @@ void AudioThread(void)
 #if ENABLE_P2P
 				P2PNetServerChannelDataSndToLink( 0, 0, stStream.pStream, stStream.u32Len, 1, DATA_AUDIO);
 				P2PNetServerChannelDataSndToLink( 0, 1, stStream.pStream, stStream.u32Len, 1, DATA_AUDIO);
+//				printf("@@@@@@@@@@@@@@@@@%d\n", stStream.u32Len);
 #endif
 
 #if 0
@@ -708,7 +709,7 @@ void AudioThread(void)
 #endif
 			}    
 		}
-		usleep(1000*100);
+//		usleep(1000*100);
 	}
 
 #if ENABLE_ONVIF

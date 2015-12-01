@@ -32,11 +32,17 @@ int record_search()
 	}
 }
 #endif
+int g_play_minute = 1;
 int play_minute()
 {
 	av_record_t *play_handle;
 	av_frame_t av;
 	int ret;
+	if(g_play_minute == 0)
+	{
+		return 0;
+	}
+	g_play_minute = 0;
 circle:
 	play_handle = av_record_open(2014, 4, 11, 17, 4);
 	while(1)
@@ -47,7 +53,9 @@ circle:
 		if(ret < 0)
 		{
 			av_record_close(play_handle);
-			goto circle;
+			g_play_minute = 1;
+			//goto circle;
+			return 0;
 		}
 		if(av.keyframe = 0)
 		{
@@ -62,5 +70,6 @@ circle:
 			P2PNetServerChannelDataSndToLink(1, 0, av.data, av.size, av.keyframe, 0);
 //			P2PNetServerChannelDataSndToLink(1, 1, av.data, av.size, av.keyframe, 0);
 		}
+		usleep(1000*10);
 	}
 }
