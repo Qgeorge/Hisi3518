@@ -488,6 +488,7 @@ HI_S32 Video_SubSystem_Init(HI_VOID)
 
 	VpssChn = 1; //PHY channel. (VGA for Main stream)
 	stVpssChnMode.enChnMode     = VPSS_CHN_MODE_USER;
+	//stVpssChnMode.enChnMode     = VPSS_CHN_MODE_AUTO;
 	stVpssChnMode.bDouble       = HI_FALSE;
 	stVpssChnMode.enPixelFormat = SAMPLE_PIXEL_FORMAT;
 	stVpssChnMode.u32Width      = 640;

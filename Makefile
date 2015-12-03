@@ -1,7 +1,7 @@
 include ../../Makefile.param
 include ../Makefile.param
 
-include ../../../../Rules.make
+include ./Rules.make
 
 PRO_DIR		= $(PRO_HOME_DIR)
 
@@ -15,26 +15,26 @@ TARGETPATH  = /tftpboot/3518e
 
 INCPATH     = -I . -I $(PRO_DIR)/IPCAM_LIB/system/include 		  \
 			  -I ../../include 								  \
-			  -I ../p2p_server/include 				  \
-			  -I ../record/include 				  \
-			  -I ../libghttp/include 				  \
+			  -I ./exlib/p2p_server/include 				  \
+			  -I ./exlib/record/include 				  \
+			  -I ./exlib/libghttp/include 				  \
 			  -I ./netsdk/include/ 				  \
 			  -I ./wifi_conf/ 				  \
 			  -I ./eamil/ 				  \
 			  -I ./sample_comm 				  \
-			  -I ../amr-lib/include/opencore-amrnb/ 		\
+			  -I ./exlib/amr-lib/include/opencore-amrnb/ 		\
 			  -I $(PRO_DIR)/Hi3518_SDK_V1.0.8.1/mpp/extdrv/tw2865 \
 			  -I $(PRO_DIR)/IPCAM_LIB/openssl_3518/lib_openssl/include \
 			  -I $(PRO_DIR)/Hi3518_SDK_V1.0.8.1/drv/hisi-irda	  \
 			  -I $(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/include
 
 #LIBPATH     = -L ../lib_so -lsystem -lchinalink -lnetfactory -lutils 
-LIBPATH     = -L ../lib_so  -lutils \
-			  -L ../p2p_server/lib/arm-hisiv100nptl-linux-gcc -lp2p -lpthread -lm \
-			  -L ../amr-lib/lib \
-			  -L ../record/lib  -lrecord \
+LIBPATH     = -L ./exlib/lib_so  -lutils \
+			  -L ./exlib/p2p_server/lib/arm-hisiv100nptl-linux-gcc -lp2p -lpthread -lm \
+			  -L ./exlib/record/lib  -lrecord \
+			  -L ./exlib/amr-lib/lib \
 			  -L ./libs_HI3511  -lSampleComm -lwificonfig -lnethttp \
-			  -L ../libghttp/lib -lghttp \
+			  -L ./exlib/libghttp/lib -lghttp \
 			  -L ../../lib -lpthread -lm -lmpi -lVoiceEngine -laec -lresampler -lanr -lisp -lsns_ov9712 \
 			  -L $(PRO_DIR)/IPCAM_LIB/openssl_3518/lib_openssl/lib -lssl -lcrypto 
 #			  -L $(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/LibSo -lrtsp -lOnvif
