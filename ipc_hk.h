@@ -91,22 +91,6 @@ typedef struct hk_remote_wifi_find
 /****************** WIFI Params End *****************/
 
 
-typedef struct hk_sd_param
-{
-    short audio;
-    short moveRec;
-    short outMoveRec;
-    short autoRec;
-    short loopWrite;
-    short splite;
-    short sdrecqc;//1 one, 0 two
-    short sdIoOpen;//1 open, 0 close
-    short sdError;//1 open, 0 close
-    short sdMoveOpen;//0 open, 1 close
-    unsigned long allSize;
-    unsigned long haveUse;
-    unsigned long leftSize;
-}HK_SD_PARAM_;
 
 enum HKV_SingleProperty
 {

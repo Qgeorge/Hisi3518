@@ -218,7 +218,7 @@ int connect_the_ap()
 	system("ifconfig ra0 up");
 	sleep(1);
 	system("wpa_supplicant -Dwext -ira0 -c/etc/wifiConf/wpa_supplicant.conf &");
-	sleep(3);
+	sleep(5);
 	if(Check_WPACLI_Status(1) == 1)
 	{
 		//if(detect_process("udhcpc") != 0)

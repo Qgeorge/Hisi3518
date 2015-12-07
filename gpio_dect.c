@@ -50,7 +50,7 @@ return 2 no dect
 return 1 long
 return 0 short
 */
-int  key_scan()
+int key_scan()
 {
 	int timer = 0;
 	HI_SetGpio_Open();

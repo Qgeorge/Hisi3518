@@ -6,15 +6,11 @@
 #include <sys/prctl.h>
 #include <ctype.h>
 
-#include "utils/HKMonCmdDefine.h"
-#include "utils/HKCmdPacket.h"
 #include "utils/HKUtilAPI.h"
-#include "sys.h"
 
 #include "ipc_hk.h"
 #include <sys/vfs.h>
 #include "hi_common.h"
-#include "utils/HKLog.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,27 +19,25 @@
 #include <pthread.h>
 
 #include "sample_comm.h"
-#include "m433.h"
 #include "osd_region.h"
 #include "ptz.h"
-//#include "ipc_file_sd.h"
 #include "osd_region.h"
 #include "ipc_vbVideo.h"
 #include "ipc_vbAudio.h"
 #include "gpiodriver.h"
-//#include "ipc_email.h"
-//#include "ipc_sd_upgrade.h"
-//#include "ipc_sd_license.h"
 #include "Wdt_hi3518.h"
+#include "HISI_VDA.h"
 
 /*add by biaobiao*/
 #if ENABLE_P2P
 #include "P2Pserver.h"
 #include "BaseType.h"
-//#include "recordSDK.h"
+#include "record.h"
 #include "wifi_conf.h"
+#include "gpio_dect.h"
 extern INT32 p2p_server_f(); 
 #include "net_http.h"
+#include "ipc_sd.h"
 #endif
 
 //存储的锁 add by biaobiao
@@ -64,17 +58,10 @@ pthread_mutex_t record_mutex ;
 #define SNAPCHN     1
 /*用户ID*/
 char g_userid[50] = {0};
+/*视频模式*/
 VIDEO_NORM_E gs_enNorm = VIDEO_ENCODING_MODE_NTSC;
+/*视频的属性*/
 extern struct HKVProperty video_properties_;
-
-int g_HK_SensorType = 0; //sensor type: 1(ar0130); 2(ov9712d).
-
-/*
- * video resolution type: 0(960P); 1(720P).
- * only valid for ar0130 sensor.
- */
-int g_HK_VideoResoType = 0;
-
 /***************** GPIO params ******************/
 #define GPIO_READ  0
 #define GPIO_WRITE 1
@@ -99,15 +86,7 @@ unsigned int g_RUN_bit      = 3; //RUN light:5_3.
 //unsigned int g_KeyReset_bit = 2; //GPIO:5_2 ==> reset key.
 
 
-/***************** SD Card ******************/
-short g_sdIsOnline = 0;
-short g_sdIsOnline_f = 0;
-bool b_hkSaveSd = false;
-short g_nFtpIsOpen = 0;
-HK_SD_PARAM_ hkSdParam;
 
-/************** audio alarm *****************/
-int audio_alarm = 0;
 
 /************** Eable Print *****************/
 #define PRINT_ENABLE    1
@@ -143,22 +122,14 @@ enum Excode
 	Excode_Complete_Init,
 };
 
-static const char* user_ = NULL;
-static const char* passwd_ = "123456";
-static const char* host_ = "www.uipcam.com";
-static const char* port_ = "8080";
 static pid_t watcher_pid_ = 0;
 
-#define HK_SYS_TIMEOUT  60*15
-static time_t  gSysTime = 0;
-static short   gbStartTime = 0;
 
 volatile int quit_ = 0;
 
 extern void OnRestorationParam();
 static const char* getEnv(const char* x, const char* defs) { return ((x = getenv(x)) ? x : defs); }
-static int hk_WirelessCard_Reset(void);
-
+#if 0
 typedef struct _HKIPAddres
 {
     short bStatus;
@@ -171,11 +142,7 @@ typedef struct _HKIPAddres
     char  mac[64];
 }HKIPAddres;
 HKIPAddres eth0Addr;
-
-void OnRestorationParam( )
-{
-	printf("this func is bing write\n");
-}
+#endif
 
 void wrap_sys_restart( )
 {
@@ -187,12 +154,11 @@ void wrap_sys_restart( )
 	sleep(1);
 	system("umount /mnt/mmc/");
 	//usleep(50*1000);
-	hk_WirelessCard_Reset();
 	quit_ = 1;
 	system("sync");
 	system("reboot -f");
 }
-
+#if 0
 static void* insert0(const char* fn, const char* line)
 {
 	if (fn)
@@ -224,6 +190,7 @@ static void* insert0(const char* fn, const char* line)
 	if (!insert0(getenv("CMDLINE"), line)) \
 	system(line); \
 }while(0)
+#endif
 
 #define Printf(fmt...)	\
 	do{\
@@ -250,16 +217,6 @@ static void Daemonize( void )
 	signal(SIGTTOU,SIG_IGN);
 	signal(SIGTTIN,SIG_IGN);
 	signal(SIGTSTP,SIG_IGN); 
-}
-
-static void create_my_detached_thread(int (*func)())
-{
-        pthread_t tid;
-        pthread_attr_t a;
-        pthread_attr_init(&a);
-        pthread_attr_setdetachstate(&a, PTHREAD_CREATE_DETACHED);
-        pthread_create(&tid, &a, (void *)func, NULL);
-        pthread_attr_destroy(&a);
 }
 
 static void create_detached_thread(void *(*func)(void*), void* arg)
@@ -351,7 +308,7 @@ HI_S32 Video_SubSystem_Init(HI_VOID)
 {
 	HK_DEBUG_PRT("++++++ hk platform: hi3518E ++++++\n");
 	PAYLOAD_TYPE_E enPayLoad[3] = {PT_H264, PT_H264, PT_JPEG};
-	PIC_SIZE_E enSize[3]        = {PIC_HD720, PIC_VGA, PIC_VGA};
+	PIC_SIZE_E enSize[3]        = {PIC_HD720, PIC_Q720, PIC_VGA};
 
 	HK_DEBUG_PRT("++++++ SENSOR_TYPE: %d ++++++\n", SENSOR_TYPE);
 	if (APTINA_AR0130_DC_720P_30FPS == SENSOR_TYPE) //ar0130 ==>960P; ov9712/0712d ==>720P.
@@ -492,7 +449,7 @@ HI_S32 Video_SubSystem_Init(HI_VOID)
 	stVpssChnMode.bDouble       = HI_FALSE;
 	stVpssChnMode.enPixelFormat = SAMPLE_PIXEL_FORMAT;
 	stVpssChnMode.u32Width      = 640;
-	stVpssChnMode.u32Height     = 480;
+	stVpssChnMode.u32Height     = 360;
 	s32Ret = SAMPLE_COMM_VPSS_EnableChn(VpssGrp, VpssChn, &stVpssChnAttr, &stVpssChnMode, HI_NULL); //VPSS: group 0 channel 1.
 	if (HI_SUCCESS != s32Ret)
 	{
@@ -610,7 +567,7 @@ static void setpidfile(const char* pidfile, pid_t pid)
 		}
 	}
 }
-
+#if 0
 static void childproc(pid_t ppid, char* cmdline)
 {
 	int x;
@@ -640,7 +597,6 @@ static void childproc(pid_t ppid, char* cmdline)
 	}
 	execl("/bin/pwd", "pwd", NULL);
 }
-
 static void exiting_progress()
 {
 	FILE* cf;
@@ -652,7 +608,7 @@ static void exiting_progress()
 		fclose(cf);
 		if ((w = getenv("WATCH")))
 			remove(w);
-		HKLOG(L_DBG,"<><><><><><><><><><><>\n");
+		//HKLOG(L_DBG,"<><><><><><><><><><><>\n");
 		fflush(stdout);
 		SPAWN(pid, childproc, cmdline); // sleep(3);
 		if (pid > 0)
@@ -660,6 +616,7 @@ static void exiting_progress()
 		CMD_PPAD("[ $$ -ne %d ] && exit 0", (int)pid); //CMD_PPAD("echo $0: $@");
 	}
 }
+#endif
 
 /*******************************************************
  * func: get configuration params & init HKEMAIL_T.
@@ -691,7 +648,6 @@ static void GetAlarmEmailInfo()
 
 	InitEmailInfo(isOpen, smtpServer, sendEmail, recvEmail, smtpUser, smtpPswd, iPort, iCount, secType);
 }
-#endif
 /*
  *获取SD卡的参数信息
  */
@@ -712,31 +668,10 @@ void GetSdAlarmParam()
 
 	HK_DEBUG_PRT("---> moveRec:%d, outMoveRec:%d, autoRec:%d, loopWrite:%d, splite:%d, audio:%d, sdrecqc:%d, sdIoOpen:%d, sdError:%d, sdMoveOpen:%d <---\n", hkSdParam.moveRec, hkSdParam.outMoveRec, hkSdParam.autoRec, hkSdParam.loopWrite, hkSdParam.splite, hkSdParam.audio, hkSdParam.sdrecqc, hkSdParam.sdIoOpen, hkSdParam.sdError, hkSdParam.sdMoveOpen);
 }
-/* 
- *检查SD卡的状态
- */
-static int CheckSDStatus()
-{
-	struct stat st;
-	if (0 == stat("/dev/mmcblk0", &st))
-	{
-		if (0 == stat("/dev/mmcblk0p1", &st))
-		{
-			//printf("...load TF card success...\n");
-			return 1;
-		}
-		else
-		{
-			printf("...load TF card failed...\n");
-			return 2;
-		}
-	}
-
-	return 0;
-}
+#endif
 
 
-
+#if 0
 /*******************************************************************
  * func: check ftp configuration & enable FTP bakup for SD data.
  ******************************************************************/
@@ -763,7 +698,7 @@ void hk_start_ftp_server()
 	system("/mnt/sif/bin/ftp_server &");
 	g_nFtpIsOpen = 1;
 }
-
+#endif
 
 
 /*
@@ -782,8 +717,6 @@ Hi_SetGpio_Close();
 }
  */
 
-static int g_OpenSd=0;
-static bool b_OpenSd=true;
 /*
    int sdISOnline()
    {
@@ -997,45 +930,6 @@ static void initGPIO()
 	return;
 }
 
-
-/*******************************************************
- * func: reset wireless modules while system restart.
- *******************************************************/
-static int hk_WirelessCard_Reset(void)
-{ 
-#if 0
-	unsigned int groupnum = 0;
-	unsigned int bitnum   = 0;
-	unsigned int val_set = 0;
-	short nRet = 0;
-	unsigned int val_read_old = 0;
-
-	/**read gpio5_1 status**/
-	groupnum = 5;
-	bitnum   = 1; //GPIO:5_1.
-	nRet = Hi_SetGpio_SetDir( groupnum, bitnum, GPIO_READ );
-	nRet = Hi_SetGpio_GetBit( groupnum, bitnum, &val_read_old );
-	if (nRet)   return -1;
-	HK_DEBUG_PRT("...Get GPIO %d_%d  read Value: %d...\n", groupnum, bitnum, val_read_old);
-
-	val_set = 0; //pull down to reset wireless modules.
-	nRet = Hi_SetGpio_SetDir( groupnum, bitnum, GPIO_WRITE );
-	nRet = Hi_SetGpio_SetBit( groupnum, bitnum, val_set );
-	if (nRet)   return -1;
-	HK_DEBUG_PRT("....Set GPIO %d_%d  set Value: %d....\n", groupnum, bitnum, val_set);
-
-	sleep(2);
-
-	val_set = 1; //pull up.
-	nRet = Hi_SetGpio_SetDir( groupnum, bitnum, GPIO_WRITE );
-	nRet = Hi_SetGpio_SetBit( groupnum, bitnum, val_set );
-	if (nRet)   return -1;
-	HK_DEBUG_PRT("....Set GPIO %d_%d  set Value: %d....\n\n", groupnum, bitnum, val_set);
-#endif
-	return 0;
-}
-
-
 /*************************************
  * check IrCut and change mode.
  ************************************/
@@ -1241,16 +1135,9 @@ static int hk_IrcutCtrl(int nboardtype)
 	return nRet;
 }
 
-//vbVideo
-void hk_IOAlarm()
-{
-	Hi_SetGpio_SetDir( g_AlarmOut_grp, g_AlarmOut_bit, GPIO_WRITE );
-	Hi_SetGpio_SetBit( g_AlarmOut_grp, g_AlarmOut_bit, 1 ); //pull up.
-	sleep(2);
-	Hi_SetGpio_SetDir( g_AlarmOut_grp, g_AlarmOut_bit, GPIO_WRITE );
-	Hi_SetGpio_SetBit( g_AlarmOut_grp, g_AlarmOut_bit, 0 ); //pull down.
-}
-
+#define HK_SYS_TIMEOUT  60*15
+static time_t  gSysTime = 0;
+static short   gbStartTime = 0;
 
 /*****************************************************************
  * func: check GPIO status & generate IO alarm notification.
@@ -1341,43 +1228,9 @@ void hk_set_system_time()
 	}
 	system("/bin/ntpdate cn.pool.ntp.org");
 	st = time(NULL);
-	if(st != NULL)
+	if(st != 0)
 	{
 		conf_set_int(HOME_DIR"/time.conf", "time_",st-tz);
-	}
-}
-
-/*设置网络类型*/
-static void CheckNetDevCfg()
-{
-	//printf("...zzzzzzzzzzzzzzzzzzzzzzz reboot 333333 zzzzzzzzzzzzzzzzzzzzzz...\n");
-	char aryDHCP[64]={0};
-	if( conf_get( HOME_DIR"/net.cfg", "IPAddressMode", aryDHCP, 64 ) == NULL || 
-			( strcmp(aryDHCP,"DHCP")!=0 && strcmp(aryDHCP,"FixedIP")!=0 ) )
-	{
-		system("umount /mnt/mmc/");
-		conf_set(HOME_DIR"/net.cfg","IPAddressMode","DHCP" );
-		system("sync");
-		system("reboot");
-	}
-	if( strcmp(aryDHCP,"FixedIP") == 0 )
-	{
-		if( conf_get( HOME_DIR"/net.cfg", "IPAddress", eth0Addr.ip, 64 ) == NULL ||
-				conf_get( HOME_DIR"/net.cfg", "Gateway", eth0Addr.gateway, 64 ) == NULL ||
-				conf_get( HOME_DIR"/net.cfg", "SubnetMask", eth0Addr.netmask,64 ) == NULL )
-		{
-			conf_set(HOME_DIR"/net.cfg","IPAddressMode","DHCP" );
-			system("umount /mnt/mmc/");
-			system("sync");
-			system("reboot");
-		}
-		unsigned long  nIP      = inet_addr( eth0Addr.ip );
-		unsigned long  nMask    = inet_addr( eth0Addr.netmask );
-		unsigned long  nGW      = inet_addr( eth0Addr.gateway );
-		if( (nGW&nMask)!=(nIP&nMask) )
-		{
-			system( "route add default dev eth0" );
-		}
 	}
 }
 
@@ -1395,81 +1248,6 @@ static void init_conf()
 }
 
 
-/*******************************************
- * func: calculate SD card storage size.
- ******************************************/
-int GetStorageInfo()
-{
-	struct statfs statFS;
-	char *MountPoint = "/mnt/mmc/";
-
-	if (statfs(MountPoint, &statFS) == -1)
-	{  
-		printf("error, statfs failed !\n");
-		return -1;
-	}
-
-	hkSdParam.allSize   = ((statFS.f_blocks/1024)*(statFS.f_bsize/1024));
-	hkSdParam.leftSize  = (statFS.f_bfree/1024)*(statFS.f_bsize/1024); 
-	hkSdParam.haveUse   = hkSdParam.allSize - hkSdParam.leftSize;
-	//HK_DEBUG_PRT("......SD totalsize=%ld...freesize=%ld...usedsize=%ld......\n", hkSdParam.allSize, hkSdParam.leftSize, hkSdParam.haveUse);
-
-	return 0;
-}
-
-/**********************************************
- * func: check SD insert status;
- *       check SD storage info;
- *       SD data FTP backup;
- *       SD data operation for client.
- *********************************************/
-//g_sdIsOnline 检测是否有sd卡
-//g_sdIsOnline_f 检测是否已经挂载上了
-static void hk_load_sd()
-{
-	g_sdIsOnline = CheckSDStatus();
-	#if 0
-	if (0 == access("/mnt/mmc", F_OK | R_OK | W_OK))
-	{
-		if(g_sdIsOnline == 1)
-			return;
-	}
-	#endif
-	if (g_sdIsOnline == 1) //index sd card inserted.
-	{
-		if(g_sdIsOnline_f == 1)
-		{
-			return;
-		}
-		mkdir("/mnt/mmc", 0755);
-		system("umount /mnt/mmc/");
-		usleep(1000);
-		system("mount /dev/mmcblk0p1 /mnt/mmc/"); //mount SD.
-		g_sdIsOnline_f = 1;
-		//初始化存储路径
-		av_record_init("/mnt/mmc/uusmt");
-
-		GetStorageInfo();
-
-		int ftpIsOpen = conf_get_int( HOME_DIR"/ftpbakup.conf", HK_WIFI_OPENORCLOSE );
-		if (ftpIsOpen == 1) //ftp service enable.
-		{
-			hk_start_ftp_server();
-		}
-	}
-	else if(g_sdIsOnline == 2)
-	{
-		g_sdIsOnline_f = 0;
-		GetStorageInfo();
-		hkSdParam.allSize = 14;
-		//system("umount /mnt/mmc/");
-	}else
-	{
-		g_sdIsOnline_f = 0;
-		//system("umount /mnt/mmc/");
-	}
-	//HK_DEBUG_PRT("......SD info: g_sdIsOnline:%d, totalsize=%ld...freesize=%ld...usedsize=%ld......\n", g_sdIsOnline, hkSdParam.allSize, hkSdParam.leftSize, hkSdParam.haveUse);
-}
 
 
 //#if ENABLE_ONVIF
@@ -1514,7 +1292,7 @@ void IPC_Video_Audio_Thread_Init(void)
     CreateSubVideoThread();
 }
 #endif
-
+#if 0
 int CheckWifi()
 {
 	//检查wifi的联通性
@@ -1526,72 +1304,45 @@ int CheckWifi()
 		system("wpa_supplicant -Dwext -ira0 -c/etc/wifiConf/wpa_supplicant.conf &");
 	}
 }
-
+#endif
+/*wifi模式*/
 int g_wifimod = 1;
 int main(int argc, char* argv[])
 {
 	/*IRCUT的类型,调节IRCUT的灵敏度*/
 	int IRCutBoardType = 0;
-
 	/*Sensor的类型*/
 	char cSensorType[32]={0};
-
+	int counter = 0;
 	char usrid[32] = {0};
 	char device_id[12] = {0};
-
-
-/*add by biaobiao*/
-//	connect_the_ap();
 	int f_wifi_connenct = 0;
+
 /*获取设备ID*/
 	get_device_id(device_id);
-
 #if HTTP_DEBUG
 	printf("Create the device id*********************");
 #endif
 
-	//hk_load_sd(); //mount sd card.
-	CheckNetDevCfg();
 	init_conf(); 
 	//add by biaobiao
 	pthread_mutex_init(&record_mutex,NULL);
-
-	int counter = 0;
-	if (argc >= 3)
-	{
-		user_ = argv[1];
-		passwd_ = argv[2];
-		if (argc >= 5)
-		{
-			host_ = argv[3];
-			port_ = argv[4];
-		}
-	}
-	else
-	{
-		//return 1;
-	}
 	Daemonize();
-	init_sighandler();
-	
+	//init_sighandler();
 	/*配置sensor的类型*/
 	conf_get( HOME_DIR"/sensor.conf", "sensortype", cSensorType, 32 );
 	if (strcmp(cSensorType, "ar0130") == 0)
 	{
 		printf("...scc...ar0130......\n");
-		g_HK_SensorType = HK_AR0130; //ar0130.
 	}
 	else if (strcmp(cSensorType, "ov9712d") == 0)
 	{
 		printf("...scc...ov9712d......\n");
-		g_HK_SensorType = HK_OV9712; //ov9712d.
 	}
 	else
 	{
 		printf("...scc...unknown sensor type, use default: ov9712d lib......\n");  
-		g_HK_SensorType = HK_OV9712; //ov9712d.
 	}
-	g_HK_VideoResoType = conf_get_int(HOME_DIR"/hkipc.conf", "HKVIDEOTYPE");
 	g_DevIndex         = conf_get_int(HOME_DIR"/hkclient.conf", "IndexID"); 
 	g_irOpen           = conf_get_int(HOME_DIR"/hkipc.conf", "iropen");
 	g_onePtz           = conf_get_int(HOME_DIR"/hkipc.conf", "oneptz");
@@ -1634,12 +1385,6 @@ int main(int argc, char* argv[])
 	{
 		watcher_pid_ = atoi(getenv("wppid"));
 	}
-
-	atoi(getEnv("LogBackground","1")) ? LOG_Background() : LOG_Foreground();
-	LOG_SetLevel(atoi(getEnv("LogLevel", "0")));
-
-	GetSdAlarmParam(); //get sd card configuration info.
-
 #if (HK_PLATFORM_HI3518E)
 	/*****neck Cruise*****/
 	if (1 == g_DevPTZ) //0:device without PTZ motor; 1:PTZ device.
@@ -1661,8 +1406,8 @@ int main(int argc, char* argv[])
 /*add by biaobiao*/
 #if ENABLE_P2P
 	printf("############################p2p###################\n");
-    //create_detached_thread(p2p_server_f, (void *)device_id);
-	p2p_server_f();
+    create_detached_thread(p2p_server_f, (void *)device_id);
+	//p2p_server_f();
 #endif
 
 /*add by biaobiao*/
@@ -1678,7 +1423,7 @@ int main(int argc, char* argv[])
 #if ENABLE_ONVIF
 	HK_Onvif_Init();
 #endif
-
+#if 0
 #if (DEV_KELIV == 0) //init m433  by yy
 	int m433enable = conf_get_int("/mnt/sif/hkipc.conf", "m433enable");
 	printf("...m433enable: %d...\n", m433enable);
@@ -1696,24 +1441,17 @@ int main(int argc, char* argv[])
 		}
 	}
 #endif //end by yy
+#endif
 
 	//初始化看门狗
 	HK_WtdInit(60*2); //watchdog.
-	//g_KeyResetCount = 0;
 
-//	play_minute();
-
-	//PlaySound("/root/test/file_5.pcm");
 	unsigned int groupnum = 0, bitnum = 0, val_set = 0;
 	unsigned int valSetRun = 0;
 	int ret = 0;
 	system("echo 3 > /proc/sys/vm/drop_caches");
 	for ( ; !quit_; counter++)
 	{
-	//	if (1 != HI3518_WDTFeed())
-	//	{
-	//		printf("Feed Dog Failed!\n");
-	//	}
 		/*ISP控制*/
 		ISP_Ctrl_Sharpness();
 		ret = key_scan();
@@ -1755,15 +1493,14 @@ int main(int argc, char* argv[])
 				printf("*********connect the ap******************\n");
 			};
 		}
+#if 0 
 		if (b_hkSaveSd)
 		{
 			printf("[%s, %d] scc stop sd....\n", __func__, __LINE__);
-			b_OpenSd = true;
 			//sd_record_stop();
-			GetSdAlarmParam();
+			//GetSdAlarmParam();
 			b_hkSaveSd = false;
 		}
-#if 0 
 		if ((1 == hkSdParam.autoRec) && (b_OpenSd) && (1 == g_sdIsOnline))
 		{
 			g_OpenSd++;
@@ -1780,14 +1517,14 @@ int main(int argc, char* argv[])
 			}
 		}
 #endif
-
+#if 0
 #if (!DEV_KELIV)
 		if ( m433enable == 0 )
 		{
 			CheckIOAlarm();//check AlarmIn & AlarmOut.
 		}
 #endif
-
+#endif
 		hk_IrcutCtrl( IRCutBoardType );//check & control Ircut mode.
 
 #if (HK_PLATFORM_HI3518E | DEV_INFRARED)
@@ -1808,12 +1545,10 @@ int main(int argc, char* argv[])
 		valSetRun = 1;
 		Hi_SetGpio_SetDir( g_RUN_grp, g_RUN_bit, GPIO_WRITE );
 		Hi_SetGpio_SetBit( g_RUN_grp, g_RUN_bit, valSetRun ); //pull up.
-		//HK_DEBUG_PRT("....Set GPIO %d_%d  set Value: %d....\n", g_RUN_grp, g_RUN_bit, valSetRun);
 		sleep(1);
 		valSetRun = 0;
 		Hi_SetGpio_SetDir( g_RUN_grp, g_RUN_bit, GPIO_WRITE );
 		Hi_SetGpio_SetBit( g_RUN_grp, g_RUN_bit, valSetRun ); //pull down.
-		//HK_DEBUG_PRT("....Set GPIO %d_%d  set Value: %d....\n", g_RUN_grp, g_RUN_bit, valSetRun);
 		sleep(1);
 #else
 		sleep(2);
@@ -1839,8 +1574,8 @@ int main(int argc, char* argv[])
 	//sd_record_stop();
 	gSysTime = time(0);
 	gbStartTime = 1;
-	if (quit_ != Excode_Stop)
-		exiting_progress();
+	//if (quit_ != Excode_Stop)
+		//exiting_progress();
 	printf("\n [%s]: %d ", __FUNCTION__, __LINE__);
 	exit (0);
 }

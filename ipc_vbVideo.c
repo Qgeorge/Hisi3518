@@ -14,7 +14,6 @@
 #include <signal.h>
 
 #include "rs.h"
-#include "sys.h"
 #include "utils/HKMonCmdDefine.h"
 #include "utils/HKCmdPacket.h"
 
@@ -32,6 +31,7 @@
 #define RECORD 0
 #define NEW_RECORD 1
 #include "record.h"
+#include "ipc_sd.h"
 extern pthread_mutex_t record_mutex; 
 #if RECORD
 #include "recordStruct.h"
@@ -249,6 +249,7 @@ static int Set_VBR_Image_QP(int iChnNo, int nQP)
 /*************************************
  *fun: ÉèÖÃÖ¡ÂÊ
  *author: wangshaoshu
+ *biaobiao checked 
  **************************************/
 int HISI_SetFrameRate(int iChnNo, int nFrameRate)
 {
@@ -337,11 +338,12 @@ int HISI_SetBitRate(int iChnNo, int iBitRate)
 		stVencChnAttr.stRcAttr.stAttrH264Vbr.u32MaxQp          = 33; //32;
 
 		stVencChnAttr.stRcAttr.stAttrH264Vbr.u32MaxBitRate     = iBitRate; //512; /* average bit rate */
+#if 0
 		if (g_iCifOrD1 >= 9)
 			stVencChnAttr.stRcAttr.stAttrH264Vbr.u32MaxBitRate     = 200; //512; /* average bit rate */
 		else
 			stVencChnAttr.stRcAttr.stAttrH264Vbr.u32MaxBitRate     = 32; //256*3; /* average bit rate */
-
+#endif
 
 		s32Ret = HI_MPI_VENC_SetChnAttr(VencChn, &stVencChnAttr);
 		if (s32Ret != HI_SUCCESS)
@@ -1913,7 +1915,8 @@ int MainStreamConfigurate(void)
 		}
 		else
 		{
-			s32ret = HISI_SetBitRate(g_s32venchn, video_properties_.vv[HKV_VinFormat]);
+			//s32ret = HISI_SetBitRate(g_s32venchn, video_properties_.vv[HKV_VinFormat]);
+			s32ret = HISI_SetBitRate(g_s32venchn, 200);
 		}
 
 		if (s32ret)
@@ -2012,6 +2015,7 @@ int SubStreamConfigurate(void)
 	return 0;
 }
 
+#if 0
 static int hk_set_video_hdr(long int* flags, unsigned short* hdr, int enc, int fmt,int iChennl)
 {
 	*hdr = 0;
@@ -2035,6 +2039,7 @@ static int hk_set_video_hdr(long int* flags, unsigned short* hdr, int enc, int f
 	//}
 	return 1;
 }
+#endif
 
 TAlarmSet_ g_tAlarmSet[MAX_CHAN];//MAX_CHAN==3
 unsigned char g_MdMask[MAX_CHAN][MAX_MACROCELL_NUM];//
@@ -2156,7 +2161,7 @@ int COMM_Get_VencStream_FD(int s32venchn)
 	return s_vencFd;
 }
 
-
+#if 0
 /**************************************************************
  * configurate sub stream params for phone client settings.
  **************************************************************/
@@ -2179,6 +2184,7 @@ static void hk_SetPhonePlaram(int ibit, int iEnc, int iRate)
 	//g_bPhCifOrD1 = false;
 	return;
 }
+#endif
 
 static int sccOpen(const char* name, const char* args, int* threq)
 {
@@ -2299,6 +2305,24 @@ int sccGetVideoThread()
 		pstPack = NULL;
 		return NULL;
 	}
+#if 1
+	{
+
+		//HISI_SetBitRate(g_SubVideo_Thread, 500);
+		HI_S32 s32Ret;
+		VENC_CHN_ATTR_S stVencChnAttr;
+		VENC_CHN VencChn = 1;
+
+		s32Ret = HI_MPI_VENC_GetChnAttr(VencChn, &stVencChnAttr);
+		if (s32Ret != HI_SUCCESS)
+		{
+			SAMPLE_PRT("HI_MPI_VENC_GetChnAttr chn[%d] failed with %#x!\n", VencChn, s32Ret);
+			return HI_FAILURE;
+		}
+		SAMPLE_PRT("Main  BR, Set BitRate, chn:%d, bitrate:%d...\n", VencChn, stVencChnAttr.stRcAttr.stAttrH264Vbr.u32MaxBitRate);
+
+	}
+#endif 
 	while( g_Video_Thread )
 	{
 		FD_ZERO( &read_fds );
@@ -2381,6 +2405,15 @@ int sccGetVideoThread()
 				/*****OSD END*****/
 
 #if ENABLE_P2P
+				#if 1
+				int i = 0;
+				if(i == 50)
+				{
+					i = 0;
+					printf("***the videobuf's len is %d\n", iLen);
+				}
+				i++;
+				#endif
 				P2PNetServerChannelDataSndToLink(0,0,videobuf,iLen,iFrame,0);
 #endif
 
@@ -2503,6 +2536,24 @@ int sccGetSubVideoThread()
 		HK_DEBUG_PRT("malloc failed, %d, %s\n", errno, strerror(errno));
 		return NULL;
 	}
+
+#if 1
+	{
+		//HISI_SetBitRate(g_SubVideo_Thread, 500);
+		HI_S32 s32Ret;
+		VENC_CHN_ATTR_S stVencChnAttr;
+		VENC_CHN VencChn = 0;
+
+		s32Ret = HI_MPI_VENC_GetChnAttr(VencChn, &stVencChnAttr);
+		if (s32Ret != HI_SUCCESS)
+		{
+			SAMPLE_PRT("HI_MPI_VENC_GetChnAttr chn[%d] failed with %#x!\n", VencChn, s32Ret);
+			return HI_FAILURE;
+		}
+		SAMPLE_PRT("***********sub BR, Set BitRate, chn:%d, bitrate:%d...\n", VencChn, stVencChnAttr.stRcAttr.stAttrH264Vbr.u32MaxBitRate);
+
+	}
+#endif 
 
 	sleep(1);
 	while( g_SubVideo_Thread )
@@ -2679,7 +2730,7 @@ int sccStartVideoThread()
 	CreateSubVideoThread();
 	CreateAudioThread();
 }
-
+#if 0
 static void GetInitAlarmParam(HKFrameHead *pFrameHead)
 {
 	int i = 0;
@@ -2736,12 +2787,12 @@ static void GetInitAlarmParam(HKFrameHead *pFrameHead)
 		}
 	}
 }
-
+#endif
 void video_RSLoadObjects() 
 {
     /**video resolution**/
-    g_iCifOrD1   = conf_get_int(HOME_DIR"/hkipc.conf", "CifOrD1");//main stream.
-    g_sunCifOrD1 = conf_get_int(HOME_DIR"/subipc.conf", "enc");   //sub stream.
+    g_iCifOrD1   = conf_get_int(HOME_DIR"/hkipc.conf", "CifOrD1");//main stream. 9
+    g_sunCifOrD1 = conf_get_int(HOME_DIR"/subipc.conf", "enc");   //sub stream.  5
 
     HK_DEBUG_PRT("......hk platform: hi3518E, g_iCifOrD1:%d, g_sunCifOrD1:%d......\n", g_iCifOrD1, g_sunCifOrD1);
     /**main stream**/

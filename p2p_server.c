@@ -18,7 +18,7 @@ static CHAR g_cP2PIP[32]= {0};
 
 static volatile INT32 g_iTalkStat =0;   //对讲状态
 static PEER_INFO * g_TalkPeer =NULL;    //正在对讲的客户端
-
+#if 0
 typedef struct nalu_s
 {
 	unsigned char  nalu_type;
@@ -155,7 +155,7 @@ loop:
 	}
 	return 0;
 }
-
+#endif
 
 //收到客户端回调登陆时的回调函数
 static INT32 NetLogin(PEER_INFO* pPeerInfo,CHAR* _u8Buf,INT32 _iBufLength)
@@ -243,13 +243,21 @@ static INT32 NetSetVideoPara(PEER_INFO* pPeerInfo,CHAR* _u8Buf,INT32 _iBufLength
 	dbgmsg("##########  rcv %s  message \n", __FUNCTION__);
 	return 0;
 }
-
 //收到客户端PTZ控制命令时的回调函数
 static INT32 NetPtzControl(void * pThis,CHAR* _u8Buf,INT32 _iBufLength)
 {
+	#if 0
+	int i;
+	printf("********start**********\n");
+	for(i = 0;i < _iBufLength;i++)
+	{
+		printf("\t0x%x", *(_u8Buf+i));
+	}
+	printf("**********end*********\n");
+	#endif
 	PtzControlReq *pReq = (PtzControlReq *)_u8Buf;
 	dbgmsg("##########  rcv %s  message \n", __FUNCTION__);
-	printf("########## the cmd is %d\n", pReq->mPtzData.iAction);
+	printf("########## the ptz  cmd is %d\n", pReq->mPtzData.iAction);
 	OnCmdPtz(pReq->mPtzData.iAction);
 	return 0;
 }
@@ -523,10 +531,14 @@ INT32 p2p_server_f(void *args)
 	//初始化SDK 
 //	P2PNetServerSdkInit(cServerID,gLPort,g_cP2PIP,NetReadCallback,256,256);
 	P2PNetServerSdkInit(cServerID,gLPort,g_cP2PIP,0,NetReadCallback,256,256);
-	/*
 	while(1)
 	{
+		if (1 != HI3518_WDTFeed())
+		{
+			printf("Feed Dog Failed!\n");
+	    }
+		printf("p2p thread is runing.........\n");
 		sleep(10);
-	}*/
+	}
 	return 0;
 }

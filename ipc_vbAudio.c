@@ -6,7 +6,6 @@
 #include <time.h>
 
 #include "rs.h"
-#include "sys.h"
 #include "utils/HKCmdPacket.h"
 
 #include "hi_type.h"
@@ -453,7 +452,7 @@ static int Read(int obj, char* buf, unsigned int bufsiz, long* flags)
 
 	//printf(".........%d...........\n", iLen);
 	int nLevel = 1;
-	*flags = HK_BOAT_YLOST;
+//	*flags = HK_BOAT_YLOST;
 	//*flags = HK_BOAT_NLOST;
 	*flags |= (nLevel<<8);
 	return iLen;
@@ -709,7 +708,7 @@ void AudioThread(void)
 #endif
 			}    
 		}
-//		usleep(1000*100);
+		usleep(1000*100);
 	}
 
 #if ENABLE_ONVIF

@@ -13,7 +13,7 @@ FULLOBJS    = $(patsubst %.c,$(OBJPATH)/%.o,$(SOURCES))
 TARGETPATH  = /tftpboot/3518e
 
 
-INCPATH     = -I . -I $(PRO_DIR)/IPCAM_LIB/system/include 		  \
+INCPATH     = -I . -I ./exlib/system/include 		  \
 			  -I ../../include 								  \
 			  -I ./exlib/p2p_server/include 				  \
 			  -I ./exlib/record/include 				  \
@@ -23,10 +23,8 @@ INCPATH     = -I . -I $(PRO_DIR)/IPCAM_LIB/system/include 		  \
 			  -I ./eamil/ 				  \
 			  -I ./sample_comm 				  \
 			  -I ./exlib/amr-lib/include/opencore-amrnb/ 		\
-			  -I $(PRO_DIR)/Hi3518_SDK_V1.0.8.1/mpp/extdrv/tw2865 \
-			  -I $(PRO_DIR)/IPCAM_LIB/openssl_3518/lib_openssl/include \
-			  -I $(PRO_DIR)/Hi3518_SDK_V1.0.8.1/drv/hisi-irda	  \
-			  -I $(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/include
+			  -I ./exlib/openssl_3518/lib_openssl/include 
+#			  -I $(PRO_DIR)/Hi3518_SDK_V1.0.8.1/drv/hisi-irda	  
 
 #LIBPATH     = -L ../lib_so -lsystem -lchinalink -lnetfactory -lutils 
 LIBPATH     = -L ./exlib/lib_so  -lutils \
@@ -36,23 +34,8 @@ LIBPATH     = -L ./exlib/lib_so  -lutils \
 			  -L ./libs_HI3511  -lSampleComm -lwificonfig -lnethttp \
 			  -L ./exlib/libghttp/lib -lghttp \
 			  -L ../../lib -lpthread -lm -lmpi -lVoiceEngine -laec -lresampler -lanr -lisp -lsns_ov9712 \
-			  -L $(PRO_DIR)/IPCAM_LIB/openssl_3518/lib_openssl/lib -lssl -lcrypto 
-#			  -L $(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/LibSo -lrtsp -lOnvif
+			  -L ./exlib/openssl_3518/lib_openssl/lib -lssl -lcrypto 
 			
-#MODULES = 	$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/MOD_NetSvRtsp.a \
-			$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/MOD_NetServer.a	\
-			$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/Mod_NetConfig.a	\
-			$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/MOD_NetWebCallBack.a \
-			$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/MOD_NetSvStreamVideo.a \
-			$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/MOD_NetSvStreamAudio.a \
-			$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/MOD_NetClStreamAudio.a \
-			$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/MOD_NetDdns.a \
-			$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/LIB_Ddns.a \
-			$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/MOD_SysContext.a	\
-			$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/MOD_Cgi.a	\
-			$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/MOD_MulLanguage.a	\
-			$(PRO_DIR)/IPCAM_LIB/hi3518e_rtsp_web/lib/LIB_WebServer.a	
-
 LINKFLAGS   = -Wall -g
 #COMPFLAGS   = -c -O2 -fPIC -lpthread -D_GNU_SOURCE -D_HKIPC -DRTSARM -Wimplicit-function-declaration -Werror
 COMPFLAGS   = -c -O2 -fPIC -lpthread -D_GNU_SOURCE -D_HKIPC -DRTSARM -Wimplicit-function-declaration
