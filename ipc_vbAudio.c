@@ -5,7 +5,7 @@
 #include <sys/times.h>
 #include <time.h>
 
-#include "rs.h"
+//#include "rs.h"
 #include "utils/HKCmdPacket.h"
 
 #include "hi_type.h"

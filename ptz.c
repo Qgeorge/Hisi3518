@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "gpiodriver.h"
-#include "utils_biaobiao.h"
 
 #ifndef TRUE
 #define TRUE	1
@@ -1487,3 +1486,42 @@ int HK_PtzMotor()
 	return nRet;
 }
 
+#if 1
+void OnCmdPtz( int ev )
+{
+	switch (ev) //ptz rotate step by step.
+	{
+		case 1: //left
+			g_PtzRotateEnable = 1;
+			g_PtzRotateType = 0;
+			g_PtzPresetPos = 0;
+			g_PtzStepType = 2; //right.
+			break;
+		case 2: //right.
+			g_PtzRotateEnable = 1;
+			g_PtzRotateType = 0;
+			g_PtzPresetPos = 0;
+			g_PtzStepType = 1; //left.
+			break;
+		case 3: //up.
+			g_PtzRotateEnable = 1;
+			g_PtzRotateType = 0;
+			g_PtzPresetPos = 0;
+			g_PtzStepType = 4; //down.
+			break;
+		case 4: //down.
+			g_PtzRotateEnable = 1;
+			g_PtzRotateType = 0;
+			g_PtzPresetPos = 0;
+			g_PtzStepType = 3; //up.
+			break;
+		default:
+			g_PtzRotateEnable = 0;
+			g_PtzStepType = 0;	
+			g_PtzRotateType = 0;
+			g_PtzPresetPos = 0;
+			break;
+	}
+	return;	
+}
+#endif

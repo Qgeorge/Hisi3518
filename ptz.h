@@ -1,13 +1,6 @@
 #ifndef __PTZ_H__
 #define __PTZ_H__
 
-#ifndef TRUE
-#define TRUE	1
-#endif
-
-#ifndef FALSE
-#define FALSE	0
-#endif
 
 extern int g_RotateSpeed;		//rotate speed
 extern int g_UD_StepCount;		//calculate the UP down current position.

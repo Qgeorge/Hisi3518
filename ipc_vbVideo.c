@@ -13,37 +13,25 @@
 #include <unistd.h>
 #include <signal.h>
 
-#include "rs.h"
 #include "utils/HKMonCmdDefine.h"
 #include "utils/HKCmdPacket.h"
 
 #include "osd_region.h"
 #include "ipc_hk.h"
 #include "ipc_email.h"
-//#include "ipc_file_sd.h"
-#include "ptz.h"
 #include "HISI_VDA.h"
 #include "sample_comm.h"
 #include "ipc_vbAudio.h"
-//#include "scc_video.h"
-#include "utils_biaobiao.h"
+#include "ipc_type.h"
 //add by biaobiao
-#define RECORD 0
 #define NEW_RECORD 1
 #include "record.h"
 #include "ipc_sd.h"
-extern pthread_mutex_t record_mutex; 
+extern pthread_mutex_t record_mutex;
+extern short g_sdIsOnline_f;
 #if RECORD
 #include "recordStruct.h"
 #include "recordSDK.h"
-#endif
-
-#if ENABLE_ONVIF
-#include "IPCAM_Export.h"
-#endif
-
-#if ENABLE_QQ
-#include "TXAudioVideo.h"
 #endif
 
 #define MPEG4           1
@@ -53,17 +41,6 @@ extern pthread_mutex_t record_mutex;
 #define H264            4
 #define H264_TF         6
 #define NULL 0
-
-
-//extern int g_IRCutCurState;
-
-
-
-
-//enable picture snap for sending alarm email.
-//static int g_OpenAlarmEmail = 0; //enable send alarm email.
-
-//HKEMAIL_T hk_email; //email info struct.
 
 /*移动侦测灵敏度*/
 int g_MotionDetectSensitivity = 0;
@@ -79,8 +56,6 @@ VENC_ATTR_H264_S stH264Attr;
 
 extern short g_sdIsOnline;
 
-
-
 /********* Open & Read video stream parameters ***********/
 
 /*通道索引*/
@@ -90,24 +65,13 @@ VENC_CHN g_s32sunvenchn = 1; //sub Venc Channel.
 VENC_CHN g_Venc_Chn_M_Cur = 0;  //current main stream VENC_CHN index.
 VENC_CHN g_Venc_Chn_S_Cur = 1;  //current sub stream VENC_CHN index.
 
-
-/*打开的标记*/
-int g_isH264Open = 0;   //main stream open flag.
-int g_isMjpegOpen = 0;  //sub stream open flag.
-int g_isTFOpen = 0;
-
-/*读取码流相关*/
-static int g_ReadFlag_H264 = 1;   //main read flag.
-static int g_ReadFlag_Mjpeg = 1;  //sub read flag.
-static int g_ReadTimes = 3;
-
 /***************** Venc Fd ******************/
 HI_S32 g_VencFd_Main = 0;    //current main stream fd.
 HI_S32 g_VencFd_Sub = 0;     //current sub stream fd.
 
 
 /*设置当前帧率*/
-unsigned int g_CurStreamFrameRate = 20;
+//unsigned int g_CurStreamFrameRate = 20;
 
 /*图像质量相关*/
 #define VBR_MAXQP_33    33
@@ -119,46 +83,6 @@ unsigned int g_VbrMaxQq_Sub = VBR_MAXQP_33;
 static  unsigned int g_MainRataTime = 0;
 static  unsigned int g_MainVideoSize = 0;
 
-
-#if ENABLE_P2P
-void OnCmdPtz( int ev )
-{
-	switch (ev) //ptz rotate step by step.
-	{
-		case 1: //left
-			g_PtzRotateEnable = 1;
-			g_PtzRotateType = 0;
-			g_PtzPresetPos = 0;
-			g_PtzStepType = 2; //right.
-			break;
-		case 2: //right.
-			g_PtzRotateEnable = 1;
-			g_PtzRotateType = 0;
-			g_PtzPresetPos = 0;
-			g_PtzStepType = 1; //left.
-			break;
-		case 3: //up.
-			g_PtzRotateEnable = 1;
-			g_PtzRotateType = 0;
-			g_PtzPresetPos = 0;
-			g_PtzStepType = 4; //down.
-			break;
-		case 4: //down.
-			g_PtzRotateEnable = 1;
-			g_PtzRotateType = 0;
-			g_PtzPresetPos = 0;
-			g_PtzStepType = 3; //up.
-			break;
-		default:
-			g_PtzRotateEnable = 0;
-			g_PtzStepType = 0;	
-			g_PtzRotateType = 0;
-			g_PtzPresetPos = 0;
-			break;
-	}
-	return;	
-}
-#endif
 
 /*
 获取主码流的码率
@@ -259,13 +183,13 @@ int HISI_SetFrameRate(int iChnNo, int nFrameRate)
 
 	if (VENC_RC_MODE_H264CBR == stVencChnAttr.stRcAttr.enRcMode)
 	{
-		g_CurStreamFrameRate = stVencChnAttr.stRcAttr.stAttrH264Cbr.fr32TargetFrmRate;
+		//g_CurStreamFrameRate = stVencChnAttr.stRcAttr.stAttrH264Cbr.fr32TargetFrmRate;
 		stVencChnAttr.stRcAttr.stAttrH264Cbr.fr32TargetFrmRate = nFrameRate;
 		//SAMPLE_PRT("(CBR) Set FrameRate, chn:%d, CbrTargetFrmRate:%d...\n", VencChn, stVencChnAttr.stRcAttr.stAttrH264Cbr.fr32TargetFrmRate);
 	}
 	else if (VENC_RC_MODE_H264VBR == stVencChnAttr.stRcAttr.enRcMode)
 	{
-		g_CurStreamFrameRate = stVencChnAttr.stRcAttr.stAttrH264Vbr.fr32TargetFrmRate;
+		//g_CurStreamFrameRate = stVencChnAttr.stRcAttr.stAttrH264Vbr.fr32TargetFrmRate;
 		stVencChnAttr.stRcAttr.stAttrH264Vbr.fr32TargetFrmRate = nFrameRate;	
 		//SAMPLE_PRT("(VBR) Set FrameRate, chn:%d, VbrTargetFrmRate:%d...\n", VencChn, stVencChnAttr.stRcAttr.stAttrH264Vbr.fr32TargetFrmRate);
 	}
@@ -1272,60 +1196,6 @@ int ISP_Params_Init()
 
 
 struct HKVProperty video_properties_;
-
-
-#define HK_MHDR_VERSION 2
-/*
-#define NTOHL
-#define HTONL
-#define HK_MHDR_SET_FRAGX(hdr, val) do{long msk=NTOHL(hdr) & ~0x000f, x=val; (hdr)=HTONL(msk|(x&0x0f));}while(0)
-#define HK_MHDR_SET_FLIP(hdr, val)        ((val) ? ((hdr) |= 0x0020) : ((hdr) &= (~0x0020)))
-#define HK_MHDR_SET_RESOLUTION(hdr, val)  ((hdr) |= ((val) & 0x000f))
-#define HK_MHDR_SET_ENCODE_TYPE(hdr, val) ((hdr) |= (((val) << 6) & 0x07ff))
-#define HK_MHDR_SET_VERSION(hdr, val)     ((hdr) |= ((val) << 14))
-#define HK_MHDR_SET_MEDIA_TYPE(hdr, val)  ((hdr) |= (((val) << 11) & 0x3fff))
-*/
-#define HK_MHDR_SET_VERSION(hdr, val)     ((hdr) |= ((val) << 14))
-#define HK_MHDR_GET_VERSION(hdr)     (((hdr) >> 14) & 0x0003)
-#if HK_MHDR_VERSION == 1
-// version  mediatype  encodetype  flip  x   resolution
-// // [][]     [][][]     [][][][][]  []    []  [][][][]
-#define HK_MHDR_SET_RESOLUTION(hdr, val)  ((hdr) |= ((val) & 0x000f))
-#define HK_MHDR_SET_FLIP(hdr, val)        ((val) ? ((hdr) |= 0x0020) : ((hdr) &= (~0x0020)))
-#define HK_MHDR_SET_ENCODE_TYPE(hdr, val) ((hdr) |= (((val) << 6) & 0x07ff))
-#define HK_MHDR_SET_MEDIA_TYPE(hdr, val)  ((hdr) |= (((val) << 11) & 0x3fff))
-
-#define HK_MHDR_GET_RESOLUTION(hdr)  ((hdr) & 0x000f)
-#define HK_MHDR_GET_FLIP(hdr)        ((hdr) & 0x0020)
-#define HK_MHDR_GET_ENCODE_TYPE(hdr) (((hdr) >> 6) & 0x001f)
-#define HK_MHDR_GET_MEDIA_TYPE(hdr)  (((hdr) >> 11) & 0x0007)
-
-#elif HK_MHDR_VERSION == 2
-// // version flip  encodetype  resolution fragment-seq  
-// // [][]    [][    [][][][][]  [][][][]   [][][][]   
-#define NTOHL
-#define HTONL
-#define HK_MHDR_SET_RESOLUTION(hdr, val) do{long msk=NTOHL(hdr) & ~0x00f0; (hdr)=HTONL(msk|(((val)&0x0f) << 4));}while(0)
-#define HK_MHDR_GET_RESOLUTION(hdr)  ((NTOHL(hdr)>>4) & 0x0f)
-#define HK_MHDR_SET_ENCODE_TYPE(hdr, val) do{long msk=NTOHL(hdr) & ~0x1f00; (hdr)=HTONL(msk|(((val)&0x1f) << 8));}while(0)
-#define HK_MHDR_GET_ENCODE_TYPE(hdr) ((NTOHL(hdr)>>8) & 0x1f)
-#define HK_MHDR_SET_FLIP(hdr, val) do{long msk=NTOHL(hdr) & ~0x2000; (hdr)=HTONL(msk|((!!(val)) << 13));}while(0)
-#define HK_MHDR_GET_FLIP(hdr)        ((NTOHL(hdr)>>13) & 0x01)
-//#define HK_MHDR_SET_FRAGX(hdr, val) do{long msk=NTOHL(hdr) & ~0x000f, x=val; (hdr)=HTONL(msk|(x&0x0f));}while(0)
-#define HK_MHDR_GET_FRAGX(hdr) (NTOHL(hdr) & 0x0f)
-#define HK_MHDR_SET_MEDIA_TYPE(x,y) (void)0
-
-/*
-#define HK_MHDR_SET_ENCODE_TYPE(hdr, val) do{long msk=NTOHL(hdr) & ~0xf00; (hdr)=HTONL(msk|(((val)&0xf) << 8));}while(0)
-#define HK_MHDR_GET_ENCODE_TYPE(hdr) ((NTOHL(hdr)>>8) & 0x0f)
-//#define HK_MHDR_SET_FLIP(hdr, val) do{long msk=NTOHL(hdr) & ~0x3000; (hdr)=HTONL(msk|((!!(val)) << 12));}while(0)
-#define HK_MHDR_GET_FLIP(hdr)        ((NTOHL(hdr)>>12) & 0x03)
-#define HK_MHDR_SET_FLIP(hdr, val)  ((hdr) |= ((val) << 12))
-*/
-#define HK_MHDR_SET_FLIPEX(hdr, val)  ((hdr) |= ((val) << 2))
-#define HK_MHDR_SET_FRAGX(hdr, val)  ((hdr) |= (val) )
-#endif
-
 static void video_property_builtins(struct HKVProperty* vp)
 {
 	memset(vp, 0, sizeof(*vp));
@@ -1588,20 +1458,20 @@ static void Close(int obj)
 {
 	if( obj == MPEG4)
 	{
-		g_isH264Open = 0;
+	//	g_isH264Open = 0;
 
 		fprintf(stderr, "...Close...current MPEG4 venc channel:%d\n", g_Venc_Chn_M_Cur);
 		//Video_DisableVencChn( g_Venc_Chn_M_Cur );
 	}
 	else if ( obj == M_JPEG )
 	{
-		g_isMjpegOpen = 0;
+		//g_isMjpegOpen = 0;
 		fprintf(stderr, "...Close...current M_JPEG venc channel:%d\n", g_Venc_Chn_S_Cur);
 		//Video_DisableVencChn( g_Venc_Chn_S_Cur );
 	}
 	else if( obj == H264_TF )
 	{
-		g_isTFOpen = 0;
+		//g_isTFOpen = 0;
 	}
 	else
 	{
@@ -1710,10 +1580,6 @@ static int sccOpen(const char* name, const char* args, int* threq)
 				printf("Get Venc Stream FD failed: %s, %d\n", __func__, __LINE__); 
 				return -1;
 			}
-
-			//g_isH264Open    = 1;
-			g_ReadFlag_H264 = 1;
-			g_ReadTimes     = 3;
 			*threq          = 1;
 			g_Venc_Chn_M_Cur = g_s32venchn; //current VENC channel.
 			HK_DEBUG_PRT("Open:%s, g_Venc_Chn_M_Cur:%d, g_VencFd_Main:%d.\n", name, g_Venc_Chn_M_Cur, g_VencFd_Main);
@@ -1743,9 +1609,6 @@ static int sccOpen(const char* name, const char* args, int* threq)
 				printf("Get Venc Stream FD failed: %s, %d\n", __func__, __LINE__); 
 				return -1;
 			}
-
-			//g_isMjpegOpen    = 1;
-			g_ReadFlag_Mjpeg = 1;
 			*threq           = 1;
 			g_Venc_Chn_S_Cur = g_s32sunvenchn; //current VENC channel.
 			HK_DEBUG_PRT("Open:%s, g_sunCifOrD1:%d, g_Venc_Chn_S_Cur:%d, g_VencFd_Sub:%d.\n", name, g_sunCifOrD1, g_Venc_Chn_S_Cur, g_VencFd_Sub);
@@ -1756,15 +1619,6 @@ static int sccOpen(const char* name, const char* args, int* threq)
 }
 
 extern int g_start_video;
-#if ENABLE_QQ
-static int s_gopIndex = 0;
-unsigned long _GetTickCount()
-{        
-	struct timeval current = {0};  
-	gettimeofday(&current, NULL);  
-	return (current.tv_sec*1000 + current.tv_usec/1000);                           
-}
-#endif
 
 /*获取主码流视频的主线程 */
 int g_Video_Thread=0;
@@ -1808,7 +1662,7 @@ int sccGetVideoThread()
 		pstPack = NULL;
 		return NULL;
 	}
-#if 1
+#if 0
 	{
 
 		//HISI_SetBitRate(g_SubVideo_Thread, 500);
@@ -1883,9 +1737,6 @@ int sccGetVideoThread()
 						case H264E_NALU_PSLICE:
 							iFrame = 1; //HK_BOAT_PFREAM; //P frame
 							sFrame = 0;
-#if ENABLE_QQ
-							s_nFrameIndex++;
-#endif
 							break;
 						case H264E_NALU_BUTT:
 							HI_MPI_VENC_ReleaseStream(s_vencChn, &stStream);
@@ -1895,9 +1746,6 @@ int sccGetVideoThread()
 						default:
 							iFrame = 0; //HK_BOAT_IFREAM; //I frame
 							sFrame = 1;
-#if ENABLE_QQ
-							s_gopIndex++;
-#endif
 							break;
 					}
 				} //end for()
@@ -1920,12 +1768,10 @@ int sccGetVideoThread()
 				P2PNetServerChannelDataSndToLink(0,0,videobuf,iLen,iFrame,0);
 #endif
 
-#if ENABLE_QQ
-				tx_set_video_data(videobuf, iLen, iFrame, _GetTickCount(), s_gopIndex, s_nFrameIndex, s_dwTotalFrameIndex++, 40);
-#endif
 
 #if NEW_RECORD
-				if(g_start_video)
+//				g_start_video = 1;
+				if(g_start_video && g_sdIsOnline_f)
 				{
 					struct timeval tv;
 					gettimeofday(&tv, NULL);
@@ -2040,7 +1886,7 @@ int sccGetSubVideoThread()
 		return NULL;
 	}
 
-#if 1
+#if 0
 	{
 		//HISI_SetBitRate(g_SubVideo_Thread, 500);
 		HI_S32 s32Ret;
@@ -2136,19 +1982,6 @@ int sccGetSubVideoThread()
 #endif
 
 
-#if ENABLE_ONVIF
-				memcpy(pH264VideoBuf->VideoBuffer, videobuf, iLen );
-				pH264VideoBuf->bzEncType	  = ENC_AVC;
-				pH264VideoBuf->dwBufferType   = VIDEO_LOCAL_RECORD;
-				pH264VideoBuf->dwFrameNumber  = stStream.u32Seq; 
-				pH264VideoBuf->dwWidth		  = g_stVencChnAttrSlave.stVeAttr.stAttrH264e.u32PicWidth;
-				pH264VideoBuf->dwHeight 	  = g_stVencChnAttrSlave.stVeAttr.stAttrH264e.u32PicHeight;
-				pH264VideoBuf->dwSec		  = stStream.pstPack[0].u64PTS/1000;
-				pH264VideoBuf->dwUsec		  = (stStream.pstPack[0].u64PTS%1000)*1000;
-				pH264VideoBuf->dwFameSize	  = iLen;			
-				IPCAM_PutStreamData(VIDEO_LOCAL_RECORD, 1, VOIDEO_MEDIATYPE_VIDEO, pH264VideoBuf);
-#endif
-
 				s32Ret = HI_MPI_VENC_ReleaseStream(s_vencChn, &stStream);
 				if (HI_SUCCESS != s32Ret)
 				{
@@ -2160,7 +1993,7 @@ int sccGetSubVideoThread()
 
 				/** push pool stream **/
 				//if (1 == g_isMjpegOpen)
-				if (2 == g_isMjpegOpen)
+				//if (2 == g_isMjpegOpen)
 				{
 					#if 0
 					sccPushStream( 1234, PSTREAMTWO, videobuf, iLen, iFrame, g_iCifOrD1, H264 );
@@ -2233,64 +2066,7 @@ int sccStartVideoThread()
 	CreateSubVideoThread();
 	CreateAudioThread();
 }
-#if 0
-static void GetInitAlarmParam(HKFrameHead *pFrameHead)
-{
-	int i = 0;
-	if (g_iCifOrD1 >= 5)
-	{
-		int iCount = conf_get_int(HOME_DIR"/RngMD.conf", "D1Count");
-		printf("[%s, %d]...g_iCifOrD1:%d, D1Count:%d...\n", __func__, __LINE__, g_iCifOrD1, iCount);
 
-		SetParamUN( pFrameHead, HK_KEY_INDEX, iCount ); 
-		for (i = 0; i < iCount; i++)
-		{
-			char cXYbuf[54] = {0};
-			char cWHbuf[54] = {0};
-			snprintf( cXYbuf, sizeof(cXYbuf), "D1XY%d", i );
-			snprintf( cWHbuf, sizeof(cWHbuf), "D1WH%d", i );
-
-			int iXY = conf_get_int(HOME_DIR"/RngMD.conf", cXYbuf);
-			int iWh = conf_get_int(HOME_DIR"/RngMD.conf", cWHbuf);
-
-			char cKey[HK_KEY_VALUES] = {0};
-			char cYey[HK_KEY_VALUES] = {0};
-			snprintf( cKey, sizeof(cKey), "%s%d", HK_KEY_POINTX, i );
-			snprintf( cYey, sizeof(cYey), "%s%d", HK_KEY_POINTY, i );
-
-			SetParamUN( pFrameHead, cKey, iXY ); 
-			SetParamUN( pFrameHead, cYey, iWh ); 
-			printf("...iXY:%d, iWh:%d...\n", iXY, iWh);
-		}
-	}
-	else
-	{
-		int iCount = conf_get_int(HOME_DIR"/RngMD.conf", "CifCount");
-		printf("[%s, %d]...g_iCifOrD1:%d, CifCount:%d...\n", __func__, __LINE__, g_iCifOrD1, iCount);
-
-		SetParamUN( pFrameHead, HK_KEY_INDEX, iCount ); 
-		for (i = 0; i < iCount; i++)
-		{
-			char cXYbuf[54] = {0};
-			char cWHbuf[54] = {0};
-			snprintf( cXYbuf, sizeof(cXYbuf), "CifXY%d", i );
-			snprintf( cWHbuf, sizeof(cWHbuf), "CifWH%d", i );
-
-			int iXY = conf_get_int(HOME_DIR"/RngMD.conf", cXYbuf);
-			int iWh = conf_get_int(HOME_DIR"/RngMD.conf", cWHbuf);
-
-			char cKey[HK_KEY_VALUES] = {0};
-			char cYey[HK_KEY_VALUES] = {0};
-			snprintf( cKey, sizeof(cKey), "%s%d", HK_KEY_POINTX, i );
-			snprintf( cYey, sizeof(cYey), "%s%d", HK_KEY_POINTY, i );
-
-			SetParamUN( pFrameHead, cKey, iXY ); 
-			SetParamUN( pFrameHead, cYey, iWh ); 
-			printf("...iXY:%d, iWh:%d...\n", iXY, iWh);
-		}
-	}
-}
-#endif
 void video_RSLoadObjects() 
 {
     /**video resolution**/
@@ -2306,7 +2082,7 @@ void video_RSLoadObjects()
     }
     
     /**sub stream**/
-    //if (g_sunCifOrD1 >= 4) //5 ==> VGA:640*480.
+    if (g_sunCifOrD1 >= 4) //5 ==> VGA:640*480.
     {
         g_s32sunvenchn = 1;   //Venc Channel 1: VGA (640*480)
         g_sunCifOrD1 = ENUM_VGA ; //5

@@ -1450,6 +1450,7 @@ int main(int argc, char* argv[])
 	unsigned int valSetRun = 0;
 	int ret = 0;
 	system("echo 3 > /proc/sys/vm/drop_caches");
+	PlaySound("/mnt/sif/audio/wait.pcm");
 	for ( ; !quit_; counter++)
 	{
 		/*ISP控制*/
@@ -1492,6 +1493,7 @@ int main(int argc, char* argv[])
 				f_wifi_connenct = 0;
 				printf("*********connect the ap******************\n");
 			};
+			sleep(5);
 		}
 #if 0 
 		if (b_hkSaveSd)

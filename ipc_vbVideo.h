@@ -4,17 +4,7 @@
 #include "ipc_hk.h"
 #include "hi_type.h"
 
-extern int g_MotionDetectSensitivity;
-extern int g_iCifOrD1;   //main stream channel index.
-extern int g_isH264Open;  //main stream open flag.
-
 extern struct HKVProperty video_properties_;
-
-/*************************************
-*fun:    the color turned grey
-*author: wangshaoshu
-**************************************/
-int CheckAlarm(int iChannel, int iType, int nReserved, char *cFtpData);
 
 /*************************************
 *fun:    the color turned grey
@@ -64,7 +54,6 @@ int CreateVideoThread(void);
 **************************************************************/
 int CreateSubVideoThread();
 
-void AlarmVideoRecord(bool bAlarm);
 void video_RSLoadObjects();
 
 #endif

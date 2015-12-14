@@ -69,25 +69,6 @@
 #define SD_REC_AUDIO "audio"      //sd record audio and video at the same time.
 
 
-#define HK_WIFI_FIND_LEN 100 
-#define SSID_LEN         37
-/*
-typedef struct hk_remote_wffi_info
-{
-    char nettype;	//0:Infra; 1:Adhoc	
-    char enctype;   //1:AUTO; 2:TKIP; 3:AES
-    char authmode;  //0:none; 1:wep; 2:wpa/wpa2; 3:wpa-psk/wpa2-psk
-    char ssid[SSID_LEN];  //wifi node name.
-    //char bssid[SSID_LEN]; //wifi mac address.
-    int  iSignal;
-}REMOTE_INFO;       
-
-typedef struct hk_remote_wifi_find          
-{                                           
-    int count;                              
-    REMOTE_INFO wifi_info[HK_WIFI_FIND_LEN];
-}REMOTE_WIFI_FIND;
-*/
 /****************** WIFI Params End *****************/
 
 
@@ -150,18 +131,9 @@ typedef struct TAlarmSet
 }TAlarmSet_;
 
 #define MAX_CHAN  3        
-// Max macro cell count : (1600/16) * (1200/16)
-// //#define MAX_MACROCELL_NUM         7500  
-// // Max macro cell count : (1280/16) * (960/16)
-//#define MAX_MACROCELL_NUM         4800 
-// // Max macro cell count : (720/16) * (576/16)
 #define MAX_MACROCELL_NUM         1620  
-//
-// //#define C_W     320/352
-// //#define C_H     240/288
 #define C_W     1
 #define C_H     1
-//
 #define CIF_WIDTH_PAL            320
 #define CIF_HEIGHT_PAL           240
 
@@ -198,10 +170,6 @@ typedef unsigned char byte;
 
 
 #define POOLSIZE 20+1
-//#define MAX_VIDEODATA_HOSTSTREAM 1024*1024
-//#define MAX_VIDEODATA_SLAVETREAM 512*1024 //1024*1024
-//#define MAX_VIDEODATA_HOSTSTREAM 400*1024
-//#define MAX_VIDEODATA_SLAVETREAM 200*1024 //1024*1024
 #define MAX_VIDEODATA_HOSTSTREAM 200*1024 //200K
 #define MAX_VIDEODATA_SLAVETREAM 200*1024 //200K
 /*
@@ -255,31 +223,6 @@ typedef struct _VideoDataRecord
 }VideoDataRecord;
 
 
-
-
-
-/*******************************************
- * func: calculate SD card storage size.
- ******************************************/
-int GetStorageInfo();
-
-void wrap_sys_restart();
-
-//void be_present(int x);
-
-/*
- *  enable wifi search, parse wifi node, 
- *  and save the scan result into wifi list file.
- */
-//static int ScanWifiInfo( REMOTE_WIFI_FIND *wifi )
-//int ScanWifiInfo(REMOTE_WIFI_FIND *pWifi);
-//int Sort_WifiInfo(REMOTE_WIFI_FIND *pWifiInfo);
-
-/*******************************************************************
- * func: check ftp configuration & enable FTP bakup for SD data.
- ******************************************************************/
-void hk_start_ftp_server();
-
 /************************************************************
  * func: disable specified VENC channel.
  ***********************************************************/
@@ -291,11 +234,5 @@ HI_S32 Video_DisableVencChn(VENC_CHN venchn);
 HI_S32 Video_EnableVencChn(VENC_CHN venchn);
 
 //void be_present2(int iLen, char *cWifiInfo, char *cSend, unsigned int ulParam );
-
-#ifndef bool
-#define bool int
-#define false 0
-#define true 1
-#endif
 
 #endif
