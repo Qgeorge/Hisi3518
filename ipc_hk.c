@@ -1212,27 +1212,6 @@ int HK_Check_KeyReset(void)
 	return 0;
 }
 #endif
-void hk_set_system_time()
-{
-	int st = 0;
-	int tz = conf_get_int(HOME_DIR"/time.conf", "zone");
-	unsigned int t = conf_get_int(HOME_DIR"/time.conf", "time_");
-	if (t > 0)
-	{
-		unsigned int seconds = tz+t;
-		//unsigned int seconds = t;
-		struct timespec ts;
-		ts.tv_sec = seconds;
-		ts.tv_nsec = 0;
-		clock_settime(CLOCK_REALTIME, &ts);
-	}
-	system("/bin/ntpdate cn.pool.ntp.org");
-	st = time(NULL);
-	if(st != 0)
-	{
-		conf_set_int(HOME_DIR"/time.conf", "time_",st-tz);
-	}
-}
 
 static void init_conf()
 {
@@ -1246,9 +1225,6 @@ static void init_conf()
 	system("touch /mnt/sif/ftpbakup.conf");
 	system("touch /mnt/sif/hkpppoe.conf");
 }
-
-
-
 
 //#if ENABLE_ONVIF
 #if 0
@@ -1362,7 +1338,7 @@ int main(int argc, char* argv[])
 		connect_the_ap();
 		net_modify_device(device_id);
 	}
-	hk_set_system_time();
+//	hk_set_system_time();
 	video_RSLoadObjects();
 	/**** init video Sub System. ****/
 	if( HI_SUCCESS != Video_SubSystem_Init() )
