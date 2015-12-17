@@ -33,8 +33,13 @@ int record_search()
 }
 #endif
 int g_play_minute = 1;
-int play_minute()
+
+/*播放一分钟的视频文件*/
+int play_minute(void *locate_time)
 {
+	int playtime = 0;
+	playtime = *((int *)locate_time);
+
 	av_record_t *play_handle;
 	av_frame_t av;
 	int ret;

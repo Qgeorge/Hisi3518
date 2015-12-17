@@ -57,7 +57,7 @@ pthread_mutex_t record_mutex ;
 #define VENCCHNID   0
 #define SNAPCHN     1
 /*用户ID*/
-char g_userid[50] = {0};
+char g_userid[50] = "17727532515";
 /*视频模式*/
 VIDEO_NORM_E gs_enNorm = VIDEO_ENCODING_MODE_NTSC;
 /*视频的属性*/
@@ -1335,8 +1335,15 @@ int main(int argc, char* argv[])
 	{	
 		/*设为sta模式*/
 		set_sta_mode();
-		connect_the_ap();
-		net_modify_device(device_id);
+		if(connect_the_ap() == 0);
+		{
+			net_modify_device(device_id);
+			#if 0
+			net_create_device(device_id);
+			//设别绑定
+			net_bind_device( g_userid, device_id );
+			#endif
+		}
 	}
 //	hk_set_system_time();
 	video_RSLoadObjects();
