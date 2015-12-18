@@ -1,0 +1,11 @@
+prefix=/opt/hi3518_qq/Hi3518_SDK_V1.0.8.1/mpp/sample/ipc_avserver/netsdk/json-c-lib
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: json-c
+Description: JSON implementation in C
+Version: 0.12
+Requires: 
+Libs:  -L${libdir} -ljson-c
+Cflags: -I${includedir}/json-c

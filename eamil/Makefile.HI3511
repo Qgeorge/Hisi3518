@@ -1,0 +1,49 @@
+# Makefile for DVS901H
+# Copyright(C) 2005-2010 TaiTech Inc.
+
+# Cross Compile Tools
+CC 			:=  arm-hisiv100nptl-linux-gcc
+AR			:= arm-hisiv100nptl-linux-ar
+
+# Macro Of Platform
+CFLAGS		:= -DHI3511
+
+CFLAGS    += -D_GNU_SOURCE -D_REENTRANT 
+CFLAGS    += -DFLUSH_DISK
+CFLAGS    += -DSD_STORAGE
+
+# Macro Of Header
+
+# Macro Of Function
+#CFLAGS		+= -DNET_SDK_DEBUG
+
+# Macro Of Library
+LDFLAGS	:=
+
+INCPATH     = -I ./lib_openssl/include/
+
+CFLAGS    += $(INCPATH)
+
+# Object path configure
+OBJSPATH 	:= ./debug_HI3511
+OBJS 		:= $(wildcard $(OBJSPATH)/*.o)
+
+# Specific Rules
+.PHONY: all
+
+all:
+	$(if $(shell find $(OBJSPATH)), $(shell cd ./), $(shell mkdir $(OBJSPATH)))
+	
+	$(CC)   $(CFLAGS) -c ipc_email.c -o $(OBJSPATH)/ipc_email.o $(LDFLAGS)
+	$(CC)   $(CFLAGS) -c ipc_ssl_attach.c -o $(OBJSPATH)/ipc_ssl_attach.o $(LDFLAGS)
+	$(CC)   $(CFLAGS) -c ipc_ssl.c -o $(OBJSPATH)/ipc_ssl.o $(LDFLAGS)
+
+	$(AR) -rcs $(OBJSPATH)/libemail.a $(OBJS) $(LDFLAGS)
+	
+	cp $(OBJSPATH)/*.a ../libs_HI3511/
+	
+clean: 
+	rm -f $(OBJSPATH)/*.o $(OBJSPATH)/*.a $(OBJSPATH)/*.out
+	rm -f *~
+	rmdir $(OBJSPATH)
+

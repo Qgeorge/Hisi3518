@@ -1,0 +1,42 @@
+PRO_HOME_DIR = /opt/hi3518
+
+PLATFORM = hi3518
+
+DIR_IPCAMLIB=$(PRO_HOME_DIR)/IPCAM_LIB/hi3518e_rtsp_web
+
+
+
+#HI3518º£ËŒÆœÌš
+ifeq ($(PLATFORM), hi3518)
+	CROSS_COMPILER = arm-hisiv100nptl-linux-
+	LIBDIR = lib
+endif
+
+ifeq ($(ISMAKE_ONVIF), yes)
+	MAKETARGET += -DONVIF_MAKETAR
+endif
+
+AS = $(CROSS_COMPILER)as
+ 
+LD = $(CROSS_COMPILER)ld
+ 
+CC = $(CROSS_COMPILER)gcc
+ 
+CPP = $(CROSS_COMPILER)g++
+ 
+AR=$(CROSS_COMPILER)ar
+
+RANLIB=$(CROSS_COMPILER)ranlib
+ 
+NM = $(CROSS_COMPILER)nm
+ 
+STRIP = $(CROSS_COMPILER)strip
+ 
+OBJDUMP = $(CROSS_COMPILER)objdump
+
+CP =cp
+
+BASE_MODCFLAGS = -O6 -Wall -g -I. -DMODULE -D__KERNEL__ -DLINUX -I$(LSP_INCLUDE_DIR) 
+WAR = 
+ARMDEP = 
+

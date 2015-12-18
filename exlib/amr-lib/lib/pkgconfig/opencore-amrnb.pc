@@ -1,0 +1,10 @@
+prefix=/home/wangbiaobiao/platform/ffmpeg_test/lib/opencore-amr-0.1.3/opencore-amr-lib
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: OpenCORE AMR-NB
+Description: Adaptive Multi-Rate speech codec library
+Version: 0.1.3
+Libs: -L${libdir} -lopencore-amrnb
+Cflags: -I${includedir}

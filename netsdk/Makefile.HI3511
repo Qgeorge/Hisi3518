@@ -1,0 +1,49 @@
+# Makefile for DVS901H
+# Copyright(C) 2005-2010 TaiTech Inc.
+
+# Cross Compile Tools
+CC 			:=  arm-hisiv100nptl-linux-gcc
+AR			:= arm-hisiv100nptl-linux-ar
+
+# Macro Of Platform
+CFLAGS		:= -DHI3511
+
+CFLAGS    += -D_GNU_SOURCE -D_REENTRANT 
+CFLAGS    += -DFLUSH_DISK
+CFLAGS    += -DSD_STORAGE
+
+# Macro Of Header
+
+# Macro Of Function
+#CFLAGS		+= -DNET_SDK_DEBUG
+
+# Macro Of Library
+LDFLAGS	:=
+
+INCPATH = -I ./../exlib/libghttp/include/
+
+
+# Object path configure
+OBJSPATH 	:= ./debug_HI3511
+OBJS 		:= $(wildcard $(OBJSPATH)/*.o)
+
+# Specific Rules
+.PHONY: all
+
+all:
+	$(if $(shell find $(OBJSPATH)), $(shell cd ./), $(shell mkdir $(OBJSPATH)))
+	
+	$(CC)   $(CFLAGS) -c get_mac.c -o $(OBJSPATH)/get_mac.o $(LDFLAGS)
+	$(CC)   $(CFLAGS) -c http_request.c -o $(OBJSPATH)/http_request.o $(LDFLAGS) $(INCPATH)
+	$(CC)   $(CFLAGS) -c net_http.c -o $(OBJSPATH)/net_http.o $(LDFLAGS) $(INCPATH)
+	$(CC)   $(CFLAGS) -c cJSON.c -o $(OBJSPATH)/cJSON.c.o $(LDFLAGS) $(INCPATH)
+
+	$(AR) -rcs $(OBJSPATH)/libnethttp.a $(OBJS) $(LDFLAGS)
+	
+	cp $(OBJSPATH)/*.a ../libs_HI3511/
+	
+clean: 
+	rm -f $(OBJSPATH)/*.o $(OBJSPATH)/*.a $(OBJSPATH)/*.out
+	rm -f *~
+	rmdir $(OBJSPATH)
+

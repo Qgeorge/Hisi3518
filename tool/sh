@@ -1,0 +1,19 @@
+sed -i "s/int8/rc_int8/g" `grep "int8" -rl ./recordsdk`
+#sed -i "s/uint8/rc_uint8/g" `grep "uint8" -rl ./recordsdk`
+sed -i "s/int16/rc_int16/g" `grep "int16" -rl ./recordsdk`
+#sed -i "s/uint16/rc_uint16/g" `grep "uint16" -rl ./recordsdk`
+sed -i "s/int32/rc_int32/g" `grep "int32" -rl ./recordsdk`
+#sed -i "s/uint32/rc_uint32/g" `grep "uint32" -rl ./recordsdk`
+
+
+
+sed -i "s/INT8/RC_INT8/g" `grep "INT8" -rl ./recordsdk`
+#sed -i "s/UINT8/RC_UINT8/g" `grep "UINT8" -rl ./recordsdk`
+sed -i "s/INT16/RC_INT16/g" `grep "INT16" -rl ./recordsdk`
+#sed -i "s/UINT16/RC_UNT16/g" `grep "UINT16" -rl ./recordsdk`
+sed -i "s/INT32/RC_INT32/g" `grep "INT32" -rl ./recordsdk`
+#sed -i "s/UINT32/RC_UINT32/g" `grep "UINT32" -rl ./recordsdk`
+
+
+sed -i "s/DWORD/RC_DWORD/g" `grep "DWORD" -rl ./recordsdk`
+sed -i "s/BYTE/RC_BYTE/g" `grep "BYTE" -rl ./recordsdk`
