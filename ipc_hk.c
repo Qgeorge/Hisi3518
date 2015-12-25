@@ -1325,6 +1325,7 @@ int main(int argc, char* argv[])
 	g_DevPTZ           = conf_get_int("/etc/device/ptz.conf", "HKDEVPTZ");
 	IRCutBoardType     = conf_get_int(HOME_DIR"/hkipc.conf", "IRCutBoardType");
 	g_wifimod		   = conf_get_int(HOME_DIR"/hkipc.conf", "WIFIMODE");
+	//g_LOGIN			   = conf_get_int(HOME_DIR"/hkipc.conf", "LOGIN");
 
 	if(g_wifimod == 0)
 	{
@@ -1339,9 +1340,12 @@ int main(int argc, char* argv[])
 		{
 			net_modify_device(device_id);
 			#if 0
-			net_create_device(device_id);
+			if(g_LOGIN == 1)
+			{
+				net_create_device(device_id);
+				net_bind_device( g_userid, device_id );
+			}
 			//设别绑定
-			net_bind_device( g_userid, device_id );
 			#endif
 		}
 	}
@@ -1444,6 +1448,8 @@ int main(int argc, char* argv[])
 		{
 			printf("*********smart config begin******************\n");
 			#if 1
+			system("/usr/bin/pkill wpa_supplicant");
+			system("/usr/bin/pkill udhcpc");
 			PlaySound("/mnt/sif/audio/wait.pcm");
 			set_sta_mode();
 			if(smart_config( g_userid ) == 0)
@@ -1466,7 +1472,11 @@ int main(int argc, char* argv[])
 		/*smart_config结束，则连接wifi*/
 		if(f_wifi_connenct)
 		{
-			if(connect_the_ap() == 0)
+			#if TEMP
+			conf_set_int(HOME_DIR"/hkipc.conf", "LOGIN", 1);
+			system("reboot -f");
+			#endif
+			if(connect_smt_ap() == 0)
 			{
 				//创建设备
 				printf("the deviceid is %s\n", device_id);

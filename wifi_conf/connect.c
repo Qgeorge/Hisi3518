@@ -255,6 +255,56 @@ int connect_the_ap()
 	}
 }
 
+/*连接ap热点*/
+int connect_smt_ap()
+{
+	//get_smt_info(smt_info);
+	int flag = 1;
+	int i = 0;
+	static int wpa_flag = 0;
+//	system("ifconfig ra0 down");
+//	system("ifconfig ra0 up");
+//  sleep(1);
+	system("wpa_supplicant -Dwext -ira0 -c/etc/wifiConf/wpa_supplicant.conf &");
+	//sleep(5);
+	while(flag)
+	{
+		if(Check_WPACLI_Status(1) == 1)
+		{
+			flag = 0;
+		}
+		sleep(1);
+		i++;
+		if(i == 60)
+		{
+			system("/usr/bin/pkill wpa_supplicant");
+			system("/usr/bin/pkill udhcpc");
+			return -1;
+		}
+	}
+	//if(Check_WPACLI_Status(1) == 1)
+	{
+		//if(detect_process("udhcpc") != 0)
+		{
+			system("/sbin/udhcpc -b -i ra0 -s /mnt/sif/udhcpc.script");
+			printf("udhcpc already runing\n");
+			sleep(3);
+		}
+		if(test_network("s1.uuioe.net") == 0)
+		{
+			printf("connect success\n");
+			return 0;
+		}
+		else
+		{
+			printf("connect failed\n");
+			system("/usr/bin/pkill wpa_supplicant");
+			system("/usr/bin/pkill udhcpc");
+			return -1;
+		}
+	}
+}
+
 /* 
  * ===  FUNCTION  ======================================================================
  *  Name:  smart_config

@@ -215,15 +215,15 @@ int set_alarm_area()
 {
 	return 0;
 }
+int g_direction = 1;
+int g_audio_volum = 1;
+int g_audio_status = 1;
 /*==============================================
  *获取ipc状态
  *==============================================*/
 int get_ipc_status(PEER_INFO * _pLink)
 {
-	int record_status = 1;
-	int direction = 1;
-	int audio_volum = 1;
-	int audio_status = 1;
+	//int record_status = 1;
 
 	info *sendinfo = (info *)malloc(sizeof(info)+sizeof(int)*4);
 	if(sendinfo == NULL)
@@ -232,10 +232,10 @@ int get_ipc_status(PEER_INFO * _pLink)
 		return -1;
 	}
 	sendinfo->cmdid = 11;
-	sendinfo->pinfo[0] = record_status;
-	sendinfo->pinfo[1] = direction;
-	sendinfo->pinfo[2] = audio_volum;
-	sendinfo->pinfo[3] = audio_status;
+	sendinfo->pinfo[0] = g_start_video;
+	sendinfo->pinfo[1] = g_direction;
+	sendinfo->pinfo[2] = g_audio_volum;
+	sendinfo->pinfo[3] = g_audio_status;
 	SendCmdIntLink(_pLink, (int*)sendinfo, 5*sizeof(int));
 	free(sendinfo);
 }
@@ -252,6 +252,7 @@ int get_ipc_direction(PEER_INFO * _pLink, int direction)
 		return -1;
 	}
 	sendinfo->cmdid = 12;
+	g_direction = direction;
 	sendinfo->pinfo[0] = 1;
 	SendCmdIntLink(_pLink, (int*)sendinfo, 5*sizeof(int));
 	free(sendinfo);
@@ -269,6 +270,7 @@ int get_audio_volum(PEER_INFO * _pLink, int audio_volum)
 		return -1;
 	}
 	sendinfo->cmdid = 13;
+	g_audio_volum = audio_volum;
 	sendinfo->pinfo[0] = 1;
 	SendCmdIntLink(_pLink, (int*)sendinfo, 5*sizeof(int));
 	free(sendinfo);
@@ -285,6 +287,7 @@ int set_audio_stat(PEER_INFO * _pLink, int stat)
 		printf("malloc error\n");
 		return -1;
 	}
+	g_audio_status = stat;
 	sendinfo->cmdid = 14;
 	sendinfo->pinfo[0] = 1;
 	SendCmdIntLink(_pLink, (int*)sendinfo, 5*sizeof(int));
