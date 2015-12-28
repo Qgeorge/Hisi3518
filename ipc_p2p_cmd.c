@@ -166,13 +166,11 @@ int play_minute();
 int locat_video_time(PEER_INFO * _pLink, int locattime)
 {
 	pthread_t   thrd;
-	printf("@@@@@@@@@@@@locattime*******%d*****\n",__LINE__);
 	pthread_attr_t   attr;
 //	pthread_cancel(thrd);
 	pthread_attr_init(&attr);   
-	printf("@@@@@@@@@@@@locattime*******%d*****\n",__LINE__);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-	printf("@@@@@@@@@@@@locattime*******%d*****\n",__LINE__);
+	printf("@@@@@@@@@@@@locattime*******%d*****\n", locattime);
 	if(pthread_create(&thrd, &attr, play_minute, &locattime))
 	{
 		perror( "pthread_create   error ");
