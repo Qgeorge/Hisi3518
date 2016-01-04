@@ -41,7 +41,6 @@ int play_minute(void *locate_time)
 	int playtime = 0;
 	playtime = *((int *)locate_time);
 	struct tm *temptm;
-	temptm = localtime(&playtime);
 
 	av_record_t *play_handle;
 	av_frame_t av;
@@ -52,10 +51,12 @@ int play_minute(void *locate_time)
 	}
 	g_play_minute = 0;
 circle:
-	play_handle = av_record_open(2014, 4, 11, 17, 4);
-	printf("%d\n", playtime);
+	playtime = playtime + 3600 * 8;
+//	play_handle = av_record_open(2014, 4, 11, 17, 4);
+	temptm = localtime(&playtime);
+	printf("%d %s\n", playtime, asctime(temptm));
 	printf("*************the play time is %d %d %d %d %d\n", temptm->tm_year +1900, temptm->tm_mon +1, temptm->tm_mday, temptm->tm_hour, temptm->tm_min);
-//	play_handle = av_record_open(temptm->tm_year +1900, temptm->tm_mon +1, temptm->tm_mday, temptm->tm_hour, temptm->tm_min);
+	play_handle = av_record_open(temptm->tm_year +1900, temptm->tm_mon +1, temptm->tm_mday, temptm->tm_hour, temptm->tm_min);
 	if(play_handle == NULL)
 	{
 		return 0;
@@ -85,6 +86,6 @@ circle:
 			P2PNetServerChannelDataSndToLink(1, 0, av.data, av.size, av.keyframe, 0);
 //			P2PNetServerChannelDataSndToLink(1, 1, av.data, av.size, av.keyframe, 0);
 		}
-		usleep(1000*10);
+		usleep(1000);
 	}
 }
