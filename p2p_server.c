@@ -2,6 +2,7 @@
 #include "hi_comm_aio.h"
 #include "hi_type.h"
 #include "ipc_p2p_cmd.h"
+#include <pthread.h>
 
 #define  MAX_SIZE  (512*1024)
 #define ENABLE_P2P
@@ -372,6 +373,11 @@ static INT32 NetMsgProc(void * pThis,CHAR* _u8Buf,INT32 _iBufLength)
 {
 #if 1
 	dbgmsg("%s :%s \n", __FUNCTION__,_u8Buf);
+	int i;
+	for(i = 0; i < _iBufLength; i++)
+	{
+		printf("$$$$$$$$$$$%d\n", *(_u8Buf + i));
+	}
 	int cmd;
 	int *prev = (int *)_u8Buf;
 
@@ -489,7 +495,7 @@ INT32 NetReadCallback(PEER_INFO* pPeerInfo, CHAR* _u8Buf, INT32 length)
 	}
 	return nRet;
 }
-
+extern int play_minute();
 //INT32 p2p_server(INT32 argc, char **argv)
 INT32 p2p_server_f(void *args)
 {
@@ -539,6 +545,18 @@ INT32 p2p_server_f(void *args)
 	    }
 		printf("p2p thread is runing.........\n");
 		sleep(10);
+		#if 0
+		pthread_t   thrd;
+		pthread_attr_t   attr;
+		//	pthread_cancel(thrd);
+		pthread_attr_init(&attr);   
+		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+		if(pthread_create(&thrd, &attr, play_minute, NULL))
+		{
+			perror( "pthread_create   error ");
+			return 0;
+		}
+		#endif
 	}
 	return 0;
 }

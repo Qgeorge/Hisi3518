@@ -1687,6 +1687,7 @@ int sccGetVideoThread()
 
 		static int s_nFrameIndex = -1;
 		static int s_dwTotalFrameIndex = 0;
+		static int select_count = 0;
 
 		//等待获取码流
 		TimeoutVal.tv_sec  = 2;
@@ -1695,7 +1696,13 @@ int sccGetVideoThread()
 		if (s32Ret <= 0)
 		{
 			SAMPLE_PRT("select failed!\n");
+			printf("the select_count is %d\n", select_count);
 			usleep(1000);
+			select_count++;
+			if(select_count >= 25)
+			{
+				system("reboot -f");
+			}
 			continue;
 		}
 		else if (s32Ret > 0)
