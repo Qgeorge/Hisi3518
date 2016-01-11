@@ -9,7 +9,7 @@
 #include <string.h>
 #include "ghttp.h"
 #include "protocol_josn.h"
-
+#include "log.h"
 
 
 int http_comm_request(char *URL, char *str_request, char *ret_buffer)
@@ -102,6 +102,7 @@ int http_request(request_st *RequeSt)
 	if (http_comm_request(RequeSt->uri, RequeSt->requethttp, buffer) != 0)
 	{
 		printf("http_comm_request is error\n");
+		LOGERROR("catfile","http_request faild!\n");
 		return -1;
 	}
 	printf("the return buffer is %s \n", buffer);

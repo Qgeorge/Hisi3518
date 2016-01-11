@@ -19,7 +19,7 @@
 #include <stdlib.h>
 #include "cJSON.h"
 #include "protocol_josn.h"
-
+#include "log.h"
 #define DEVICE_TYPE 2
 #define HOME_DIR "/mnt/sif"
 
@@ -103,6 +103,7 @@ int net_modify_device (char *DeviceId)
 	printf("%s\n", Modify_str_tmp);
 	request_st stCreatDev = {MODIFY_DEV_URI, Modify_str_tmp, Rsp_Modify_Str};
 	http_request(&stCreatDev);
+	LOGNOTICE("catfile","net_create_device is finaly\n");		
 	printf("net_create_device is finaly\n");
 	return 0;
 }
