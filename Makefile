@@ -10,7 +10,7 @@ OBJPATH     = .
 SOURCES     = $(wildcard *.c) 
 OBJS        = $(patsubst %.c,%.o,$(SOURCES))
 FULLOBJS    = $(patsubst %.c,$(OBJPATH)/%.o,$(SOURCES))
-TARGETPATH  = /tftpboot/3518e
+TARGETPATH  = ~/nfsboot
 
 
 INCPATH     = -I . -I ./exlib/system/include 		  \
@@ -23,7 +23,8 @@ INCPATH     = -I . -I ./exlib/system/include 		  \
 			  -I ./eamil/ 				  \
 			  -I ./sample_comm 				  \
 			  -I ./exlib/amr-lib/include/opencore-amrnb/ 		\
-			  -I ./exlib/openssl_3518/lib_openssl/include 
+			  -I ./exlib/openssl_3518/lib_openssl/include	\
+			  -I ./exlib/loglib/include   \
 #			  -I $(PRO_DIR)/Hi3518_SDK_V1.0.8.1/drv/hisi-irda	  
 
 #LIBPATH     = -L ../lib_so -lsystem -lchinalink -lnetfactory -lutils 
@@ -34,8 +35,8 @@ LIBPATH     = -L ./exlib/lib_so  -lutils \
 			  -L ./libs_HI3511  -lSampleComm -lwificonfig -lnethttp \
 			  -L ./exlib/libghttp/lib -lghttp \
 			  -L ../../lib -lpthread -lm -lmpi -lVoiceEngine -laec -lresampler -lanr -lisp -lsns_ov9712 \
-			  -L ./exlib/openssl_3518/lib_openssl/lib -lssl -lcrypto 
-			
+			  -L ./exlib/openssl_3518/lib_openssl/lib -lssl -lcrypto \
+			  -L ./exlib/loglib/lib -llog4c 
 LINKFLAGS   = -Wall -g
 #COMPFLAGS   = -c -O2 -fPIC -lpthread -D_GNU_SOURCE -D_HKIPC -DRTSARM -Wimplicit-function-declaration -Werror
 COMPFLAGS   = -c -O2 -fPIC -lpthread -D_GNU_SOURCE -D_HKIPC -DRTSARM -Wimplicit-function-declaration

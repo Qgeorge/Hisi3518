@@ -28,6 +28,9 @@
 #include "Wdt_hi3518.h"
 #include "HISI_VDA.h"
 
+/*add by qjq*/
+#include "log.h"
+
 /*add by biaobiao*/
 #if ENABLE_P2P
 #include "P2Pserver.h"
@@ -1294,6 +1297,12 @@ int main(int argc, char* argv[])
 	char device_id[12] = {0};
 	int f_wifi_connenct = 0;
 
+	if(log_init()==-1){
+		printf("init log4c failed !\n");
+		return ; //fix me exit or other 
+	}
+
+
 /*获取设备ID*/
 	get_device_id(device_id);
 #if HTTP_DEBUG
@@ -1309,10 +1318,12 @@ int main(int argc, char* argv[])
 	conf_get( HOME_DIR"/sensor.conf", "sensortype", cSensorType, 32 );
 	if (strcmp(cSensorType, "ar0130") == 0)
 	{
+		LOGNOTICE(catfile,"current sensor:ar0130\n");	
 		printf("...scc...ar0130......\n");
 	}
 	else if (strcmp(cSensorType, "ov9712d") == 0)
 	{
+		LOGNOTICE(catfile,"current sensor:ov9712d\n");	
 		printf("...scc...ov9712d......\n");
 	}
 	else
@@ -1331,6 +1342,7 @@ int main(int argc, char* argv[])
 	{
 		/*设为ap模式*/
 		set_ap_mode();
+		LOGNOTICE("catfile","the mode of wifi is ap\n");
 	}
 	else if(g_wifimod == 1)
 	{	

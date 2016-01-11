@@ -20,7 +20,9 @@ CFLAGS    += -DSD_STORAGE
 # Macro Of Library
 LDFLAGS	:=
 
-INCPATH = -I ./../exlib/libghttp/include/
+INCPATH = -I ./../exlib/libghttp/include/  \
+		  -I ./../exlib/loglib/include/ \
+		  -I ./../
 
 
 # Object path configure
