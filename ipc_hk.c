@@ -1315,9 +1315,10 @@ int main(int argc, char* argv[])
 
 	ZLOG_INFO(zc, "hello, zlog");
 	ZLOG_ERROR(zc, "hello, zlog");
+	zlog_put_mdc("myname","qjq");
 	ZLOG_WARN(zc, "hello, zlog");
 	ZLOG_NOTICE(zc, "hello, zlog");
-	
+	ZLOG_FATAL(zc, "hello, zlog");
 
 /*获取设备ID*/
 	get_device_id(device_id);
