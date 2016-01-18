@@ -34,7 +34,7 @@ LIBPATH     = -L ./exlib/lib_so  -lutils \
 			  -L ./exlib/amr-lib/lib \
 			  -L ./libs_HI3511  -lSampleComm -lwificonfig -lnethttp \
 			  -L ./exlib/libghttp/lib -lghttp \
-			  -L ../../lib -lpthread -lm -lmpi -lVoiceEngine -laec -lresampler -lanr -lisp -lsns_sc1045 \
+			  -L ../../lib -lpthread -lm -lmpi -lVoiceEngine -laec -lresampler -lanr -lisp -lsns_ov9712 \
 			  -L ./exlib/openssl_3518/lib_openssl/lib -lssl -lcrypto \
 			  -L ./exlib/zlib/lib -lzlog
 LINKFLAGS   = -Wall -g
@@ -59,6 +59,7 @@ $(TARGET):$(OBJS)
 	arm-hisiv100nptl-linux-strip $(TARGET)
 	rm -f $(OBJPATH)/.*.swp
 	rm -f $(OBJPATH)/*.o
+	rm -f $(OBJPATH)/libs_HI3511/*.a
 	ls -lh $(TARGET)
 	cp $(TARGET) $(TARGETPATH)/
 

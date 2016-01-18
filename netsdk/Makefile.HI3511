@@ -42,6 +42,7 @@ all:
 	$(AR) -rcs $(OBJSPATH)/libnethttp.a $(OBJS) $(LDFLAGS)
 	
 	cp $(OBJSPATH)/*.a ../libs_HI3511/
+	rm $(OBJSPATH)/*.a
 	
 clean: 
 	rm -f $(OBJSPATH)/*.o $(OBJSPATH)/*.a $(OBJSPATH)/*.out
