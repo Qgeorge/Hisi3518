@@ -21,8 +21,7 @@ CFLAGS    += -DSD_STORAGE
 LDFLAGS	:=
 
 INCPATH = -I ./../exlib/libghttp/include/  \
-		  -I ./../exlib/loglib/include/ \
-		  -I ./../
+		  -I ./../exlib/zlib/include/ \
 
 
 # Object path configure

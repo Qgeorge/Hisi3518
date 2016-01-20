@@ -29,7 +29,7 @@
 #include "HISI_VDA.h"
 
 /*add by qjq*/
-#include "log.h"
+#include "zlog.h"
 
 /*add by biaobiao*/
 #if ENABLE_P2P
@@ -89,7 +89,8 @@ unsigned int g_RUN_bit      = 3; //RUN light:5_3.
 //unsigned int g_KeyReset_bit = 2; //GPIO:5_2 ==> reset key.
 
 
-
+/***************** zlog ******************/
+zlog_category_t *zc;
 
 /************** Eable Print *****************/
 #define PRINT_ENABLE    1
@@ -1296,12 +1297,28 @@ int main(int argc, char* argv[])
 	char usrid[32] = {0};
 	char device_id[12] = {0};
 	int f_wifi_connenct = 0;
+	int rc;
 
-	if(log_init()==-1){
-		printf("init log4c failed !\n");
-		return ; //fix me exit or other 
+	
+	rc = zlog_init("/mnt/sif/zlog.conf");
+	if (rc) {
+		printf("init failed\n");
+		return -1;
 	}
 
+	zc = zlog_get_category("my_cat");
+	if (!zc) {
+		printf("get cat fail\n");
+		zlog_fini();
+		return -2;
+	}
+
+	ZLOG_INFO(zc, "hello, zlog");
+	ZLOG_ERROR(zc, "hello, zlog");
+	zlog_put_mdc("myname","qjq");
+	ZLOG_WARN(zc, "hello, zlog");
+	ZLOG_NOTICE(zc, "hello, zlog");
+	ZLOG_FATAL(zc, "hello, zlog");
 
 /*获取设备ID*/
 	get_device_id(device_id);
@@ -1318,12 +1335,11 @@ int main(int argc, char* argv[])
 	conf_get( HOME_DIR"/sensor.conf", "sensortype", cSensorType, 32 );
 	if (strcmp(cSensorType, "ar0130") == 0)
 	{
-		LOGNOTICE(catfile,"current sensor:ar0130\n");	
+		
 		printf("...scc...ar0130......\n");
 	}
 	else if (strcmp(cSensorType, "ov9712d") == 0)
 	{
-		LOGNOTICE(catfile,"current sensor:ov9712d\n");	
 		printf("...scc...ov9712d......\n");
 	}
 	else
@@ -1342,7 +1358,6 @@ int main(int argc, char* argv[])
 	{
 		/*设为ap模式*/
 		set_ap_mode();
-		LOGNOTICE("catfile","the mode of wifi is ap\n");
 	}
 	else if(g_wifimod == 1)
 	{	

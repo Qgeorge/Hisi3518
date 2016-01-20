@@ -118,35 +118,30 @@ int connect_the_ap()
 	if(ret == -1)
 	{
 		printf("connect the ap is eeror\n");
-		LOGERROR("catfile","can't open route configure file----->/etc/wifiConf/wifi_info!\n");
 		return -1;
 	}
 	ret = sscanf(smt_info[0], "SSID=%s", ssid);
 	if(ret == EOF)
 	{
 		printf("sscanf is eeror\n");
-		LOGERROR("catfile","can't read route SSID -------->pls check route configure file format!\n");
 		return -1;
 	}
 	ret = sscanf(smt_info[1], "PASSWORD=%s", password);
 	if(ret == EOF)
 	{
 		printf("sscanf is eeror\n");
-		LOGERROR("catfile","can't read route password ------->pls check route configure file format\n");
 		return -1;
 	}
 	ret = sscanf(smt_info[2], "AUTHMODE=%s", authmode);
 	if(ret == EOF)
 	{
 		printf("sscanf is eeror\n");
-		LOGERROR("catfile","can't read route authmode ------>pls check route configure file format\n");
 		return -1;
 	}
 	ret = sscanf(smt_info[3], "TLV_HEX=%s", tlv_hex);
 	if(ret == EOF)
 	{
 		printf("sscanf is eeror\n");
-		LOGERROR("catfile","can't read route tlv_hex ----->pls check route configure file format\n");
 		return -1;
 	}
 	printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
@@ -164,7 +159,6 @@ int connect_the_ap()
 	else
 	{
 		printf("connect failed\n");
-		LOGERROR("catfile","connect internet faild!! --------> pls check configure param\n");
 		return -1;
 	}
 }
