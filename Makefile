@@ -54,6 +54,8 @@ $(TARGET):$(OBJS)
 #	cd ..
 	cd ./netsdk; $(MAKE) -f Makefile.HI3511
 	cd ..
+	cd ./netTools; $(MAKE) -f Makefile.HI3511
+	cd ..
 	#$(CXX) $(LINKFLAGS) $(FULLOBJS) -o $(TARGET) $(LIBPATH) $(MODULES)
 	$(CXX) $(LINKFLAGS) $(FULLOBJS) -o $(TARGET) $(LIBPATH)
 	arm-hisiv100nptl-linux-strip $(TARGET)
