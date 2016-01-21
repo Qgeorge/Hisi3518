@@ -3,12 +3,14 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
-
+#include "smartconfig.h"
+#include "ipc_sd.h"
+#include "zlog.h"
 #define SMT_CONF_START "echo 'start' > /proc/elian"
 #define SMT_CONF_STOP "echo 'stop' > /proc/elian"
 #define SMT_CONF_CLEAR "echo 'clear' > /proc/elian"
 #define SMT_GET_INFO "iwpriv ra0 elian result"
-#define WIFI_CONFIG "/etc/wifi/wifiConf/wpa_supplicant.conf"
+#define WIFI_CONFIG "/etc/wifiConf/wpa_supplicant.conf"
 
 int detect_process(char * process_name)  
 {  
@@ -98,8 +100,9 @@ int save_wifi_info(char (*info)[100])
 
 	printf("ssid is %s\n", ssid);
 	printf("pwd is %s\n", pass);
+	sleep(1);
 	if(strlen(pass) > 1)
-	{	
+	{
 		sprintf(buffer, "ctrl_interface=/var/run/wpa_supplicant\nnetwork={\nssid=\"%s\"\n\
 psk=\"%s\"\n\
 scan_ssid=1\n\
@@ -242,6 +245,7 @@ int connect_the_ap()
 			printf("udhcpc already runing\n");
 			sleep(3);
 		}
+		#if 0
 		if(test_network("s1.uuioe.net") == 0)
 		{
 			printf("connect success\n");
@@ -252,6 +256,8 @@ int connect_the_ap()
 			printf("connect failed\n");
 			return -1;
 		}
+		#endif
+		return 0;
 	}
 }
 
@@ -265,46 +271,76 @@ int connect_smt_ap()
 //	system("ifconfig ra0 down");
 //	system("ifconfig ra0 up");
 //  sleep(1);
+
+//	system("wpa_supplicant -Dwext -ira0 -c/etc/wifiConf/wpa_supplicant.conf &");
+	system("cp /mnt/mmc/uusmt/wpa_supplicant.conf /etc/");
+	usleep(5000);
 	system("wpa_supplicant -Dwext -ira0 -c/etc/wifiConf/wpa_supplicant.conf &");
+
 	//sleep(5);
 	while(flag)
 	{
 		if(Check_WPACLI_Status(1) == 1)
 		{
 			flag = 0;
+			system("/usr/bin/pkill udhcpc");
 		}
 		sleep(1);
 		i++;
 		if(i == 60)
 		{
+			ZLOG_INFO(zc,"connect faild\n");
 			system("/usr/bin/pkill wpa_supplicant");
 			system("/usr/bin/pkill udhcpc");
 			return -1;
 		}
 	}
+
 	//if(Check_WPACLI_Status(1) == 1)
 	{
 		//if(detect_process("udhcpc") != 0)
 		{
+			//不使用udhcpc看能不能ping通s1.uuioe.net,或者使用了udhcpc后在静态修改id行不行
 			system("/sbin/udhcpc -b -i ra0 -s /mnt/sif/udhcpc.script");
 			printf("udhcpc already runing\n");
 			sleep(3);
 		}
 		if(test_network("s1.uuioe.net") == 0)
 		{
-			printf("connect success\n");
+			ZLOG_INFO(zc,"connect success\n");
 			return 0;
 		}
 		else
 		{
-			printf("connect failed\n");
+			ZLOG_INFO(zc,"connect faild\n");
 			system("/usr/bin/pkill wpa_supplicant");
 			system("/usr/bin/pkill udhcpc");
 			return -1;
 		}
 	}
+	
 }
 
+void connect_ap_for_test(){
+	
+		char tmp[100]={0};
+
+		system("insmod /opt/wifi_driver/mt7601Usta.ko");
+		usleep(5000);
+/*
+		system("wpa_supplicant -Dwext -ira0 -c/etc/wifiConf/wpa_supplicant.conf &");
+		sleep(3);
+*/		
+		connect_smt_ap();
+
+		sprintf(tmp,"ifconfig ra0 %s\n",hk_net_msg.ip);
+		system(tmp);
+
+		memset(tmp,0,strlen(tmp));
+		sprintf(tmp,"route add default gw %s\n",hk_net_msg.gw);
+		system(tmp);
+		system("route add -net 224.0.0.0 netmask 224.0.0.0 ra0");
+}
 /* 
  * ===  FUNCTION  ======================================================================
  *  Name:  smart_config
@@ -318,13 +354,37 @@ int smart_config(char *userid)
 	char password[100] = {0};
 	char cust_data_len[100] = {0};
 	char cust_data[100] = {0};
+	char authmode[50] = {0};
+	char tlv_hex[50] ={0};
 	int len;
+	char auth = '1';
+	router_login_info_p router_msg = NULL;
 
 	system("/usr/bin/pkill wpa_supplicant");
 	system("/usr/bin/pkill udhcpc");
 	system("ifconfig ra0 down");
 	system("ifconfig ra0 up");
 	sleep(1);
+	
+	smartlink_start(&router_msg);
+	//strcpy(smt_info[0],router_msg->usrname);
+	//strcpy(smt_info[1],router_msg->passwd);
+	//strcpy(smt_info[2],&auth);
+	
+	memset(userid,0,strlen(userid));
+	sprintf(smt_info[0],"ssid=%s",router_msg->usrname);
+	sprintf(smt_info[1],"pwd=%s",router_msg->passwd);
+	strcpy(userid,router_msg->userid);
+	
+	printf("smt_info[0]:%s\n",smt_info[0]);
+	printf("smt_info[1]:%s\n",smt_info[1]);
+
+	sleep(1);
+
+	save_wifi_info(smt_info);
+	
+	return 0;
+#if 0
 	start_smart_conf();
 	while(1)
 	{
@@ -361,4 +421,6 @@ int smart_config(char *userid)
 		}
 		sleep(1);
 	}
+#endif
+
 }

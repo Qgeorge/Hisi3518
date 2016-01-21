@@ -596,7 +596,9 @@ void AudioThread(void)
 	struct timeval TimeoutVal;
 	int G711U_Len = 0, G711A_Len = 0;
 	FILE *fd;
+
 	fd = fopen("/mnt/mmc/me.pcm", "wr");
+
 #if 0
 	char g711a_buf[320*5]={0};
 #endif
@@ -660,8 +662,19 @@ void AudioThread(void)
 					break;
 				}
 #if ENABLE_P2P
+			
+#if G711
+				G711A_Len = PCM2G711a(stStream.pStream, buf, stStream.u32Len, 0);
+				P2PNetServerChannelDataSndToLink( 0, 0, buf, G711A_Len, 1, DATA_AUDIO);
+				P2PNetServerChannelDataSndToLink( 0, 1, buf, G711A_Len, 1, DATA_AUDIO);
+//				int num = fwrite(buf, G711A_Len, 1, fd);
+//				printf("the buflength:%d,the num is %d\n", G711A_Len,num);
+				
+#else				
 				P2PNetServerChannelDataSndToLink( 0, 0, stStream.pStream, stStream.u32Len, 1, DATA_AUDIO);
 				P2PNetServerChannelDataSndToLink( 0, 1, stStream.pStream, stStream.u32Len, 1, DATA_AUDIO);
+#endif		
+
 //				printf("@@@@@@@@@@@@@@@@@%d\n", stStream.u32Len);
 #endif
 

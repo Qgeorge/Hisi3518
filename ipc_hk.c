@@ -29,8 +29,10 @@
 #include "HISI_VDA.h"
 
 /*add by qjq*/
-#include "zlog.h"
+//#include "log.h"
 
+#include "zlog.h"
+//#include "smartconfig.h"
 /*add by biaobiao*/
 #if ENABLE_P2P
 #include "P2Pserver.h"
@@ -128,7 +130,7 @@ enum Excode
 
 static pid_t watcher_pid_ = 0;
 
-
+HK_SD_MSG hk_net_msg;
 volatile int quit_ = 0;
 
 extern void OnRestorationParam();
@@ -1295,8 +1297,9 @@ int main(int argc, char* argv[])
 	char cSensorType[32]={0};
 	int counter = 0;
 	char usrid[32] = {0};
-	char device_id[12] = {0};
+	char device_id[20] = {0};
 	int f_wifi_connenct = 0;
+#if 1
 	int rc;
 
 	
@@ -1319,9 +1322,11 @@ int main(int argc, char* argv[])
 	ZLOG_WARN(zc, "hello, zlog");
 	ZLOG_NOTICE(zc, "hello, zlog");
 	ZLOG_FATAL(zc, "hello, zlog");
+#endif
 
 /*获取设备ID*/
 	get_device_id(device_id);
+
 #if HTTP_DEBUG
 	printf("Create the device id*********************");
 #endif
@@ -1346,14 +1351,15 @@ int main(int argc, char* argv[])
 	{
 		printf("...scc...unknown sensor type, use default: ov9712d lib......\n");  
 	}
+#if 1
 	g_DevIndex         = conf_get_int(HOME_DIR"/hkclient.conf", "IndexID"); 
 	g_irOpen           = conf_get_int(HOME_DIR"/hkipc.conf", "iropen");
 	g_onePtz           = conf_get_int(HOME_DIR"/hkipc.conf", "oneptz");
 	g_DevPTZ           = conf_get_int("/etc/device/ptz.conf", "HKDEVPTZ");
 	IRCutBoardType     = conf_get_int(HOME_DIR"/hkipc.conf", "IRCutBoardType");
 	g_wifimod		   = conf_get_int(HOME_DIR"/hkipc.conf", "WIFIMODE");
-	//g_LOGIN			   = conf_get_int(HOME_DIR"/hkipc.conf", "LOGIN");
-
+	//g_LOGIN		   = conf_get_int(HOME_DIR"/hkipc.conf", "LOGIN");
+#endif
 	if(g_wifimod == 0)
 	{
 		/*设为ap模式*/
@@ -1375,7 +1381,20 @@ int main(int argc, char* argv[])
 			//设别绑定
 			#endif
 		}
+	}//g_wifimode--->test mode
+#if 0
+	else if(g_wifimod == 2){
+		while(g_sdIsOnline_f!=1){
+			/*挂载sd卡*/
+			hk_load_sd();
+			sleep(1);
+			printf("pls inset tf card!\n");
+		}
+			get_sd_conf();
+			get_device_id(device_id);
+			connect_ap_for_test();
 	}
+#endif
 //	hk_set_system_time();
 	video_RSLoadObjects();
 	/**** init video Sub System. ****/
@@ -1401,10 +1420,12 @@ int main(int argc, char* argv[])
 	}
 #if (HK_PLATFORM_HI3518E)
 	/*****neck Cruise*****/
+/*
 	if (1 == g_DevPTZ) //0:device without PTZ motor; 1:PTZ device.
 	{
 		HK_PtzMotor();
 	}
+	*/
 #endif
 
 /*hong wai 红外*/
@@ -1464,7 +1485,7 @@ int main(int argc, char* argv[])
 	unsigned int valSetRun = 0;
 	int ret = 0;
 	system("echo 3 > /proc/sys/vm/drop_caches");
-	PlaySound("/mnt/sif/audio/wait.pcm");
+	//PlaySound("/mnt/sif/audio/wait.pcm");
 	for ( ; !quit_; counter++)
 	{
 		/*ISP控制*/
@@ -1477,17 +1498,17 @@ int main(int argc, char* argv[])
 			#if 1
 			system("/usr/bin/pkill wpa_supplicant");
 			system("/usr/bin/pkill udhcpc");
-			PlaySound("/mnt/sif/audio/wait.pcm");
+			//PlaySound("/mnt/sif/audio/wait.pcm");
 			set_sta_mode();
 			if(smart_config( g_userid ) == 0)
 			{	
 				//设置为sta模式
 				conf_set_int(HOME_DIR"/hkipc.conf", "WIFIMODE", 1);
 				f_wifi_connenct = 1;
-				PlaySound("/mnt/sif/audio/success.pcm");
+				//PlaySound("/mnt/sif/audio/success.pcm");
 				system("echo 3 > /proc/sys/vm/drop_caches");
 			}
-			printf("*********smart config comlete******************\n");
+			printf("*********smart config complete******************\n");
 			#endif
 		}else if(ret == 1)
 		{
@@ -1508,7 +1529,9 @@ int main(int argc, char* argv[])
 				//创建设备
 				printf("the deviceid is %s\n", device_id);
 				net_create_device(device_id);
-				//设别绑定
+				//设备绑定
+				printf("the useid :%s\n",usrid);
+				sleep(5);
 				net_bind_device( g_userid, device_id );
 				f_wifi_connenct = 0;
 				printf("*********connect the ap******************\n");

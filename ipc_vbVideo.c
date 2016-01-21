@@ -739,6 +739,7 @@ HI_S32 VISP_SetAE(int nAEMode)
 {
 	int nRet = -1;
 	ISP_OP_TYPE_E enExpType = OP_TYPE_AUTO; //OP_TYPE_MANUAL;
+	ISP_AE_ATTR_S stAEAttr;
 
 	nRet = HI_MPI_ISP_SetExposureType(enExpType);
 	if (nRet != HI_SUCCESS)
@@ -765,7 +766,31 @@ HI_S32 VISP_SetAE(int nAEMode)
 			return HI_FAILURE;
 		}
 	}
+#if 1
+	nRet = HI_MPI_ISP_GetAEAttr(&stAEAttr);
+	if( nRet !=HI_SUCCESS ){
+		SAMPLE_PRT("HI_MPI_ISP_GetAEAttr failed with %#x!\n", nRet);
+		return nRet;
+	}
 
+	stAEAttr.u16ExpTimeMax = 65535;
+	stAEAttr.u16ExpTimeMin = 2;
+	stAEAttr.u16DGainMax = 4096;
+	stAEAttr.u16DGainMin = 1024;
+	stAEAttr.u16AGainMax = 16384;
+	stAEAttr.u16AGainMin = 1024;
+	stAEAttr.u8ExpStep = 16;
+	stAEAttr.s16ExpTolerance = 10;
+	stAEAttr.u8ExpCompensation = 160;
+	stAEAttr.bByPassAE = true;
+	
+	nRet = HI_MPI_ISP_SetAEAttr(&stAEAttr);
+	if( nRet !=HI_SUCCESS ){
+		SAMPLE_PRT("HI_MPI_ISP_SetAEAttr failed with %#x!\n", nRet);
+		return nRet;
+	}
+	
+#endif
 	ISP_AE_ATTR_EX_S stAEAttrEx = {0};
 	nRet = HI_MPI_ISP_GetAEAttrEx(&stAEAttrEx);
 	if (nRet != HI_SUCCESS)
@@ -1108,6 +1133,24 @@ HI_S32 ISP_Ctrl_Sharpness()
 	return HI_SUCCESS;
 }
 
+HI_S32 ISP_SET_AE(){
+
+	HI_S32 ret = -1;
+	ISP_AE_ATTR_S stAEAttr;
+	HI_MPI_ISP_GetAEAttr(&stAEAttr);
+	stAEAttr.u16ExpTimeMax = 65535;
+	stAEAttr.u16ExpTimeMin = 2;
+	stAEAttr.u16DGainMax = 4096;
+	stAEAttr.u16DGainMin = 1024;
+	stAEAttr.u16AGainMax = 16384;
+	stAEAttr.u16AGainMin = 1024;
+	stAEAttr.u8ExpStep = 16;
+	stAEAttr.s16ExpTolerance = 10;
+	stAEAttr.u8ExpCompensation = 160;
+	stAEAttr.bByPassAE = true;
+	ret = HI_MPI_ISP_SetAEAttr(&stAEAttr);
+	return ret;
+}
 
 int ISP_Params_Init()
 {

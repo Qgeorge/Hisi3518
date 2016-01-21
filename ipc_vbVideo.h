@@ -52,7 +52,9 @@ int CreateVideoThread(void);
 *fun:	创建获取子码流的线程
 *author: wangshaoshu
 **************************************************************/
+
 int CreateSubVideoThread();
+HI_S32 ISP_SET_AE();
 
 void video_RSLoadObjects();
 

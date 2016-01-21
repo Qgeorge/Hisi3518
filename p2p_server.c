@@ -528,7 +528,7 @@ INT32 p2p_server_f(void *args)
 	strcpy(cRole, argv[1]);
 	strcpy(g_cP2PIP,argv[2]);
 	strcpy(cServerID, argv[3]);
-	if(g_wifimod == 1)
+	if((g_wifimod == 1) || (g_wifimod == 2))
 	{
 		strcpy(cServerID, device_id);
 	}

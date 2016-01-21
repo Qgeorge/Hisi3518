@@ -22,7 +22,7 @@ LDFLAGS	:=
 
 INCPATH = -I ./../exlib/libghttp/include/  \
 		  -I ./../exlib/zlib/include/ \
-
+		  -I ../
 
 # Object path configure
 OBJSPATH 	:= ./debug_HI3511
@@ -34,7 +34,7 @@ OBJS 		:= $(wildcard $(OBJSPATH)/*.o)
 all:
 	$(if $(shell find $(OBJSPATH)), $(shell cd ./), $(shell mkdir $(OBJSPATH)))
 	
-	$(CC)   $(CFLAGS) -c get_mac.c -o $(OBJSPATH)/get_mac.o $(LDFLAGS)
+	$(CC)   $(CFLAGS) -c get_mac.c -o $(OBJSPATH)/get_mac.o $(LDFLAGS) $(INCPATH)
 	$(CC)   $(CFLAGS) -c http_request.c -o $(OBJSPATH)/http_request.o $(LDFLAGS) $(INCPATH)
 	$(CC)   $(CFLAGS) -c net_http.c -o $(OBJSPATH)/net_http.o $(LDFLAGS) $(INCPATH)
 	$(CC)   $(CFLAGS) -c cJSON.c -o $(OBJSPATH)/cJSON.c.o $(LDFLAGS) $(INCPATH)

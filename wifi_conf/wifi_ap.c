@@ -20,10 +20,11 @@
 #include <stdlib.h>
 
 #define PATH_RT2870AP   "/etc/Wireless/RT2870AP/RT2870AP.dat"
+extern void set_ap(void);
 
 void Init_AP_Setting(void)
 {
-	char device_id[12] = {0};
+	char device_id[20] = {0};
 	get_device_id(device_id);
 
 	static char ap_SSID[128] = {0};

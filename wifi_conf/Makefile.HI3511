@@ -20,13 +20,18 @@ CFLAGS    += -DSD_STORAGE
 # Macro Of Library
 LDFLAGS	:=
 
-INCPATH     = -I ../../../include/
-
+INCPATH     = -I ../../../include/ \
+			  -I ./smartconfig/   \
+			  -I ../	\
+			  -I ../exlib/zlib/include/
+ 						
 CFLAGS    += $(INCPATH)
 
 # Object path configure
 OBJSPATH 	:= ./debug_HI3511
-OBJS 		:= $(wildcard $(OBJSPATH)/*.o)
+#OBJS 		:= $(wildcard $(OBJSPATH)/*.o)
+
+OBJS        := $(OBJSPATH)/*.o \
 
 # Specific Rules
 .PHONY: all
@@ -38,6 +43,7 @@ all:
 	$(CC)   $(CFLAGS) -c ping_net.c -o $(OBJSPATH)/ping_net.o $(LDFLAGS)
 	$(CC)   $(CFLAGS) -c wifi.c -o $(OBJSPATH)/wifi.o $(LDFLAGS)
 	$(CC)   $(CFLAGS) -c wifi_ap.c -o $(OBJSPATH)/wifi_ap.o $(LDFLAGS)
+	$(CC)   $(CFLAGS) -c ./smartconfig/smartconfig.c -o $(OBJSPATH)/smartconfig.o $(LDFLAGS) 
 
 	$(AR) -rcs $(OBJSPATH)/libwificonfig.a $(OBJS) $(LDFLAGS)
 	
