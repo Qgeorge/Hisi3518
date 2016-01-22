@@ -66,18 +66,27 @@ int key_scan()
 			Hi_SetGpio_SetBit( 7, 5, timer%2); //pull up.
 		}
 		if(timer > JSQ_H)
-		break;
+		{
+			Hi_SetGpio_SetDir( 7, 5, GPIO_WRITE );
+			Hi_SetGpio_SetBit( 7, 5, 0); //pull up.
+			break;
+		}
 	}
 	if(timer > JSQ_H)
 	{
+		Hi_SetGpio_SetDir( 7, 5, GPIO_WRITE );
+		Hi_SetGpio_SetBit( 7, 5, 0); //pull up.
 		return 1;
 	}
 	if( timer> JSQ_L  && timer< JSQ_H )
 	{
 		timer = 0; 
+		Hi_SetGpio_SetDir( 7, 5, GPIO_WRITE );
+		Hi_SetGpio_SetBit( 7, 5, 0); //pull up.
 		printf("short\n");
 		return 0;
 	}
+		Hi_SetGpio_SetDir( 7, 5, GPIO_WRITE );
+		Hi_SetGpio_SetBit( 7, 5, 0); //pull up.
 	return 2;
-
 }

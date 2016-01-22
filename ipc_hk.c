@@ -844,6 +844,14 @@ static void initGPIO()
 	nRet = Hi_SetGpio_SetBit( groupnum, bitnum, val_set );
 	HK_DEBUG_PRT("....Set GPIO %d_%d  set Value: %d....\n", groupnum, bitnum, val_set);
 
+	/**init RUN light**/
+	groupnum = 7;
+	bitnum   = 5; //GPIO:7_5.
+	val_set  = 0; //pull down.
+	nRet = Hi_SetGpio_SetDir( groupnum, bitnum, GPIO_WRITE );
+	nRet = Hi_SetGpio_SetBit( groupnum, bitnum, val_set );
+	HK_DEBUG_PRT("....Set GPIO %d_%d  set Value: %d....\n", groupnum, bitnum, val_set);
+	
 	/***init PTZ gpio***/
 	if (1 == g_DevPTZ) //0:device without PTZ motor; 1:PTZ device.
 	{
@@ -1483,6 +1491,8 @@ int main(int argc, char* argv[])
 	unsigned int groupnum = 0, bitnum = 0, val_set = 0;
 	unsigned int valSetRun = 0;
 	int ret = 0;
+
+
 	system("echo 3 > /proc/sys/vm/drop_caches");
 	//PlaySound("/mnt/sif/audio/wait.pcm");
 	for ( ; !quit_; counter++)
