@@ -1492,15 +1492,13 @@ int main(int argc, char* argv[])
 	unsigned int valSetRun = 0;
 	int ret = 0;
 
-
 	system("echo 3 > /proc/sys/vm/drop_caches");
-	//PlaySound("/mnt/sif/audio/wait.pcm");
 	for ( ; !quit_; counter++)
 	{
 		/*ISP控制*/
 		ISP_Ctrl_Sharpness();
 		ret = key_scan();
-		/*add by biaobiao 检测按键 若按键长按进入smartconfig模式，短按则重启*/
+		/*add by biaobiao 检测按键 若按键长按重启进入ap模式，短按则进入smartconfig模式*/
 		if(ret == 0)
 		{
 			printf("*********smart config begin******************\n");

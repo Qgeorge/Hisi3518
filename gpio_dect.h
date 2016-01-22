@@ -24,4 +24,5 @@ return 1 long
 return 0 short
 */
 int key_scan();
+extern void *gpio_blink_thread (void *arg);
 #endif

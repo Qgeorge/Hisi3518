@@ -6,6 +6,9 @@
 #include "smartconfig.h"
 #include "zlog.h"
 #include "ipc_param.h"
+#include "gpio_dect.h"
+#include "pthread.h"
+
 #define SMT_CONF_START "echo 'start' > /proc/elian"
 #define SMT_CONF_STOP "echo 'stop' > /proc/elian"
 #define SMT_CONF_CLEAR "echo 'clear' > /proc/elian"
@@ -387,6 +390,7 @@ int smart_config(char *userid)
 	char tlv_hex[50] ={0};
 	int len;
 	char auth = '1';
+	pthread_t tid;
 	router_login_info_p router_msg = NULL;
 
 	system("/usr/bin/pkill wpa_supplicant");
@@ -395,7 +399,10 @@ int smart_config(char *userid)
 	system("ifconfig ra0 up");
 	sleep(1);
 	
+	pthread_create (&tid, NULL, gpio_blink_thread, NULL); //smartconfig配置时,绿灯闪烁
 	smartlink_start(&router_msg);
+	pthread_kill(tid, SIGINT); //smarconfig配置完成后停止闪烁
+
 	//strcpy(smt_info[0],router_msg->usrname);
 	//strcpy(smt_info[1],router_msg->passwd);
 	//strcpy(smt_info[2],&auth);
