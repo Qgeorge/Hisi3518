@@ -25,7 +25,8 @@ INCPATH     = -I . -I ./exlib/system/include 		  \
 			  -I ./exlib/amr-lib/include/opencore-amrnb/ 		\
 			  -I ./exlib/openssl_3518/lib_openssl/include	\
 			  -I ./exlib/zlib/include   \
-			  -I ./wifi_conf/smartconfig/
+			  -I ./wifi_conf/smartconfig/ \
+			  -I ./exlib/system/include/ 
 #			  -I $(PRO_DIR)/Hi3518_SDK_V1.0.8.1/drv/hisi-irda	  
 
 #LIBPATH     = -L ../lib_so -lsystem -lchinalink -lnetfactory -lutils 
@@ -41,7 +42,7 @@ LIBPATH     = -L ./exlib/lib_so  -lutils \
 #			  -L ./wifi_conf/smartconfig -lsmt
 LINKFLAGS   = -Wall -g
 #COMPFLAGS   = -c -O2 -fPIC -lpthread -D_GNU_SOURCE -D_HKIPC -DRTSARM -Wimplicit-function-declaration -Werror
-COMPFLAGS   = -c -O2 -fPIC -lpthread -D_GNU_SOURCE -D_HKIPC -DRTSARM -DG711 -Wimplicit-function-declaration
+COMPFLAGS   = -c -O2 -fPIC -lpthread -D_GNU_SOURCE -D_HKIPC -DRTSARM -Wimplicit-function-declaration
 CXX         = arm-hisiv100nptl-linux-gcc
 
 

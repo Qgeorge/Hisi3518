@@ -22,7 +22,8 @@ LDFLAGS	:=
 
 INCPATH = -I ./../exlib/libghttp/include/  \
 		  -I ./../exlib/zlib/include/ \
-		  -I ../
+		  -I ../  \
+		  -I ../exlib/system/include/
 
 # Object path configure
 OBJSPATH 	:= ./debug_HI3511

@@ -31,9 +31,10 @@
 /*add by qjq*/
 //#include "log.h"
 
-#include "zlog.h"
+//#include "zlog.h"
 //#include "smartconfig.h"
 /*add by biaobiao*/
+#include "ipc_alias.h"
 #if ENABLE_P2P
 #include "P2Pserver.h"
 #include "BaseType.h"
@@ -138,14 +139,14 @@ static const char* getEnv(const char* x, const char* defs) { return ((x = getenv
 #if 0
 typedef struct _HKIPAddres
 {
-    short bStatus;
-    char  ipMode[64];//dhcp fixeip
-    char  ip[64];
-    char  netmask[64];
-    char  gateway[64];
-    char  dns1[64];
-    char  dns2[64];
-    char  mac[64];
+	short bStatus;
+	char  ipMode[64];//dhcp fixeip
+	char  ip[64];
+	char  netmask[64];
+	char  gateway[64];
+	char  dns1[64];
+	char  dns2[64];
+	char  mac[64];
 }HKIPAddres;
 HKIPAddres eth0Addr;
 #endif
@@ -176,15 +177,15 @@ static void* insert0(const char* fn, const char* line)
 		{
 			fputs(line, f2);
 			while (fgets(buf, sizeof(buf), f))
-				if (strcmp(line, buf) != 0)
-					fputs(buf, f2);
+			  if (strcmp(line, buf) != 0)
+				fputs(buf, f2);
 			fclose(f);
 			fclose(f2);
 			remove(fn);
 			rename(fn2, fn);
 		}
 		else if (f)
-			fclose(f);
+		  fclose(f);
 	}
 	return (void*)fn;
 }
@@ -579,9 +580,9 @@ static void childproc(pid_t ppid, char* cmdline)
 	int x;
 	// setsid();
 	for (x = 3; x < 65535; ++x)
-		close(x);
+	  close(x);
 	for (x = 3; (x=sleep(x)); )
-		;
+	  ;
 	for (x = 16; ppid == getppid() && x > 0; --x)
 	{
 		//printf("ppid=%d still running\n", ppid);
@@ -592,7 +593,7 @@ static void childproc(pid_t ppid, char* cmdline)
 		kill(ppid, SIGKILL);
 		sleep(1);
 		if (ppid == getppid())
-			perror("xxx ppid dead-locked xxx"); // CMD_PPAD("killall -9 hkipc && sleep 2");
+		  perror("xxx ppid dead-locked xxx"); // CMD_PPAD("killall -9 hkipc && sleep 2");
 	}
 	if (cmdline)
 	{
@@ -613,12 +614,12 @@ static void exiting_progress()
 		const char* w;
 		fclose(cf);
 		if ((w = getenv("WATCH")))
-			remove(w);
+		  remove(w);
 		//HKLOG(L_DBG,"<><><><><><><><><><><>\n");
 		fflush(stdout);
 		SPAWN(pid, childproc, cmdline); // sleep(3);
 		if (pid > 0)
-			setpidfile(getenv("PIDFILE"), pid);
+		  setpidfile(getenv("PIDFILE"), pid);
 		CMD_PPAD("[ $$ -ne %d ] && exit 0", (int)pid); //CMD_PPAD("echo $0: $@");
 	}
 }
@@ -691,7 +692,7 @@ void hk_start_ftp_server()
 	if (NULL != user_)
 	{
 		if (strcmp(user_, ftpDevid) != 0)
-			conf_set( HOME_DIR"/ftpbakup.conf", HK_KEY_FROM, user_ );
+		  conf_set( HOME_DIR"/ftpbakup.conf", HK_KEY_FROM, user_ );
 	}
 
 	strcpy(sdFilePatch, "/mnt/mmc/snapshot");
@@ -721,7 +722,7 @@ Hi_SetGpio_SetBit( 7, 5, 0 );
 }
 Hi_SetGpio_Close();
 }
- */
+*/
 
 /*
    int sdISOnline()
@@ -740,7 +741,7 @@ Hi_SetGpio_Close();
    Hi_SetGpio_Close();
    return 0;
    }
- */
+   */
 
 
 
@@ -999,7 +1000,7 @@ static int hk_IrcutCtrl(int nboardtype)
 				{
 					g_IRCutStateDayCnt = 0;
 					if (0 == g_IRCutCurState)
-						return 0;
+					  return 0;
 
 					g_IRCutCurState = 0;
 
@@ -1035,7 +1036,7 @@ static int hk_IrcutCtrl(int nboardtype)
 				{
 					g_IRCutStateNightCnt = 0;
 					if (1 == g_IRCutCurState)
-						return 0;
+					  return 0;
 
 					g_IRCutCurState = 1;
 
@@ -1074,7 +1075,7 @@ static int hk_IrcutCtrl(int nboardtype)
 				{
 					g_IRCutStateDayCnt = 0;
 					if (0 == g_IRCutCurState)
-						return 0;
+					  return 0;
 
 					g_IRCutCurState = 0;
 
@@ -1110,7 +1111,7 @@ static int hk_IrcutCtrl(int nboardtype)
 				{
 					g_IRCutStateNightCnt = 0;
 					if (1 == g_IRCutCurState)
-						return 0;
+					  return 0;
 
 					g_IRCutCurState = 1;
 
@@ -1270,8 +1271,8 @@ void HK_Onvif_Init(void)
 void IPC_Video_Audio_Thread_Init(void)
 {
 	CreateAudioThread();
-    CreateVideoThread();
-    CreateSubVideoThread();
+	CreateVideoThread();
+	CreateSubVideoThread();
 }
 #endif
 #if 0
@@ -1302,7 +1303,7 @@ int main(int argc, char* argv[])
 #if 1
 	int rc;
 
-	
+
 	rc = zlog_init("/mnt/sif/zlog.conf");
 	if (rc) {
 		printf("init failed\n");
@@ -1324,7 +1325,7 @@ int main(int argc, char* argv[])
 	ZLOG_FATAL(zc, "hello, zlog");
 #endif
 
-/*获取设备ID*/
+	/*获取设备ID*/
 	get_device_id(device_id);
 
 #if HTTP_DEBUG
@@ -1340,7 +1341,7 @@ int main(int argc, char* argv[])
 	conf_get( HOME_DIR"/sensor.conf", "sensortype", cSensorType, 32 );
 	if (strcmp(cSensorType, "ar0130") == 0)
 	{
-		
+
 		printf("...scc...ar0130......\n");
 	}
 	else if (strcmp(cSensorType, "ov9712d") == 0)
@@ -1360,28 +1361,39 @@ int main(int argc, char* argv[])
 	g_wifimod		   = conf_get_int(HOME_DIR"/hkipc.conf", "WIFIMODE");
 	//g_LOGIN		   = conf_get_int(HOME_DIR"/hkipc.conf", "LOGIN");
 #endif
-	if(g_wifimod == 0)
+
+	hk_load_sd();
+	init_param_conf();
+
+	if(!get_isTestMode())
 	{
-		/*设为ap模式*/
-		set_ap_mode();
-	}
-	else if(g_wifimod == 1)
-	{	
-		/*设为sta模式*/
-		set_sta_mode();
-		if(connect_the_ap() == 0);
+		if(g_wifimod == 0)
 		{
-			net_modify_device(device_id);
-			#if 0
-			if(g_LOGIN == 1)
-			{
-				net_create_device(device_id);
-				net_bind_device( g_userid, device_id );
-			}
-			//设别绑定
-			#endif
+			/*设为ap模式*/
+			set_ap_mode();
 		}
-	}//g_wifimode--->test mode
+		else if(g_wifimod == 1)
+		{	
+			/*设为sta模式*/
+			set_sta_mode();
+			if(connect_the_ap() == 0);
+			{
+				net_modify_device(device_id);
+#if 0
+				if(g_LOGIN == 1)
+				{
+					net_create_device(device_id);
+					net_bind_device( g_userid, device_id );
+				}
+				//设别绑定
+#endif
+			}
+		}
+	}else{
+		connect_ap_for_test();
+	}
+
+	//g_wifimode--->test mode
 #if 0
 	else if(g_wifimod == 2){
 		while(g_sdIsOnline_f!=1){
@@ -1390,12 +1402,12 @@ int main(int argc, char* argv[])
 			sleep(1);
 			printf("pls inset tf card!\n");
 		}
-			get_sd_conf();
-			get_device_id(device_id);
-			connect_ap_for_test();
+		get_sd_conf();
+		get_device_id(device_id);
+		connect_ap_for_test();
 	}
 #endif
-//	hk_set_system_time();
+	//	hk_set_system_time();
 	video_RSLoadObjects();
 	/**** init video Sub System. ****/
 	if( HI_SUCCESS != Video_SubSystem_Init() )
@@ -1403,10 +1415,10 @@ int main(int argc, char* argv[])
 		printf("[%s, %d] video sub system init failed !\n", __func__, __LINE__); 
 	}
 	/**** init video VDA ****/
-    if ( VDA_MotionDetect_Start() ) //enable motion detect.
-    {
-        HK_DEBUG_PRT("start motion detect failed !\n"); 
-    }
+	if ( VDA_MotionDetect_Start() ) //enable motion detect.
+	{
+		HK_DEBUG_PRT("start motion detect failed !\n"); 
+	}
 	HK_DEBUG_PRT("video sub system init OK!\n");
 
 	/**GPIO init**/
@@ -1420,15 +1432,15 @@ int main(int argc, char* argv[])
 	}
 #if (HK_PLATFORM_HI3518E)
 	/*****neck Cruise*****/
-/*
-	if (1 == g_DevPTZ) //0:device without PTZ motor; 1:PTZ device.
-	{
-		HK_PtzMotor();
-	}
-	*/
+	/*
+	   if (1 == g_DevPTZ) //0:device without PTZ motor; 1:PTZ device.
+	   {
+	   HK_PtzMotor();
+	   }
+	   */
 #endif
 
-/*hong wai 红外*/
+	/*hong wai 红外*/
 #if (DEV_INFRARED)
 	HK_Infrared_Decode();
 #endif
@@ -1438,19 +1450,19 @@ int main(int argc, char* argv[])
 	initDevice();
 #endif
 
-/*add by biaobiao*/
+	/*add by biaobiao*/
 #if ENABLE_P2P
 	printf("############################p2p###################\n");
-    create_detached_thread(p2p_server_f, (void *)device_id);
+	create_detached_thread(p2p_server_f, (void *)device_id);
 	//p2p_server_f();
 #endif
 
-/*add by biaobiao*/
+	/*add by biaobiao*/
 #if ENABLE_P2P
 	IPC_Video_Audio_Thread_Init();
 #endif
 
-/*add by biaobiao*/
+	/*add by biaobiao*/
 #if ENABLE_P2P
 	//RECORDSDK_Start();
 #endif
@@ -1495,7 +1507,7 @@ int main(int argc, char* argv[])
 		if(ret == 0)
 		{
 			printf("*********smart config begin******************\n");
-			#if 1
+#if 1
 			system("/usr/bin/pkill wpa_supplicant");
 			system("/usr/bin/pkill udhcpc");
 			//PlaySound("/mnt/sif/audio/wait.pcm");
@@ -1509,10 +1521,10 @@ int main(int argc, char* argv[])
 				system("echo 3 > /proc/sys/vm/drop_caches");
 			}
 			printf("*********smart config complete******************\n");
-			#endif
+#endif
 		}else if(ret == 1)
 		{
-			
+
 			conf_set_int(HOME_DIR"/hkipc.conf", "WIFIMODE", 0);
 			printf("*********recovery******************\n");
 			wrap_sys_restart();
@@ -1520,10 +1532,10 @@ int main(int argc, char* argv[])
 		/*smart_config结束，则连接wifi*/
 		if(f_wifi_connenct)
 		{
-			#if TEMP
+#if TEMP
 			conf_set_int(HOME_DIR"/hkipc.conf", "LOGIN", 1);
 			system("reboot -f");
-			#endif
+#endif
 			if(connect_smt_ap() == 0)
 			{
 				//创建设备
@@ -1605,7 +1617,6 @@ int main(int argc, char* argv[])
 			HK_PTZ_AutoRotate_Stop( 9 );
 		}
 #endif
-
 		if (g_startCheckAlarm <= 4)
 		{
 			//printf("...startcheckalarm=%d.....\n",g_startCheckAlarm);
@@ -1613,14 +1624,24 @@ int main(int argc, char* argv[])
 		}
 		/*挂载sd卡*/
 		hk_load_sd();
-		//CheckWifi();
+
+		if(get_sdIsOnline())
+		{
+			//chong xin chushihua canshu
+			init_param_conf();
+			//CheckWifi();
+			if(get_isTestMode())
+			{
+				connect_ap_for_test();
+			}
+		}
 	}
 
 	//sd_record_stop();
 	gSysTime = time(0);
 	gbStartTime = 1;
 	//if (quit_ != Excode_Stop)
-		//exiting_progress();
+	//exiting_progress();
 	printf("\n [%s]: %d ", __FUNCTION__, __LINE__);
 	exit (0);
 }

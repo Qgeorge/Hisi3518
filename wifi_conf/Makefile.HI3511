@@ -23,8 +23,8 @@ LDFLAGS	:=
 INCPATH     = -I ../../../include/ \
 			  -I ./smartconfig/   \
 			  -I ../	\
-			  -I ../exlib/zlib/include/
- 						
+			  -I ../exlib/zlib/include/ \
+			  -I ../exlib/system/include/
 CFLAGS    += $(INCPATH)
 
 # Object path configure

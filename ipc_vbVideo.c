@@ -766,7 +766,7 @@ HI_S32 VISP_SetAE(int nAEMode)
 			return HI_FAILURE;
 		}
 	}
-#if 1
+#if 0
 	nRet = HI_MPI_ISP_GetAEAttr(&stAEAttr);
 	if( nRet !=HI_SUCCESS ){
 		SAMPLE_PRT("HI_MPI_ISP_GetAEAttr failed with %#x!\n", nRet);

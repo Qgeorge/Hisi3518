@@ -8,9 +8,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "utils/HKUtilAPI.h"
 
 #include "ipc_sd.h"
-#include "zlog.h"
+#include "ipc_alias.h"
 
 #define VIDEO_PATH "/mnt/mmc/uusmt/"
 #define MAX 1024
@@ -21,7 +22,6 @@
 //g_sdIsOnline_f 检测是否已经挂载上了
 short g_sdIsOnline = 0;
 short g_sdIsOnline_f = 0;
-
 HK_SD_PARAM_ hkSdParam;
 
 /*过滤文件*/
@@ -246,7 +246,23 @@ void hk_load_sd()
 			system("/bin/mkdir -p /mmt/mmc/uusmt");
 		}
 		av_record_init("/mnt/mmc/uusmt");
+		if((0==access("/mnt/mmc/uusmt/configure", F_OK))&&(0==access("/mnt/mmc/uusmt/wpa_supplicant.conf", F_OK)))
+		{
+			if(1 == conf_get_int("/mnt/mmc/uusmtconfigure","istestmode"))
+			{
+				system("cp /mnt/mmc/uusmt/configure /etc");
+				usleep(5000);
+				system("cp /mnt/mmc/uusmt/wpa_supplicant.conf /etc/wifiConf");
+				usleep(5000);
+			}
+		}
+
 	}
+}
+
+short get_sdIsOnline()
+{
+	return g_sdIsOnline_f;
 }
 /*
  *获取SD卡里的配置信息

@@ -4,8 +4,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include "smartconfig.h"
-#include "ipc_sd.h"
 #include "zlog.h"
+#include "ipc_param.h"
 #define SMT_CONF_START "echo 'start' > /proc/elian"
 #define SMT_CONF_STOP "echo 'stop' > /proc/elian"
 #define SMT_CONF_CLEAR "echo 'clear' > /proc/elian"
@@ -14,26 +14,26 @@
 
 int detect_process(char * process_name)  
 {  
-        FILE *ptr;  
-        char buff[512];  
-        char ps[128];  
-        sprintf(ps,"ps | grep -c %s",process_name);  
-        strcpy(buff,"ABNORMAL");  
-        if((ptr=popen(ps, "r")) != NULL)  
-        {  
-                while (fgets(buff, 512, ptr) != NULL)  
-                {  
-                        if(atoi(buff) == 3)  
-                        {  
-                                pclose(ptr);  
-                                return 0;  
-                        }
-                }  
-        }  
-        if(strcmp(buff,"ABNORMAL")==0)  /*ps command error*/  
-         return -1;          
-        pclose(ptr);  
-        return -1;
+	FILE *ptr;  
+	char buff[512];  
+	char ps[128];  
+	sprintf(ps,"ps | grep -c %s",process_name);  
+	strcpy(buff,"ABNORMAL");  
+	if((ptr=popen(ps, "r")) != NULL)  
+	{  
+		while (fgets(buff, 512, ptr) != NULL)  
+		{  
+			if(atoi(buff) == 3)  
+			{  
+				pclose(ptr);  
+				return 0;  
+			}
+		}  
+	}  
+	if(strcmp(buff,"ABNORMAL")==0)  /*ps command error*/  
+	  return -1;          
+	pclose(ptr);  
+	return -1;
 }
 int start_smart_conf()
 {
@@ -94,7 +94,7 @@ int save_wifi_info(char (*info)[100])
 	char pass[100] = {0};
 	char buffer[1000] = {0};
 
-	
+
 	sscanf(info[0], "ssid=%s", ssid);
 	sscanf(info[1], "pwd=%s", pass);
 
@@ -104,25 +104,25 @@ int save_wifi_info(char (*info)[100])
 	if(strlen(pass) > 1)
 	{
 		sprintf(buffer, "ctrl_interface=/var/run/wpa_supplicant\nnetwork={\nssid=\"%s\"\n\
-psk=\"%s\"\n\
-scan_ssid=1\n\
-key_mgmt=WPA-EAP WPA-PSK IEEE8021X NONE\n\
-pairwise=TKIP CCMP\n\
-group=CCMP TKIP WEP104 WEP40\n\
-eap=TTLS PEAP TLS\n\
-proto=WPA RSN\n\
-frequency=2414\n\
-scan_freq=2412\n\
-}\n", ssid,pass);
-	
-		fp = fopen(WIFI_CONFIG, "w");
-		if(fp != NULL)
-		{
-			fwrite(buffer, strlen(buffer), 1, fp);
-			fclose(fp);
-		}
-		system("sync");
-		return 0;
+					psk=\"%s\"\n\
+					scan_ssid=1\n\
+					key_mgmt=WPA-EAP WPA-PSK IEEE8021X NONE\n\
+					pairwise=TKIP CCMP\n\
+					group=CCMP TKIP WEP104 WEP40\n\
+					eap=TTLS PEAP TLS\n\
+					proto=WPA RSN\n\
+					frequency=2414\n\
+					scan_freq=2412\n\
+					}\n", ssid,pass);
+
+	fp = fopen(WIFI_CONFIG, "w");
+	if(fp != NULL)
+	{
+		fwrite(buffer, strlen(buffer), 1, fp);
+		fclose(fp);
+	}
+	system("sync");
+	return 0;
 	}
 	return 1;
 }
@@ -169,46 +169,46 @@ int tlv_hex_str(char *buffer, char *usrid)
 /*判断wifi的连接状态*/
 int Check_WPACLI_Status(int interval)
 {
-    int ConnectCnt = 0; //count for checking wifi connection status.
-    char cmdbuf[32] = {0};   //popen result buffer.
-    char wpaState_Key[16] = {0}; //wifi connection status: Key.
-    char wpaState_Value[32] = {0}; //wifi connection status: Value.
-    FILE *pfp = NULL;
-    
-    printf(".........check time interval: %d.........\n", interval);
-    for (ConnectCnt = 0; ConnectCnt < interval; ConnectCnt++)
-    {
-        printf(".........connect count: %d.........\n", ConnectCnt);
-        pfp = popen("wpa_cli status", "r");
-        if (NULL == pfp)
+	int ConnectCnt = 0; //count for checking wifi connection status.
+	char cmdbuf[32] = {0};   //popen result buffer.
+	char wpaState_Key[16] = {0}; //wifi connection status: Key.
+	char wpaState_Value[32] = {0}; //wifi connection status: Value.
+	FILE *pfp = NULL;
+
+	printf(".........check time interval: %d.........\n", interval);
+	for (ConnectCnt = 0; ConnectCnt < interval; ConnectCnt++)
+	{
+		printf(".........connect count: %d.........\n", ConnectCnt);
+		pfp = popen("wpa_cli status", "r");
+		if (NULL == pfp)
 		{
 
-            fprintf(stderr, "popen failed with: %d, %s\n", errno, strerror(errno));
-            return -1;
-        }
-        /*parse status result to find if remote wifi is usable*/
-        fgets(cmdbuf, sizeof(cmdbuf), pfp); //first line, invalid.
-        while (fgets(cmdbuf, sizeof(cmdbuf), pfp))
-        {
-            cmdbuf[strlen(cmdbuf) - 1] = '\0'; //skip '\n' at the end of line.
-            memset(wpaState_Key, '\0', strlen(wpaState_Key));
-            memset(wpaState_Value, '\0', strlen(wpaState_Value));
-            sscanf(cmdbuf, "%[^=]=%[^'\n']", wpaState_Key, wpaState_Value);
-            //fprintf(stderr, "===> cmdbuf:%s, wpaState_Key:%s, wpaState_Value:%s\n", cmdbuf, wpaState_Key, wpaState_Value);
+			fprintf(stderr, "popen failed with: %d, %s\n", errno, strerror(errno));
+			return -1;
+		}
+		/*parse status result to find if remote wifi is usable*/
+		fgets(cmdbuf, sizeof(cmdbuf), pfp); //first line, invalid.
+		while (fgets(cmdbuf, sizeof(cmdbuf), pfp))
+		{
+			cmdbuf[strlen(cmdbuf) - 1] = '\0'; //skip '\n' at the end of line.
+			memset(wpaState_Key, '\0', strlen(wpaState_Key));
+			memset(wpaState_Value, '\0', strlen(wpaState_Value));
+			sscanf(cmdbuf, "%[^=]=%[^'\n']", wpaState_Key, wpaState_Value);
+			//fprintf(stderr, "===> cmdbuf:%s, wpaState_Key:%s, wpaState_Value:%s\n", cmdbuf, wpaState_Key, wpaState_Value);
 
-            if ( (!strcmp(wpaState_Key, "wpa_state")) && (!strcmp(wpaState_Value, "COMPLETED")) )
-            {
-                return 1; 
-            }
-        }
-        if (pfp)  
-        {
-            pclose(pfp);
-            pfp = NULL;
-        }
-        //sleep(3);
-    }
-    return 0;
+			if ( (!strcmp(wpaState_Key, "wpa_state")) && (!strcmp(wpaState_Value, "COMPLETED")) )
+			{
+				return 1; 
+			}
+		}
+		if (pfp)  
+		{
+			pclose(pfp);
+			pfp = NULL;
+		}
+		//sleep(3);
+	}
+	return 0;
 }
 /*连接ap热点*/
 int connect_the_ap()
@@ -245,7 +245,7 @@ int connect_the_ap()
 			printf("udhcpc already runing\n");
 			sleep(3);
 		}
-		#if 0
+#if 0
 		if(test_network("s1.uuioe.net") == 0)
 		{
 			printf("connect success\n");
@@ -256,7 +256,7 @@ int connect_the_ap()
 			printf("connect failed\n");
 			return -1;
 		}
-		#endif
+#endif
 		return 0;
 	}
 }
@@ -268,13 +268,8 @@ int connect_smt_ap()
 	int flag = 1;
 	int i = 0;
 	static int wpa_flag = 0;
-//	system("ifconfig ra0 down");
-//	system("ifconfig ra0 up");
-//  sleep(1);
 
-//	system("wpa_supplicant -Dwext -ira0 -c/etc/wifiConf/wpa_supplicant.conf &");
-	system("cp /mnt/mmc/uusmt/wpa_supplicant.conf /etc/");
-	usleep(5000);
+	//	system("wpa_supplicant -Dwext -ira0 -c/etc/wifiConf/wpa_supplicant.conf &");
 	system("wpa_supplicant -Dwext -ira0 -c/etc/wifiConf/wpa_supplicant.conf &");
 
 	//sleep(5);
@@ -318,28 +313,59 @@ int connect_smt_ap()
 			return -1;
 		}
 	}
-	
+
 }
 
-void connect_ap_for_test(){
+int connect_ap_for_test(){
+
+	uint8 tmp[100]={0}, i=0, flag=1;
+	uint8 ipaddr[20]={0}, gateway[20]={0};
+	static uint32 wpa_flag = 0;
 	
-		char tmp[100]={0};
+	get_ipaddr(ipaddr);
+	get_gateway(gateway);
 
-		system("insmod /opt/wifi_driver/mt7601Usta.ko");
-		usleep(5000);
-/*
-		system("wpa_supplicant -Dwext -ira0 -c/etc/wifiConf/wpa_supplicant.conf &");
-		sleep(3);
-*/		
-		connect_smt_ap();
+	system("/usr/bin/pkill wpa_supplicant");
+	system("/usr/bin/pkill udhcpc");
+	system("/usr/bin/pkill udhcpd");
+	system("ifconfig ra0 down");
+	system("rmmod mt7601Usta.ko");
+	system("rmmod mt7601Uap.ko");
+	sleep(1);
 
-		sprintf(tmp,"ifconfig ra0 %s\n",hk_net_msg.ip);
-		system(tmp);
+	system("insmod /opt/wifi_driver/mt7601Usta.ko");
+	sleep(1);
+	
+	system("wpa_supplicant -Dwext -ira0 -c/etc/wifiConf/wpa_supplicant.conf &");
 
-		memset(tmp,0,strlen(tmp));
-		sprintf(tmp,"route add default gw %s\n",hk_net_msg.gw);
-		system(tmp);
-		system("route add -net 224.0.0.0 netmask 224.0.0.0 ra0");
+	//sleep(5);
+	while(flag)
+	{
+		if(Check_WPACLI_Status(1) == 1)
+		{
+			flag = 0;
+			system("/usr/bin/pkill udhcpc");
+		}
+		sleep(1);
+		i++;
+		if(i == 60)
+		{
+			ZLOG_INFO(zc,"connect faild\n");
+			system("/usr/bin/pkill wpa_supplicant");
+			system("/usr/bin/pkill udhcpc");
+			return -1;
+		}
+	}
+
+	sprintf(tmp,"ifconfig ra0 %s\n",ipaddr);
+	system(tmp);
+
+	memset(tmp,0,strlen(tmp));
+	sprintf(tmp,"route add default gw %s\n",gateway);
+	system(tmp);
+	system("route add -net 224.0.0.0 netmask 224.0.0.0 ra0");
+	set_testmode(false);
+	
 }
 /* 
  * ===  FUNCTION  ======================================================================
@@ -365,24 +391,24 @@ int smart_config(char *userid)
 	system("ifconfig ra0 down");
 	system("ifconfig ra0 up");
 	sleep(1);
-	
+
 	smartlink_start(&router_msg);
 	//strcpy(smt_info[0],router_msg->usrname);
 	//strcpy(smt_info[1],router_msg->passwd);
 	//strcpy(smt_info[2],&auth);
-	
+
 	memset(userid,0,strlen(userid));
 	sprintf(smt_info[0],"ssid=%s",router_msg->usrname);
 	sprintf(smt_info[1],"pwd=%s",router_msg->passwd);
 	strcpy(userid,router_msg->userid);
-	
+
 	printf("smt_info[0]:%s\n",smt_info[0]);
 	printf("smt_info[1]:%s\n",smt_info[1]);
 
 	sleep(1);
 
 	save_wifi_info(smt_info);
-	
+
 	return 0;
 #if 0
 	start_smart_conf();

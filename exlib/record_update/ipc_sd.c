@@ -20,6 +20,7 @@
 //g_sdIsOnline_f 检测是否已经挂载上了
 short g_sdIsOnline = 0;
 short g_sdIsOnline_f = 0;
+bool isTestMode = false;
 
 HK_SD_PARAM_ hkSdParam;
 
@@ -244,7 +245,27 @@ void hk_load_sd()
 			system("/bin/mkdir -p /mmt/mmc/uusmt");
 		}
 		av_record_init("/mnt/mmc/uusmt");
+		if((0==access("/mnt/mmc/uusmt/configure", F_OK))&&(0==access("/mnt/mmc/uusmt/wpa_supplicant.conf",F_OK)))
+		{
+			if(1 == conf_get_int("/mnt/mmc/uusmtconfigure",istestmode))
+			{
+			system("cp /mnt/mmc/uusmt/configure /etc");
+			usleep(5000);
+			system("cp /mnt/mmc/uusmt/wpa_supplicant.conf /etc/wifiConf");
+			usleep(5000);
+			}
+		}
 	}
+}
+
+bool get_isTestMode()
+{
+	return isTestMode;
+}
+
+short get_sdIsOnline()
+{
+	return g_sdIsOnline_f;
 }
 
 /* 
