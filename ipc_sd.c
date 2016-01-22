@@ -240,7 +240,6 @@ void hk_load_sd()
 		usleep(1000);
 		system("mount /dev/mmcblk0p1 /mnt/mmc/"); //mount SD.
 		g_sdIsOnline_f = 1;
-		ZLOG_INFO(zc, "mount tf card successfull!!\n");
 		if(0 != access("/mnt/mmc/uusmt", F_OK))
 		{
 			system("/bin/mkdir -p /mmt/mmc/uusmt");
@@ -263,6 +262,21 @@ void hk_load_sd()
 
 	}
 }
+/*
+ *获取SD卡里的配置信息
+ */
+void get_sd_conf()
+{
+
+	/*add for test----->sd to connect route*/
+	memset(&hk_net_msg,0,sizeof(hk_net_msg));
+	conf_get("/mnt/mmc/uusmt/configure","productid",hk_net_msg.productid,20);	
+	conf_get("/mnt/mmc/uusmt/configure","manufacturerid",hk_net_msg.manufacturerid,20);	
+	conf_get("/mnt/mmc/uusmt/configure","gateway",hk_net_msg.gw,20);	
+	conf_get("/mnt/mmc/uusmt/configure","ip",hk_net_msg.ip,20);	
+
+	printf(zc,"productid:%s\nmanufacturerid:%s\ngateway:%s\nip:%s\n",
+				hk_net_msg.productid,hk_net_msg.manufacturerid,hk_net_msg.gw,hk_net_msg.ip);	
 
 short get_sdIsOnline()
 {
@@ -276,7 +290,6 @@ void get_sd_conf()
 
 	/*add for test----->sd to connect route*/
 	memset(&hk_net_msg,0,sizeof(hk_net_msg));
-	ZLOG_DEBUG(zc,"current func: get_sd_conf!\n");
 	conf_get("/mnt/mmc/uusmt/configure","productid",hk_net_msg.productid,20);	
 	conf_get("/mnt/mmc/uusmt/configure","manufacturerid",hk_net_msg.manufacturerid,20);	
 	conf_get("/mnt/mmc/uusmt/configure","gateway",hk_net_msg.gw,20);	
@@ -285,7 +298,6 @@ void get_sd_conf()
 	printf(zc,"productid:%s\nmanufacturerid:%s\ngateway:%s\nip:%s\n",
 				hk_net_msg.productid,hk_net_msg.manufacturerid,hk_net_msg.gw,hk_net_msg.ip);	
 
-	ZLOG_INFO(zc,"productid:%s\nmanufacturerid:%s\ngateway:%s\nip:%s\n",
 				hk_net_msg.productid,hk_net_msg.manufacturerid,hk_net_msg.gw,hk_net_msg.ip);	
 }
 /*

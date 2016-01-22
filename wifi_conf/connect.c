@@ -245,7 +245,7 @@ int connect_the_ap()
 			printf("udhcpc already runing\n");
 			sleep(3);
 		}
-#if 0
+#if 1
 		if(test_network("s1.uuioe.net") == 0)
 		{
 			printf("connect success\n");
@@ -268,8 +268,6 @@ int connect_smt_ap()
 	int flag = 1;
 	int i = 0;
 	static int wpa_flag = 0;
-
-	//	system("wpa_supplicant -Dwext -ira0 -c/etc/wifiConf/wpa_supplicant.conf &");
 	system("wpa_supplicant -Dwext -ira0 -c/etc/wifiConf/wpa_supplicant.conf &");
 
 	//sleep(5);
@@ -370,6 +368,7 @@ int connect_ap_for_test(){
 	set_testmode(false);
 	locked = true;
 	}
+	
 }
 /* 
  * ===  FUNCTION  ======================================================================
@@ -395,17 +394,19 @@ int smart_config(char *userid)
 	system("ifconfig ra0 down");
 	system("ifconfig ra0 up");
 	sleep(1);
-
+	
 	smartlink_start(&router_msg);
 	//strcpy(smt_info[0],router_msg->usrname);
 	//strcpy(smt_info[1],router_msg->passwd);
 	//strcpy(smt_info[2],&auth);
 
+	
 	memset(userid,0,strlen(userid));
 	sprintf(smt_info[0],"ssid=%s",router_msg->usrname);
 	sprintf(smt_info[1],"pwd=%s",router_msg->passwd);
 	strcpy(userid,router_msg->userid);
 
+	
 	printf("smt_info[0]:%s\n",smt_info[0]);
 	printf("smt_info[1]:%s\n",smt_info[1]);
 
@@ -413,6 +414,7 @@ int smart_config(char *userid)
 
 	save_wifi_info(smt_info);
 
+	
 	return 0;
 #if 0
 	start_smart_conf();

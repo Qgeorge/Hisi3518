@@ -31,7 +31,7 @@
 /*add by qjq*/
 //#include "log.h"
 
-//#include "zlog.h"
+#include "zlog.h"
 //#include "smartconfig.h"
 /*add by biaobiao*/
 #include "ipc_alias.h"
@@ -782,14 +782,14 @@ static void initGPIO()
 	nRet = Hi_SetGpio_SetDir( groupnum, bitnum, GPIO_READ );
 	nRet = Hi_SetGpio_GetBit( groupnum, bitnum, &val_read );
 	HK_DEBUG_PRT("...Get GPIO %d_%d  read Value: %d...\n", groupnum, bitnum, val_read);
-
+#if 0
 	groupnum = 7;
 	bitnum   = 7;  //GPIO:7_7 ==> IO alarm Out.
 	val_set  = 0;  //pull down.
 	Hi_SetGpio_SetDir( groupnum, bitnum, GPIO_WRITE );
 	Hi_SetGpio_SetBit( groupnum, bitnum, val_set );
 	HK_DEBUG_PRT("....Set GPIO %d_%d  set Value: %d....\n", groupnum, bitnum, val_set);
-
+#endif
 
 	/**read Wireless Card state**/
 	groupnum = 5;
@@ -1393,21 +1393,8 @@ int main(int argc, char* argv[])
 		connect_ap_for_test();
 	}
 
-	//g_wifimode--->test mode
-#if 0
-	else if(g_wifimod == 2){
-		while(g_sdIsOnline_f!=1){
-			/*挂载sd卡*/
-			hk_load_sd();
-			sleep(1);
-			printf("pls inset tf card!\n");
-		}
-		get_sd_conf();
-		get_device_id(device_id);
-		connect_ap_for_test();
-	}
 #endif
-	//	hk_set_system_time();
+//	hk_set_system_time();
 	video_RSLoadObjects();
 	/**** init video Sub System. ****/
 	if( HI_SUCCESS != Video_SubSystem_Init() )

@@ -661,19 +661,17 @@ void AudioThread(void)
 					printf("%s: HI_MPI_AENC_GetStream(%d) failed with %#x!\n", __FUNCTION__, s_AencChn, s32ret);
 					break;
 				}
+
 #if ENABLE_P2P
-			
-#if G711
+#if 0
 				G711A_Len = PCM2G711a(stStream.pStream, buf, stStream.u32Len, 0);
 				P2PNetServerChannelDataSndToLink( 0, 0, buf, G711A_Len, 1, DATA_AUDIO);
 				P2PNetServerChannelDataSndToLink( 0, 1, buf, G711A_Len, 1, DATA_AUDIO);
 //				int num = fwrite(buf, G711A_Len, 1, fd);
 //				printf("the buflength:%d,the num is %d\n", G711A_Len,num);
-				
-#else				
+#endif
 				P2PNetServerChannelDataSndToLink( 0, 0, stStream.pStream, stStream.u32Len, 1, DATA_AUDIO);
 				P2PNetServerChannelDataSndToLink( 0, 1, stStream.pStream, stStream.u32Len, 1, DATA_AUDIO);
-#endif		
 
 //				printf("@@@@@@@@@@@@@@@@@%d\n", stStream.u32Len);
 #endif
@@ -721,7 +719,7 @@ void AudioThread(void)
 #endif
 			}    
 		}
-		usleep(1000*100);
+		usleep(1000*10);
 	}
 
 #if ENABLE_ONVIF
