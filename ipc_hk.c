@@ -1524,7 +1524,6 @@ int main(int argc, char* argv[])
 #endif
 		}else if(ret == 1)
 		{
-
 			conf_set_int(HOME_DIR"/hkipc.conf", "WIFIMODE", 0);
 			printf("*********recovery******************\n");
 			wrap_sys_restart();
@@ -1547,7 +1546,7 @@ int main(int argc, char* argv[])
 				net_bind_device( g_userid, device_id );
 				f_wifi_connenct = 0;
 				printf("*********connect the ap******************\n");
-			};
+			}
 			sleep(5);
 		}
 #if 0 
@@ -1596,7 +1595,6 @@ int main(int argc, char* argv[])
 				wrap_sys_restart();
 			}
 		}
-
 #if (HK_PLATFORM_HI3518E)
 		/**RUN light**/
 		valSetRun = 1;
@@ -1624,7 +1622,7 @@ int main(int argc, char* argv[])
 		}
 		/*挂载sd卡*/
 		hk_load_sd();
-
+#if 0
 		if(get_sdIsOnline())
 		{
 			//chong xin chushihua canshu
@@ -1635,8 +1633,8 @@ int main(int argc, char* argv[])
 				connect_ap_for_test();
 			}
 		}
+#endif
 	}
-
 	//sd_record_stop();
 	gSysTime = time(0);
 	gbStartTime = 1;

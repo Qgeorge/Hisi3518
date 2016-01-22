@@ -59,7 +59,6 @@ int key_scan()
 		timer++;
 		usleep(1000*100);
 
-
 		if( timer> JSQ_L  && timer< JSQ_H )
 		{
 			printf("blink**************\n");

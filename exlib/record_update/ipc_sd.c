@@ -247,7 +247,7 @@ void hk_load_sd()
 		av_record_init("/mnt/mmc/uusmt");
 		if((0==access("/mnt/mmc/uusmt/configure", F_OK))&&(0==access("/mnt/mmc/uusmt/wpa_supplicant.conf",F_OK)))
 		{
-			if(1 == conf_get_int("/mnt/mmc/uusmtconfigure",istestmode))
+			if(1 == conf_get_int("/mnt/mmc/uusmt/configure","istestmode"))
 			{
 			system("cp /mnt/mmc/uusmt/configure /etc");
 			usleep(5000);

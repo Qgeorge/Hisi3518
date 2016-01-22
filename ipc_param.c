@@ -16,12 +16,10 @@ void init_param_conf()
 	if(ret == 1)
 	{
 		hk_net_msg.isTestMode = true;
+		conf_set_int("/etc/configure","istestmode",0);
 	}else if(ret == 0){
 		hk_net_msg.isTestMode = false;
 	}
-	
-	printf("productid:%s\nmanufacturerid:%s\ngateway:%s\nip:%s\n",
-				hk_net_msg.productid,hk_net_msg.manufacturerid,hk_net_msg.gw,hk_net_msg.ip);	
 }
 
 void get_manufacturer_id(uint8 *str)

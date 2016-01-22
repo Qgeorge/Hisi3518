@@ -321,7 +321,10 @@ int connect_ap_for_test(){
 	uint8 tmp[100]={0}, i=0, flag=1;
 	uint8 ipaddr[20]={0}, gateway[20]={0};
 	static uint32 wpa_flag = 0;
-	
+	static bool locked = false;			
+
+	if(!locked)
+	{
 	get_ipaddr(ipaddr);
 	get_gateway(gateway);
 
@@ -336,7 +339,7 @@ int connect_ap_for_test(){
 	system("insmod /opt/wifi_driver/mt7601Usta.ko");
 	sleep(1);
 	
-	system("wpa_supplicant -Dwext -ira0 -c/etc/wifiConf/wpa_supplicant.conf &");
+	system("wpa_supplicant -Dwext -ira0 -c/etc/wpa_supplicant.conf &");
 
 	//sleep(5);
 	while(flag)
@@ -365,7 +368,8 @@ int connect_ap_for_test(){
 	system(tmp);
 	system("route add -net 224.0.0.0 netmask 224.0.0.0 ra0");
 	set_testmode(false);
-	
+	locked = true;
+	}
 }
 /* 
  * ===  FUNCTION  ======================================================================

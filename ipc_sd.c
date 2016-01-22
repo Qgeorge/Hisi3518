@@ -248,11 +248,15 @@ void hk_load_sd()
 		av_record_init("/mnt/mmc/uusmt");
 		if((0==access("/mnt/mmc/uusmt/configure", F_OK))&&(0==access("/mnt/mmc/uusmt/wpa_supplicant.conf", F_OK)))
 		{
-			if(1 == conf_get_int("/mnt/mmc/uusmtconfigure","istestmode"))
+			printf("the path exit.........................\n");
+			sleep(1);
+			if(1 == conf_get_int("/mnt/mmc/uusmt/configure","istestmode"))
 			{
+				printf("success copy.........................\n");
+				sleep(1);
 				system("cp /mnt/mmc/uusmt/configure /etc");
 				usleep(5000);
-				system("cp /mnt/mmc/uusmt/wpa_supplicant.conf /etc/wifiConf");
+				system("cp /mnt/mmc/uusmt/wpa_supplicant.conf /etc/");
 				usleep(5000);
 			}
 		}
