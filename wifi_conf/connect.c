@@ -219,6 +219,7 @@ int connect_the_ap()
 	//get_smt_info(smt_info);
 	int flag = 1;
 	int i = 0;
+	int ret = 0;
 	system("/usr/bin/pkill wpa_supplicant");
 	system("/usr/bin/pkill udhcpc");
 	system("ifconfig ra0 down");
@@ -248,8 +249,9 @@ int connect_the_ap()
 			printf("udhcpc already runing\n");
 			sleep(3);
 		}
-#if 1
-		if(test_network("s1.uuioe.net") == 0)
+		#if 1
+		ret = test_network("s1.uuioe.net");
+		if( ret == 0 )
 		{
 			printf("connect success\n");
 			return 0;
@@ -259,7 +261,21 @@ int connect_the_ap()
 			printf("connect failed\n");
 			return -1;
 		}
-#endif
+		
+		if(ret == 0)
+		{
+			ret = system("./time_correction.sh");
+			sleep(3);
+			if(ret==0)
+			{
+				printf("correction time successful!!\n");
+			}
+			else
+			{
+				printf("correction time faild!!\n");
+			}
+		}
+		#endif
 		return 0;
 	}
 }
