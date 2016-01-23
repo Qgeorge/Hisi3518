@@ -96,8 +96,10 @@ int key_scan()
 void gpio_signal_handler(int signo)
 {
 	printf("Received a SIGINT signal!\n");	
+		printf("blink thread recv signal.......................................................stop blink\n ");
 	if(signo == SIGINT)
 	{
+		printf("blink thread recv signal.......................................................stop blink\n ");
 		Hi_SetGpio_SetDir( 7, 5, GPIO_WRITE );
 		Hi_SetGpio_SetBit( 7, 5, 0); //pull down.
 		pthread_exit(NULL);	

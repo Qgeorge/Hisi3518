@@ -8,6 +8,7 @@
 #include "ipc_param.h"
 #include "gpio_dect.h"
 #include "pthread.h"
+#include "ipc_vbAudio.h"
 
 #define SMT_CONF_START "echo 'start' > /proc/elian"
 #define SMT_CONF_STOP "echo 'stop' > /proc/elian"
@@ -406,6 +407,7 @@ int smart_config(char *userid)
 	char tlv_hex[50] ={0};
 	int len;
 	char auth = '1';
+	int ret = -1;
 	pthread_t tid;
 	router_login_info_p router_msg = NULL;
 
@@ -416,9 +418,24 @@ int smart_config(char *userid)
 	sleep(1);
 	
 	pthread_create (&tid, NULL, gpio_blink_thread, NULL); //smartconfig配置时,绿灯闪烁
+	PlaySound("/mnt/sif/audio/wait.pcm");
 	smartlink_start(&router_msg);
-	pthread_kill(tid, SIGINT); //smarconfig配置完成后停止闪烁
-
+	printf("send sigint to blink thread .........................................\n");
+	ret = pthread_kill(tid, SIGINT); //smarconfig配置完成后停止闪烁
+	if(ret == ESRCH)
+	{
+		printf("the thread not exit or quit!\n");
+		pthread_kill(tid, SIGINT); //smarconfig配置完成后停止闪烁
+	}else if (ret == EINVAL)
+	{
+		printf("the signal is invailed\n");
+		pthread_kill(tid, SIGINT); //smarconfig配置完成后停止闪烁
+	}else if(ret == 0 )
+	{
+		printf("the signal send successful!\n");
+	}else{
+		pthread_kill(tid, SIGINT); //smarconfig配置完成后停止闪烁
+	}
 	//strcpy(smt_info[0],router_msg->usrname);
 	//strcpy(smt_info[1],router_msg->passwd);
 	//strcpy(smt_info[2],&auth);

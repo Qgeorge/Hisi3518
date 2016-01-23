@@ -1505,14 +1505,12 @@ int main(int argc, char* argv[])
 #if 1
 			system("/usr/bin/pkill wpa_supplicant");
 			system("/usr/bin/pkill udhcpc");
-			//PlaySound("/mnt/sif/audio/wait.pcm");
 			set_sta_mode();
 			if(smart_config( g_userid ) == 0)
 			{	
 				//设置为sta模式
 				conf_set_int(HOME_DIR"/hkipc.conf", "WIFIMODE", 1);
 				f_wifi_connenct = 1;
-				//PlaySound("/mnt/sif/audio/success.pcm");
 				system("echo 3 > /proc/sys/vm/drop_caches");
 			}
 			printf("*********smart config complete******************\n");
@@ -1541,7 +1539,8 @@ int main(int argc, char* argv[])
 				net_bind_device( g_userid, device_id );
 				f_wifi_connenct = 0;
 				printf("*********connect the ap******************\n");
-			}
+				PlaySound("/mnt/sif/audio/success.pcm");
+			};
 			sleep(5);
 		}
 #if 0 
