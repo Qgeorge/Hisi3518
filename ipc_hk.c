@@ -226,7 +226,7 @@ static void Daemonize( void )
 	signal(SIGTSTP,SIG_IGN); 
 }
 
-static void create_detached_thread(void (*func)(void*), void* arg)
+static void create_detached_thread(void* (*func)(void*), void* arg)
 {
 	pthread_t tid;
 	pthread_attr_t a;

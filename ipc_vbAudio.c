@@ -628,6 +628,13 @@ void AudioThread(void)
 	audio_encode_param.reserved = 0;
 #endif
 
+#if G711
+	printf("current is encode is g711!\n");
+	sleep(1);
+#else
+	printf("current is no encode!\n");
+	sleep(1);
+#endif
 	FD_ZERO(&read_fds);    
 	FD_SET(g_AencFd, &read_fds);
 	sleep(1);
@@ -663,15 +670,16 @@ void AudioThread(void)
 				}
 
 #if ENABLE_P2P
-#if 0
+#if G711
 				G711A_Len = PCM2G711a(stStream.pStream, buf, stStream.u32Len, 0);
 				P2PNetServerChannelDataSndToLink( 0, 0, buf, G711A_Len, 1, DATA_AUDIO);
 				P2PNetServerChannelDataSndToLink( 0, 1, buf, G711A_Len, 1, DATA_AUDIO);
 //				int num = fwrite(buf, G711A_Len, 1, fd);
 //				printf("the buflength:%d,the num is %d\n", G711A_Len,num);
-#endif
+#else
 				P2PNetServerChannelDataSndToLink( 0, 0, stStream.pStream, stStream.u32Len, 1, DATA_AUDIO);
 				P2PNetServerChannelDataSndToLink( 0, 1, stStream.pStream, stStream.u32Len, 1, DATA_AUDIO);
+#endif
 
 //				printf("@@@@@@@@@@@@@@@@@%d\n", stStream.u32Len);
 #endif

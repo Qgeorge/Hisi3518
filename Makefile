@@ -36,13 +36,13 @@ LIBPATH     = -L ./exlib/lib_so  -lutils \
 			  -L ./exlib/amr-lib/lib \
 			  -L ./libs_HI3511  -lSampleComm -lwificonfig -lnethttp \
 			  -L ./exlib/libghttp/lib -lghttp \
-			  -L ../../lib -lpthread -lm -lmpi -lVoiceEngine -laec -lresampler -lanr -lisp -lsns_sc1045 \
+			  -L ../../lib -lpthread -lm -lmpi -lVoiceEngine -laec -lresampler -lanr -lisp -lsns_ov9712 \
 			  -L ./exlib/openssl_3518/lib_openssl/lib -lssl -lcrypto \
 			  -L ./exlib/zlib/lib -lzlog 
 #			  -L ./wifi_conf/smartconfig -lsmt
 LINKFLAGS   = -Wall -g
 #COMPFLAGS   = -c -O2 -fPIC -lpthread -D_GNU_SOURCE -D_HKIPC -DRTSARM -Wimplicit-function-declaration -Werror
-COMPFLAGS   = -c -O2 -fPIC -lpthread -D_GNU_SOURCE -D_HKIPC -DRTSARM -Wimplicit-function-declaration
+COMPFLAGS   = -c -O2 -fPIC -lpthread -D_GNU_SOURCE -D_HKIPC -DG711 -DRTSARM -Wimplicit-function-declaration
 CXX         = arm-hisiv100nptl-linux-gcc
 
 
