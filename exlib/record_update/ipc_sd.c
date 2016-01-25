@@ -251,7 +251,7 @@ void hk_load_sd()
 			{
 			system("cp /mnt/mmc/uusmt/configure /etc");
 			usleep(5000);
-			system("cp /mnt/mmc/uusmt/wpa_supplicant.conf /etc/wifiConf");
+			system("cp /mnt/mmc/uusmt/wpa_supplicant.conf /etc/wifiConf");  //测试模式的上网api在/etc
 			usleep(5000);
 			}
 		}

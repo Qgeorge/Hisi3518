@@ -1371,7 +1371,7 @@ int main(int argc, char* argv[])
 #endif
 
 	hk_load_sd();
-	init_param_conf();
+	init_param_conf();  //主要读取厂商号和设备号,若是测试模式还将读取ip号和gateway等信息
 
 	if(!get_isTestMode())
 	{

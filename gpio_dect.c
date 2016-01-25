@@ -96,7 +96,7 @@ int key_scan()
 void gpio_signal_handler(int signo)
 {
 	printf("Received a SIGINT signal!\n");	
-		printf("blink thread recv signal.......................................................stop blink\n ");
+	printf("blink thread recv signal.......................................................stop blink\n ");
 	if(signo == SIGINT)
 	{
 		printf("blink thread recv signal.......................................................stop blink\n ");
@@ -116,7 +116,7 @@ void *gpio_blink_thread (void *arg)
     /* 安装信号处理方法*/
     signal(SIGINT, gpio_signal_handler);
     
-    while(1) {
+    while(1){
 		usleep(1000*100);
 		Hi_SetGpio_SetBit( 7, 5, 1); //pull up.
 		usleep(1000*100);

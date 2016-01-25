@@ -253,9 +253,9 @@ void hk_load_sd()
 			{
 				printf("success copy.........................\n");
 				sleep(1);
-				system("cp /mnt/mmc/uusmt/configure /etc");
+				system("cp /mnt/mmc/uusmt/configure /etc"); //程序每次启动都将读取/etc/configure文件
 				usleep(5000);
-				system("cp /mnt/mmc/uusmt/wpa_supplicant.conf /etc/");
+				system("cp /mnt/mmc/uusmt/wpa_supplicant.conf /etc/");//测试模式的联网api读取的配置文件是/etc/wpa_supplicant.conf,正常上网读的是/etc/wifiConf/wpa_supplicant.conf
 				usleep(5000);
 			}
 		}
