@@ -2027,6 +2027,7 @@ int sccGetSubVideoThread()
 				RgnHandle = 3 + s_vencChn;
 				OSD_Overlay_RGN_Display_Time(RgnHandle,s_vencChn); 
 				/*****OSD END*****/
+
 #if ENABLE_P2P
 				P2PNetServerChannelDataSndToLink(0,1,videobuf,iLen,iFrame,0);
 #endif

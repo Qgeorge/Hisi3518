@@ -30,7 +30,7 @@
 
 /*add by qjq*/
 //#include "log.h"
-
+#include "ipc_param.h"
 #include "zlog.h"
 //#include "smartconfig.h"
 /*add by biaobiao*/
@@ -131,7 +131,7 @@ enum Excode
 
 static pid_t watcher_pid_ = 0;
 
-HK_SD_MSG hk_net_msg;
+HK_SD_MSG_T hk_net_msg;
 volatile int quit_ = 0;
 
 extern void OnRestorationParam();
@@ -226,7 +226,7 @@ static void Daemonize( void )
 	signal(SIGTSTP,SIG_IGN); 
 }
 
-static void create_detached_thread(void *(*func)(void*), void* arg)
+static void create_detached_thread(void (*func)(void*), void* arg)
 {
 	pthread_t tid;
 	pthread_attr_t a;
@@ -1401,7 +1401,6 @@ int main(int argc, char* argv[])
 		connect_ap_for_test();
 	}
 
-#endif
 //	hk_set_system_time();
 	video_RSLoadObjects();
 	/**** init video Sub System. ****/
@@ -1616,18 +1615,6 @@ int main(int argc, char* argv[])
 		}
 		/*挂载sd卡*/
 		hk_load_sd();
-#if 0
-		if(get_sdIsOnline())
-		{
-			//chong xin chushihua canshu
-			init_param_conf();
-			//CheckWifi();
-			if(get_isTestMode())
-			{
-				connect_ap_for_test();
-			}
-		}
-#endif
 	}
 	//sd_record_stop();
 	gSysTime = time(0);

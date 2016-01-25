@@ -262,6 +262,8 @@ void hk_load_sd()
 
 	}
 }
+//------------------------->wait for delete
+#if 0
 /*
  *获取SD卡里的配置信息
  */
@@ -300,6 +302,7 @@ void get_sd_conf()
 
 				hk_net_msg.productid,hk_net_msg.manufacturerid,hk_net_msg.gw,hk_net_msg.ip);	
 }
+#endif 
 /*
  *检查SD卡的状态
  */

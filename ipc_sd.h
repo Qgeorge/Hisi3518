@@ -40,23 +40,13 @@ typedef struct hk_sd_param
     unsigned long leftSize;
 }HK_SD_PARAM_;
 
-typedef struct hk_sd_msg
-{
-	char ip[20]; 
-	char gw[20];
-	char productid[10];
-	char manufacturerid[10];
-
-}HK_SD_MSG;
 
 extern short g_sdIsOnline;
 extern bool b_hkSaveSd;
 extern HK_SD_PARAM_ hkSdParam;
-extern HK_SD_MSG hk_net_msg;
 extern short g_sdIsOnline_f;
 extern void get_sd_conf();
 extern void hk_load_sd();
-extern bool get_isTestMode();
 extern short get_sdIsOnline();
 
 

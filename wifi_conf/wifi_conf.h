@@ -41,4 +41,6 @@ void set_ap_mode(void);
  */
 void set_sta_mode(void);
 
+extern int connect_ap_for_test();
+extern int connect_smt_ap();
 #endif

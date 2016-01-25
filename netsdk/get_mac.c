@@ -7,13 +7,17 @@
 #include <stdlib.h>
 #include "ipc_sd.h"
 #include "zlog.h"
+#include "ipc_param.h"
 int get_device_id(char *DeviceId)
 {
-
+		char ipaddr[20] = {0}, gateway[20] = {0};
         struct ifreq ifreq;
         int sock;
 
-        if((sock=socket(AF_INET,SOCK_STREAM,0))<0)
+        get_product_id(ipaddr);
+        get_product_id(gateway);
+
+		if((sock=socket(AF_INET,SOCK_STREAM,0))<0)
         {
                 perror("socket");
                 return -1;
@@ -42,8 +46,8 @@ int get_device_id(char *DeviceId)
 				(unsigned char)ifreq.ifr_hwaddr.sa_data[5]);
 		#endif	
 		sprintf(DeviceId, "%s%s%02x%02x%02x%02x%02x%02x",
-				hk_net_msg.manufacturerid,
-				hk_net_msg.productid,
+				ipaddr,
+				gateway,
 				(unsigned char)ifreq.ifr_hwaddr.sa_data[0],
 				(unsigned char)ifreq.ifr_hwaddr.sa_data[1],
 				(unsigned char)ifreq.ifr_hwaddr.sa_data[2],
