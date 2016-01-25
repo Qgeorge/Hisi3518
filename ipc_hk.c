@@ -1324,13 +1324,14 @@ int main(int argc, char* argv[])
 		zlog_fini();
 		return -2;
 	}
-
+/*
 	ZLOG_INFO(zc, "hello, zlog");
 	ZLOG_ERROR(zc, "hello, zlog");
 	zlog_put_mdc("myname","qjq");
 	ZLOG_WARN(zc, "hello, zlog");
 	ZLOG_NOTICE(zc, "hello, zlog");
 	ZLOG_FATAL(zc, "hello, zlog");
+*/
 #endif
 
 	/*获取设备ID*/
@@ -1426,12 +1427,10 @@ int main(int argc, char* argv[])
 	}
 #if (HK_PLATFORM_HI3518E)
 	/*****neck Cruise*****/
-	/*
 	   if (1 == g_DevPTZ) //0:device without PTZ motor; 1:PTZ device.
 	   {
 	   HK_PtzMotor();
 	   }
-	   */
 #endif
 
 	/*hong wai 红外*/

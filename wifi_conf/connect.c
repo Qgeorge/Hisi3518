@@ -186,7 +186,6 @@ int Check_WPACLI_Status(int interval)
 		pfp = popen("wpa_cli status", "r");
 		if (NULL == pfp)
 		{
-
 			fprintf(stderr, "popen failed with: %d, %s\n", errno, strerror(errno));
 			return -1;
 		}
@@ -255,18 +254,9 @@ int connect_the_ap()
 		if( ret == 0 )
 		{
 			printf("connect success\n");
-			return 0;
-		}
-		else
-		{
-			printf("connect failed\n");
-			return -1;
-		}
-
-		if(ret == 0)
-		{
-			ret = system("./time_correction.sh");
-			sleep(3);
+			system("cd /mnt/sif/bin");
+			ret = system("./ntpdate 112.74.129.205");
+			sleep(5);
 			if(ret==0)
 			{
 				printf("correction time successful!!\n");
@@ -275,7 +265,14 @@ int connect_the_ap()
 			{
 				printf("correction time faild!!\n");
 			}
+			return 0;
 		}
+		else
+		{
+			printf("connect failed\n");
+			return -1;
+		}
+
 #endif
 		return 0;
 	}
@@ -320,21 +317,12 @@ int connect_smt_ap()
 			sleep(3);
 		}
 		ret = test_network("s1.uuioe.net");
-		if( ret == 0 )
-		{
-			printf("connect success\n");
-			return 0;
-		}
-		else
-		{
-			printf("connect failed\n");
-			return -1;
-		}
-
 		if(ret == 0)
 		{
-			ret = system("./time_correction.sh");
-			sleep(3);
+			printf("connect success.....\n");
+			system("cd /mnt/sif/bin");
+			ret = system("./ntpdate 112.74.129.205");
+			sleep(5);
 			if(ret==0)
 			{
 				printf("correction time successful!!\n");
@@ -343,162 +331,152 @@ int connect_smt_ap()
 			{
 				printf("correction time faild!!\n");
 			}
-		}
-#if 0
-		if(test_network("s1.uuioe.net") == 0)
-		{
-			ZLOG_INFO(zc,"connect success\n");
 			return 0;
 		}
 		else
+		{
+			printf("connect failed\n");
+			return -1;
+		}
+	}
+}
+int connect_ap_for_test(){
+
+	uint8 tmp[100]={0}, i=0, flag=1;
+	uint8 ipaddr[20]={0}, gateway[20]={0};
+	static uint32 wpa_flag = 0;
+	int ret;
+
+	get_ipaddr(ipaddr);
+	get_gateway(gateway);
+
+	system("/usr/bin/pkill wpa_supplicant");
+	system("/usr/bin/pkill udhcpc");
+	system("/usr/bin/pkill udhcpd");
+	system("ifconfig ra0 down");
+	system("rmmod mt7601Usta.ko");
+	system("rmmod mt7601Uap.ko");
+	sleep(1);
+
+	system("insmod /opt/wifi_driver/mt7601Usta.ko");
+	sleep(1);
+
+	system("wpa_supplicant -Dwext -ira0 -c/etc/wpa_supplicant.conf &");
+
+	//sleep(5);
+	while(flag)
+	{
+		if(Check_WPACLI_Status(1) == 1)
+		{
+			flag = 0;
+			system("/usr/bin/pkill udhcpc");
+		}
+		sleep(1);
+		i++;
+		if(i == 60)
 		{
 			ZLOG_INFO(zc,"connect faild\n");
 			system("/usr/bin/pkill wpa_supplicant");
 			system("/usr/bin/pkill udhcpc");
 			return -1;
 		}
-#endif
 	}
 
-}
-	int connect_ap_for_test(){
+	sprintf(tmp,"ifconfig ra0 %s\n",ipaddr);
+	system(tmp);
 
-		uint8 tmp[100]={0}, i=0, flag=1;
-		uint8 ipaddr[20]={0}, gateway[20]={0};
-		static uint32 wpa_flag = 0;
-		int ret;
-
-		get_ipaddr(ipaddr);
-		get_gateway(gateway);
-
-		system("/usr/bin/pkill wpa_supplicant");
-		system("/usr/bin/pkill udhcpc");
-		system("/usr/bin/pkill udhcpd");
-		system("ifconfig ra0 down");
-		system("rmmod mt7601Usta.ko");
-		system("rmmod mt7601Uap.ko");
-		sleep(1);
-
-		system("insmod /opt/wifi_driver/mt7601Usta.ko");
-		sleep(1);
-
-		system("wpa_supplicant -Dwext -ira0 -c/etc/wpa_supplicant.conf &");
-
-		//sleep(5);
-		while(flag)
+	memset(tmp,0,strlen(tmp));
+	sprintf(tmp,"route add default gw %s\n",gateway);
+	system(tmp);
+	system("route add -net 224.0.0.0 netmask 224.0.0.0 ra0");
+	ret = test_network("s1.uuioe.net");
+	printf("the ret is %d\n",ret);
+	sleep(3);
+	if( ret == 0 )
+	{
+		printf("connect success\n");
+		system("cd /mnt/sif/bin");
+		ret = system("./ntpdate 112.74.129.205");
+		sleep(5);
+		if(ret==0)
 		{
-			if(Check_WPACLI_Status(1) == 1)
-			{
-				flag = 0;
-				system("/usr/bin/pkill udhcpc");
-			}
-			sleep(1);
-			i++;
-			if(i == 60)
-			{
-				ZLOG_INFO(zc,"connect faild\n");
-				system("/usr/bin/pkill wpa_supplicant");
-				system("/usr/bin/pkill udhcpc");
-				return -1;
-			}
-		}
-
-		sprintf(tmp,"ifconfig ra0 %s\n",ipaddr);
-		system(tmp);
-
-		memset(tmp,0,strlen(tmp));
-		sprintf(tmp,"route add default gw %s\n",gateway);
-		system(tmp);
-		system("route add -net 224.0.0.0 netmask 224.0.0.0 ra0");
-		ret = test_network("s1.uuioe.net");
-		if( ret == 0 )
-		{
-			printf("connect success\n");
-			return 0;
+			printf("correction time successful!!\n");
 		}
 		else
 		{
-			printf("connect failed\n");
-			return -1;
-		}
-
-		if(ret == 0)
-		{
-			ret = system("./time_correction.sh"); //调用校正时间脚本，校正系统时间
-			sleep(3);
-			if(ret==0)
-			{
-				printf("correction time successful!!\n");
-			}
-			else
-			{
-				printf("correction time faild!!\n");
-			}
+			printf("correction time faild!!\n");
 		}
 		set_testmode(false);  //测试模式联网后,把配置文件的测试模式项设为false
-	}
-	/* 
-	 * ===  FUNCTION  ======================================================================
-	 *  Name:  smart_config
-	 *  Description:  
-	 * =====================================================================================
-	 */
-	int smart_config(char *userid)
-	{
-		char smt_info[4][100] = {0};
-		char ssid[100] = {0};
-		char password[100] = {0};
-		char cust_data_len[100] = {0};
-		char cust_data[100] = {0};
-		char authmode[50] = {0};
-		char tlv_hex[50] ={0};
-		int len;
-		char auth = '1';
-		int ret = -1;
-		pthread_t tid;
-		router_login_info_p router_msg = NULL;
-
-		system("/usr/bin/pkill wpa_supplicant");
-		system("/usr/bin/pkill udhcpc");
-		system("ifconfig ra0 down");
-		system("ifconfig ra0 up");
-		sleep(1);
-
-		pthread_create (&tid, NULL, gpio_blink_thread, NULL); //smartconfig配置时,绿灯闪烁
-		PlaySound("/mnt/sif/audio/wait.pcm");
-		smartlink_start(&router_msg);
-		printf("send sigint to blink thread .........................................\n");
-		ret = pthread_kill(tid, SIGINT); //smarconfig配置完成后停止闪烁
-		if(ret == ESRCH)
-		{
-			printf("the thread not exit or quit!\n");
-		}else if (ret == EINVAL)
-		{
-			printf("the signal is invailed\n");
-		}else if(ret == 0 )
-		{
-			printf("the signal send successful!\n");
-		}else{
-			pthread_kill(tid, SIGINT); //smarconfig配置完成后停止闪烁
-		}
-		//strcpy(smt_info[0],router_msg->usrname);
-		//strcpy(smt_info[1],router_msg->passwd);
-		//strcpy(smt_info[2],&auth);
-
-
-		memset(userid,0,strlen(userid));
-		sprintf(smt_info[0],"ssid=%s",router_msg->usrname);
-		sprintf(smt_info[1],"pwd=%s",router_msg->passwd);
-		strcpy(userid,router_msg->userid);
-
-
-		printf("smt_info[0]:%s\n",smt_info[0]);
-		printf("smt_info[1]:%s\n",smt_info[1]);
-
-		sleep(1);
-
-		save_wifi_info(smt_info);
-
-
 		return 0;
 	}
+	else
+	{
+		printf("connect failed\n");
+		return -1;
+	}
+}
+/* 
+ * ===  FUNCTION  ======================================================================
+ *  Name:  smart_config
+ *  Description:  
+ * =====================================================================================
+ */
+int smart_config(char *userid)
+{
+	char smt_info[4][100] = {0};
+	char ssid[100] = {0};
+	char password[100] = {0};
+	char cust_data_len[100] = {0};
+	char cust_data[100] = {0};
+	char authmode[50] = {0};
+	char tlv_hex[50] ={0};
+	int len;
+	char auth = '1';
+	int ret = -1;
+	pthread_t tid;
+	router_login_info_p router_msg = NULL;
+
+	system("/usr/bin/pkill wpa_supplicant");
+	system("/usr/bin/pkill udhcpc");
+	system("ifconfig ra0 down");
+	system("ifconfig ra0 up");
+	sleep(1);
+
+	pthread_create (&tid, NULL, gpio_blink_thread, NULL); //smartconfig配置时,绿灯闪烁
+	PlaySound("/mnt/sif/audio/wait.pcm");
+	smartlink_start(&router_msg);
+	printf("send sigint to blink thread .........................................\n");
+	ret = pthread_kill(tid, SIGINT); //smarconfig配置完成后停止闪烁
+	if(ret == ESRCH)
+	{
+		printf("the thread not exit or quit!\n");
+	}else if (ret == EINVAL)
+	{
+		printf("the signal is invailed\n");
+	}else if(ret == 0 )
+	{
+		printf("the signal send successful!\n");
+	}else{
+		pthread_kill(tid, SIGINT); //smarconfig配置完成后停止闪烁
+	}
+	//strcpy(smt_info[0],router_msg->usrname);
+	//strcpy(smt_info[1],router_msg->passwd);
+	//strcpy(smt_info[2],&auth);
+
+
+	memset(userid,0,strlen(userid));
+	sprintf(smt_info[0],"ssid=%s",router_msg->usrname);
+	sprintf(smt_info[1],"pwd=%s",router_msg->passwd);
+	strcpy(userid,router_msg->userid);
+
+
+	printf("smt_info[0]:%s\n",smt_info[0]);
+	printf("smt_info[1]:%s\n",smt_info[1]);
+
+	sleep(1);
+
+	save_wifi_info(smt_info);
+
+
+	return 0;
+}
