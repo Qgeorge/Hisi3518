@@ -131,19 +131,20 @@ int start_store_video(PEER_INFO * _pLink, int flag)
  *==============================================*/
 int get_video_list(PEER_INFO * _pLink, int locattime)
 {
+	//该sendinfo最多可获得64*24个视频集合
 	info *sendinfo = (info *)malloc(sizeof(info)+sizeof(int)*64*24);
 	if(sendinfo == NULL)
 	{
 		printf("malloc error\n");
 		return -1;
 	}
-	sendinfo->cmdid = 6;
+	sendinfo->cmdid = 6;  
 
 	int count;
 	struct tm* tmp_time  = (struct tm*)malloc(sizeof(struct tm));
 	printf("**********locattime********************%d\n", locattime);
 	tmp_time = gmtime(&locattime);
-
+	
 	count = record_list(sendinfo->pinfo+1, 64*24);
 	//count = av_record_search(tmp_time->tm_year+1900, tmp_time->tm_mon+1, tmp_time->tm_mday+1, sendinfo->pinfo+1, 60*24);
 	sendinfo->pinfo[0] = count;

@@ -15,7 +15,7 @@
  *
  * =====================================================================================
  */
-#if 0
+#if 1
 int get_sd_valid(PEER_INFO * _pLink);
 
 int get_sd_size(PEER_INFO * _pLink);

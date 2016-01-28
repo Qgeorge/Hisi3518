@@ -308,7 +308,7 @@ void get_sd_conf()
  */
 int CheckSDStatus()
 {
-	struct stat st;
+	struct stat st;//记录文件信息
 	if (0 == stat("/dev/mmcblk0", &st))
 	{
 		if (0 == stat("/dev/mmcblk0p1", &st))
@@ -322,7 +322,6 @@ int CheckSDStatus()
 			return 2;
 		}
 	}
-
 	return 0;
 }
 

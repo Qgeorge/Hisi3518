@@ -3,6 +3,7 @@
 #include "hi_type.h"
 #include "ipc_p2p_cmd.h"
 #include <pthread.h>
+#include "g711codec.h"
 
 #define  MAX_SIZE  (512*1024)
 #define ENABLE_P2P
@@ -276,6 +277,8 @@ void *TskRcvTalkData(void *pArgs)
 #endif
 {
 	CHAR cTalkData[32*1024];
+	CHAR pcm_buf[32*1024];
+	INT32 pcm_len;
 	INT32 nLen = 0;
 	INT32 nRet =0;
 	AUDIO_STREAM_S stAudioStream;
@@ -290,10 +293,13 @@ void *TskRcvTalkData(void *pArgs)
 		nRet = P2PNetServerGetTalkData(g_TalkPeer,cTalkData,&nLen,1);
 		if(0==nRet)
 		{
-			printf("########################################getdata#######################\n");
 			dbgmsg("Rcv talk data  :%d \n",nLen);
+			memset(pcm_buf,0,sizeof(pcm_buf));
+			pcm_len = G711a2PCM( (char *)cTalkData, (char *)pcm_buf, nLen, 0 );
+			printf("########################################getdata#######################\n");
 			//add by biaobiao
-			P2P_Write(cTalkData, nLen, NULL);
+		//	P2P_Write(cTalkData, nLen, NULL);
+			P2P_Write(pcm_buf, pcm_len, NULL);
 		}
 		//对讲连接中断清楚对讲信息
 		else if(-1==nRet)

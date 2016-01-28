@@ -48,6 +48,6 @@ extern short g_sdIsOnline_f;
 extern void get_sd_conf();
 extern void hk_load_sd();
 extern short get_sdIsOnline();
-
+extern int CheckSDStatus();
 
 #endif

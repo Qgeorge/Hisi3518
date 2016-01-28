@@ -44,6 +44,7 @@
 extern INT32 p2p_server_f(); 
 #include "net_http.h"
 #include "ipc_sd.h"
+#include "g711codec.h"
 #endif
 
 //存储的锁 add by biaobiao
