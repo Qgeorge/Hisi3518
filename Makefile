@@ -26,13 +26,14 @@ INCPATH     = -I . -I ./exlib/system/include 		  \
 			  -I ./exlib/openssl_3518/lib_openssl/include	\
 			  -I ./exlib/zlib/include   \
 			  -I ./wifi_conf/smartconfig/ \
-			  -I ./exlib/system/include/ 
+			  -I ./exlib/system/include/ \
+			  -I ./netsdk/
 #			  -I $(PRO_DIR)/Hi3518_SDK_V1.0.8.1/drv/hisi-irda	  
 
 #LIBPATH     = -L ../lib_so -lsystem -lchinalink -lnetfactory -lutils 
 LIBPATH     = -L ./exlib/lib_so  -lutils \
 			  -L ./exlib/p2p_server/lib/arm-hisiv100nptl-linux-gcc -lp2p -lpthread -lm \
-			  -L ./exlib/record/lib  -lrecord \
+			  -L ./exlib/record/librecord/src  -lrecord \
 			  -L ./exlib/amr-lib/lib \
 			  -L ./libs_HI3511  -lSampleComm -lwificonfig -lnethttp \
 			  -L ./exlib/libghttp/lib -lghttp \
@@ -42,7 +43,7 @@ LIBPATH     = -L ./exlib/lib_so  -lutils \
 #			  -L ./wifi_conf/smartconfig -lsmt
 LINKFLAGS   = -Wall -g
 #COMPFLAGS   = -c -O2 -fPIC -lpthread -D_GNU_SOURCE -D_HKIPC -DRTSARM -Wimplicit-function-declaration -Werror
-COMPFLAGS   = -c -O2 -fPIC -lpthread -D_GNU_SOURCE -D_HKIPC -DG711 -DRTSARM -Wimplicit-function-declaration
+COMPFLAGS   = -c -O2 -fPIC -lpthread -D_GNU_SOURCE -D_HKIPC  -DRTSARM -Wimplicit-function-declaration
 CXX         = arm-hisiv100nptl-linux-gcc
 
 

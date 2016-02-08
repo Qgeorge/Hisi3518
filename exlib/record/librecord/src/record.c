@@ -13,7 +13,6 @@
 #include "flvenc.h"
 #include "flvdec.h"
 #include "record.h"
-#include "ipc_sd.h"
 #define min(x, y)    ((x) < (y) ? (x) : (y))
 
 static char g_mount_point[1024] = {0};
@@ -36,6 +35,7 @@ int av_record_quit(void)
     return 0;
 }
 
+extern int CheckSDStatus();
 
 static void get_dirname(int year, int month, int day, int hour, char *dirname, int len)
 {
@@ -207,7 +207,7 @@ static int prepare_recording(int keyframe)
 int av_record_write(int codec, void *buf, int len, int64_t time_ms, int keyframe)
 {
 	if(CheckSDStatus()!=1)
-	  retutn -2;
+	  return -2;
    
 	//每次写入前,都要prepare下----->prepare_recording主要是检测文件有没写满1min,是否需要转换文件和
 	//sd卡的内存剩余多少需不需要释放里面的空间
@@ -255,7 +255,7 @@ av_record_t *av_record_open(int year, int month, int day, int hour, int minute)
 {
 	//打开一个flv文件可能在时光倒流的时候需要被外部调用，因此需要先检查sd卡是否存在
 	if(CheckSDStatus()!=1)
-	  retutn NULL;
+	  return NULL;
     
 	char filepath[1024];
     get_filepath(year, month, day, hour, minute, filepath, sizeof(filepath));
@@ -285,7 +285,7 @@ int av_record_close(av_record_t *rec)
 int av_record_read(av_record_t *rec, av_frame_t *frame)
 {
 	if(CheckSDStatus()!=1)
-	  retutn -2;
+	  return -2;
     
 	av_packet_t pkt; //该结构体对应一帧的数据
     if (flvdec_read(rec->dec, &pkt) < 0)
@@ -303,6 +303,95 @@ int av_record_read(av_record_t *rec, av_frame_t *frame)
     return 0;
 }
 
+
+static int customFilter(const struct dirent *pDir)
+{
+	const char *ptr = NULL;
+	int name_len = 0, count = 0;  //程序存储的文件名
+	ptr = pDir->d_name;
+	name_len = strlen(ptr);
+		printf("line:%d func:%s name:%s\n",__LINE__, __FUNCTION__,ptr);
+		if(name_len == 18 || name_len == 2 || name_len == 10)  //正确的文件名有可能是这三个长度
+		{
+			if(name_len == 18)   
+			{
+				for(count=0;count<9;count++)  //若文件名的长度为18的话，那么对应的就是具体flv的文件名,前9个字符必须为数字，第10个字符必须为T  
+				{
+					printf("line:%d func:%s char:%c\n",__LINE__, __FUNCTION__,*(ptr+count));
+					if(!isdigit(*(ptr+count)))  //若该字符是在'0'-'9'之间的话isdigit会返回1 否则返回0
+					  return 0;
+				}
+					printf("line:%d func:%s char:%c\n",__LINE__, __FUNCTION__,*(ptr+count));
+				if(!strncmp(ptr+count,"T",1))
+				  return 1;
+				else
+				  return 0;
+			}
+
+			else if(name_len == 2)   //若文件名的长度为2的话，那么对应的就是某个小时的文件夹，文件名全部应由数字组成
+			{
+				if(isdigit(*(ptr+count)))
+				{
+					printf("line:%d func:%s char:%c\n",__LINE__, __FUNCTION__,*(ptr+count));
+					count++;
+					if(isdigit(*(ptr+count)))
+					  return 1;
+					else
+					  return 0;
+				}
+				else
+				{
+					printf("line:%d func:%s char:%c\n",__LINE__, __FUNCTION__,*(ptr+count));
+					return 0;
+				}
+			}
+			
+			else if(name_len == 10) //若文件名的长度为10的话，那么对应的就是具体某一天的文件夹
+			{
+				for(count=0;count<4;count++)
+				{
+					printf("line:%d func:%s char:%c\n",__LINE__, __FUNCTION__,*(ptr+count));
+					if(!isdigit(*(ptr+count)))
+					  return 0;
+				}
+					printf("line:%d func:%s char:%c\n",__LINE__, __FUNCTION__,*(ptr+count));
+				if(strncmp(ptr+count,"-",1))
+				  return 0;
+			
+			printf("line:%d func:%s\n",__LINE__, __FUNCTION__);
+					printf("line:%d func:%s char:%c\n",__LINE__, __FUNCTION__,*(ptr+count));
+				count++;
+
+				for(;count<7;count++)
+				{
+					printf("line:%d func:%s char:%c\n",__LINE__, __FUNCTION__,*(ptr+count));
+					if(!isdigit(*(ptr+count)))
+					  return 0;
+				}
+
+					printf("line:%d func:%s char:%c\n",__LINE__, __FUNCTION__,*(ptr+count));
+				if(strncmp(ptr+count,"-",1))
+				  return 0;
+				
+				count++;
+				
+				for(;count<10;count++)
+				{
+					printf("line:%d func:%s char:%c\n",__LINE__, __FUNCTION__,*(ptr+count));
+					if(!isdigit(*(ptr+count)))
+					  return 0;
+				}
+					printf("line:%d func:%s char:%c\n",__LINE__, __FUNCTION__,*(ptr+count));
+
+				return 1;
+			}
+	}
+	else
+	{
+		return 0;
+	}
+}
+/*
 static int customFilter(const struct dirent *pDir)
 {
 	//将隐藏的.和..目录过滤掉
@@ -312,12 +401,13 @@ static int customFilter(const struct dirent *pDir)
 	}
 	return 0;  //返回0的话表示不想将此目录结构存到namelist中
 }
+*/
 
 //timeinfos包含指定一天nmemb个视频的时间索引信息
 int av_record_search(int year, int month, int day, int *timeinfos, int nmemb)
 {
 	if(CheckSDStatus()!=1)
-	  retutn -2;
+	  return -2;
 
     int count = 0;
     int hour;
@@ -333,29 +423,45 @@ int av_record_search(int year, int month, int day, int *timeinfos, int nmemb)
         int n = scandir(dirname, &namelist, customFilter, alphasort); //将特定目录下的文件信息存储到namelist中
         if (n <= 0)
             continue;
-
+	int count = 0;
+	for(count=0;count<n;count++)
+	{
+		printf("the %d file name:%s\n",count,*(namelist+count));
+	}
         int i;
         for (i = 0; i < n; i++) {
+			printf("line:%d func:%s\n",__LINE__, __FUNCTION__);
             record_info_t infos; //该结构体对应一个具体时间(精确到min)
+			printf("line:%d func:%s\n",__LINE__, __FUNCTION__);
             record_info_t *info = &infos;
+			printf("line:%d func:%s\n",__LINE__, __FUNCTION__);
             memset(info, 0, sizeof(record_info_t));
+			printf("line:%d func:%s\n",__LINE__, __FUNCTION__);
 			//if(strcmp())
             int ret = sscanf(namelist[i]->d_name, "%04d%02d%02dT%02d%02d.flv",
                     &info->year, &info->month, &info->day, &info->hour, &info->minute);
+			printf("line:%d func:%s\n",__LINE__, __FUNCTION__);
             if (ret != 5)
                 continue;
 			sprintf(chartime, "%04d-%02d-%02d-%02d-%02d", info->year, info->month, info->day, info->hour, info->minute);
+			printf("line:%d func:%s\n",__LINE__, __FUNCTION__);
 			strptime(chartime, "%Y-%m-%d-%H-%M", tmp_time);
+			printf("line:%d func:%s\n",__LINE__, __FUNCTION__);
 			timeinfos[count] = mktime(tmp_time); //mktime将时间转换成秒数,方便存储和索引
+			printf("line:%d func:%s\n",__LINE__, __FUNCTION__);
             count++;
+			printf("line:%d func:%s\n",__LINE__, __FUNCTION__);
             if (count >= nmemb)
                 break;
         }   
 		
         for (i = 0; i < n; i++)
             free(namelist[i]);//scandir 是在堆分配的空间,因此在使用后需要释放掉
+			printf("line:%d func:%s\n",__LINE__, __FUNCTION__);
         free(namelist);
+			printf("line:%d func:%s\n",__LINE__, __FUNCTION__);
     }
+			printf("line:%d func:%s\n",__LINE__, __FUNCTION__);
 	free(tmp_time);
     return count;
 }

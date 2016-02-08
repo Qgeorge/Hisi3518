@@ -25,7 +25,7 @@ int play_minute()
 
 	av_record_init("/nfsroot/record");
 circle:
-	play_handle = av_record_open(2015, 6, 27, 23, 19 );
+	play_handle = av_record_open(2015, 1, 29, 11, 48 );
 	while(1)
 	{
 		ret = av_record_read(play_handle, av_frame);

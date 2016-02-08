@@ -19,7 +19,7 @@
 #include <dirent.h>
 #include <string.h>
 #include <stdlib.h>
-
+#include <ctype.h>
 typedef struct time_st
 {
 	int year;
@@ -32,8 +32,11 @@ int convert_str(time_st * tm, char *stime)
 {
 	char *delim = "-";
 	char *p;
+	printf("the time : %s\n",stime);
 	tm->year = atoi(strtok(stime, delim)); 
+	printf("the year : %d\n",tm->year);
 	tm->month = atoi(strtok(NULL, delim));
+	printf("the month : %d\n",tm->month);
 	tm->day = atoi(strtok(NULL, delim));
 	printf("%d %d %d\n", tm->year, tm->month, tm->day);
 	return 0;
@@ -75,13 +78,94 @@ int filter_numer(int num[], int len, int get_num[])
 	return j;
 
 }
+
 static int customFilter(const struct dirent *pDir)
 {
-	if (strcmp(pDir->d_name, ".") && strcmp(pDir->d_name, ".."))
-	{
-		return 1;
+	const char *ptr = NULL;
+	int name_len = 0, count = 0;  //程序存储的文件名
+	ptr = pDir->d_name;
+	name_len = strlen(ptr);
+		printf("line:%d func:%s name:%s\n",__LINE__, __FUNCTION__,ptr);
+		if(name_len == 18 || name_len == 2 || name_len == 10)  //正确的文件名有可能是这三个长度
+		{
+			if(name_len == 18)   
+			{
+				for(count=0;count<9;count++)  //若文件名的长度为18的话，那么对应的就是具体flv的文件名,前9个字符必须为数字，第10个字符必须为T  
+				{
+					printf("line:%d func:%s char:%c\n",__LINE__, __FUNCTION__,*(ptr+count));
+					if(!isdigit(*(ptr+count)))  //若该字符是在'0'-'9'之间的话isdigit会返回1 否则返回0
+					  return 0;
+				}
+					printf("line:%d func:%s char:%c\n",__LINE__, __FUNCTION__,*(ptr+count));
+				if(!strncmp(ptr+count,"T",1))
+				  return 1;
+				else
+				  return 0;
+			}
+
+			else if(name_len == 2)   //若文件名的长度为2的话，那么对应的就是某个小时的文件夹，文件名全部应由数字组成
+			{
+				if(isdigit(*(ptr+count)))
+				{
+					printf("line:%d func:%s char:%c\n",__LINE__, __FUNCTION__,*(ptr+count));
+					count++;
+					if(isdigit(*(ptr+count)))
+					  return 1;
+					else
+					  return 0;
+				}
+				else
+				{
+					printf("line:%d func:%s char:%c\n",__LINE__, __FUNCTION__,*(ptr+count));
+					return 0;
+				}
+			}
+			
+			else if(name_len == 10) //若文件名的长度为10的话，那么对应的就是具体某一天的文件夹
+			{
+				for(count=0;count<4;count++)
+				{
+					printf("line:%d func:%s char:%c\n",__LINE__, __FUNCTION__,*(ptr+count));
+					if(!isdigit(*(ptr+count)))
+					  return 0;
+				}
+					printf("line:%d func:%s char:%c\n",__LINE__, __FUNCTION__,*(ptr+count));
+				if(strncmp(ptr+count,"-",1))
+				  return 0;
+			
+			printf("line:%d func:%s\n",__LINE__, __FUNCTION__);
+					printf("line:%d func:%s char:%c\n",__LINE__, __FUNCTION__,*(ptr+count));
+				count++;
+
+				for(;count<7;count++)
+				{
+					printf("line:%d func:%s char:%c\n",__LINE__, __FUNCTION__,*(ptr+count));
+					if(!isdigit(*(ptr+count)))
+					  return 0;
+				}
+
+					printf("line:%d func:%s char:%c\n",__LINE__, __FUNCTION__,*(ptr+count));
+				if(strncmp(ptr+count,"-",1))
+				  return 0;
+				
+				count++;
+				
+				for(;count<10;count++)
+				{
+					printf("line:%d func:%s char:%c\n",__LINE__, __FUNCTION__,*(ptr+count));
+					if(!isdigit(*(ptr+count)))
+					  return 0;
+				}
+					printf("line:%d func:%s char:%c\n",__LINE__, __FUNCTION__,*(ptr+count));
+
+				return 1;
+			}
 	}
-	return 0;
+	else
+	{
+			printf("line:%d func:%s\n",__LINE__, __FUNCTION__);
+		return 0;
+	}
 }
 
 
@@ -103,6 +187,12 @@ int record_list(int get_num[], int len)
 	p = get_num;
 	int i = 0;
 	n = scandir("/mnt/mmc/uusmt", &namelist, customFilter, alphasort);
+	int count = 0;
+	for(count=0;count<n;count++)
+	{
+		printf("the %d file name:%s\n",count,*(namelist+count));
+	}
+
 	if (n < 0)
 	{
 		perror("not found\n");
@@ -112,8 +202,7 @@ int record_list(int get_num[], int len)
 		printf("*******************%d\n", time(NULL));
 		while(n--)
 		{
-				
-			convert_str(&tmp_time_st, namelist[n]->d_name);
+			convert_str(&tmp_time_st, namelist[n]->d_name);  //fix me ...
 			//sprintf(namelist[n]->d_name,"%d-%d-%d",year, month, day);
 			//printf("the %d %d %d\n", year, month, day);
 			

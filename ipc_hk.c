@@ -227,7 +227,7 @@ static void Daemonize( void )
 	signal(SIGTSTP,SIG_IGN); 
 }
 
-static void create_detached_thread(void* (*func)(void*), void* arg)
+static void create_detached_thread(INT32 (*func)(void*), void* arg)
 {
 	pthread_t tid;
 	pthread_attr_t a;
@@ -1301,6 +1301,9 @@ int CheckWifi()
 int g_wifimod = 1;
 int main(int argc, char* argv[])
 {
+	//
+	printf("start...............................\n");
+	sleep(3);
 	/*IRCUT的类型,调节IRCUT的灵敏度*/
 	int IRCutBoardType = 0;
 	/*Sensor的类型*/

@@ -20,7 +20,8 @@
 #include <time.h>
 #include "P2Pserver.h"
 #include "ipc_sd.h"
-
+#include <pthread.h>
+#include <signal.h>
 typedef struct info                                                                                                                                                     {   
 	int cmdid;
 	int pinfo[0];
@@ -118,7 +119,7 @@ int start_store_video(PEER_INFO * _pLink, int flag)
 	sendinfo->cmdid = 5;
 	g_start_video = flag;
 	printf("*************set record_status g_start_video %d\n", g_start_video);
-	
+
 	sendinfo->pinfo[0] = 0;
 	SendCmdIntLink(_pLink, (int*)sendinfo, 2*sizeof(int));
 
@@ -144,7 +145,7 @@ int get_video_list(PEER_INFO * _pLink, int locattime)
 	struct tm* tmp_time  = (struct tm*)malloc(sizeof(struct tm));
 	printf("**********locattime********************%d\n", locattime);
 	tmp_time = gmtime(&locattime);
-	
+
 	count = record_list(sendinfo->pinfo+1, 64*24);
 	//count = av_record_search(tmp_time->tm_year+1900, tmp_time->tm_mon+1, tmp_time->tm_mday+1, sendinfo->pinfo+1, 60*24);
 	sendinfo->pinfo[0] = count;
@@ -153,6 +154,7 @@ int get_video_list(PEER_INFO * _pLink, int locattime)
 	{
 		printf("the remsg is %d\n", sendinfo->pinfo[i]);
 	}
+
 	SendCmdIntLink(_pLink, sendinfo, (count+1)*sizeof(int));
 
 	free(sendinfo);
@@ -166,17 +168,42 @@ int play_minute();
  *==============================================*/
 int locat_video_time(PEER_INFO * _pLink, int locattime)
 {
-	pthread_t   thrd;
+	int ret = -1;
+	static pthread_t   thrd;
 	pthread_attr_t   attr;
-//	pthread_cancel(thrd);
+	//	pthread_cancel(thrd);
 	pthread_attr_init(&attr);   
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 	printf("@@@@@@@@@@@@locattime*******%d*****\n", locattime);
+
+	printf("the thread id:%d line:%d func:%s\n",thrd,__LINE__,__FUNCTION__);
+	if(g_play_minute == 0)
+	{
+		printf("to kill play thread!!\n");
+		ret = pthread_kill(thrd, SIGINT); //杀掉上次的play_minute进程
+		if(ret == ESRCH)
+		{
+			printf("the thread not exit or quit!\n");
+		}else if (ret == EINVAL)
+		{
+			printf("the signal is invailed\n");
+		}else if(ret == 0 )
+		{
+			printf("the signal send successful!\n");
+		}else{
+			pthread_kill(thrd, SIGINT); //第一次杀不死，在杀一次
+		}
+	}
+
+	usleep(1000);
+
 	if(pthread_create(&thrd, &attr, play_minute, &locattime))
 	{
 		perror( "pthread_create   error ");
 		return 0;
 	}
+
+	printf("the thread id:%d line:%d func:%s\n",thrd,__LINE__,__FUNCTION__);
 	printf("@@@@@@@@@@@@locattime*******%d*****\n",__LINE__);
 	info *sendinfo = (info *)malloc(sizeof(info)+sizeof(int)*1);
 	if(sendinfo == NULL)

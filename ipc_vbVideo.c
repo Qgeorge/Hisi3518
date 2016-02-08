@@ -1420,7 +1420,13 @@ int SubStreamConfigurate(void)
 	int s_Saturation    = conf_get_int(HOME_DIR"/subipc.conf", "sat");
 	int s_Contrast      = conf_get_int(HOME_DIR"/subipc.conf", "con");
 	int s_Brightness    = conf_get_int(HOME_DIR"/subipc.conf", "bri");
-	int s_Sharpness     = conf_get_int(HOME_DIR"/subipc.conf", "sha");
+{
+	int ret = 0;
+	int s_EncResolution = conf_get_int(HOME_DIR"/subipc.conf", "enc");
+	int s_BitRate       = conf_get_int(HOME_DIR"/subipc.conf", "stream");
+	int s_FrameRate     = conf_get_int(HOME_DIR"/subipc.conf", "rate");
+	int s_Smooth        = conf_get_int(HOME_DIR"/subipc.conf", "smooth");
+		int s_Sharpness     = conf_get_int(HOME_DIR"/subipc.conf", "sha");
 	HK_DEBUG_PRT("...g_s32sunvenchn:%d, s_EncResolution:%d, s_BitRate:%d, s_FrameRate:%d, s_Smooth:%d, s_Saturation:%d, s_Contrast:%d, s_Brightness:%d, s_Sharpness:%d...\n", g_s32sunvenchn, s_EncResolution, s_BitRate, s_FrameRate, s_Smooth, s_Saturation, s_Contrast, s_Brightness, s_Sharpness);
 
 	switch (s_EncResolution)
@@ -1436,7 +1442,7 @@ int SubStreamConfigurate(void)
 			break;
 	}
 
-	ret = HISI_SetBitRate(g_s32sunvenchn, s_BitRate);
+	ret = HISI_SetBitRate(g_s32sunvenchn, s_BitRate);  //设置编码通道的码率
 	if (ret)
 	{
 		printf("[%s, %d] set bitrate failed !\n", __func__, __LINE__);
@@ -1447,7 +1453,7 @@ int SubStreamConfigurate(void)
 	{
 		s_FrameRate = 15;
 	}
-	ret = HISI_SetFrameRate(g_s32sunvenchn, s_FrameRate);
+	ret = HISI_SetFrameRate(g_s32sunvenchn, s_FrameRate);  //设置编码通道的帧率
 	if (ret)
 	{
 		printf("[%s, %d] set frame rate failed !\n", __func__, __LINE__);

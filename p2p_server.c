@@ -4,6 +4,7 @@
 #include "ipc_p2p_cmd.h"
 #include <pthread.h>
 #include "g711codec.h"
+#include "get_deviceid.h"
 
 #define  MAX_SIZE  (512*1024)
 #define ENABLE_P2P
